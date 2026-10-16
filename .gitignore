@@ -1,0 +1,8 @@
+node_modules
+node_modules/
+*.log
+.DS_Store
+
+# Local HTTP-400 probe scratch scripts (not published)
+probe-*.mts
+proxy-capture.mjs

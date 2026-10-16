@@ -1,0 +1,35 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"rules": {
+		"no-unused-vars": "error",
+		"no-undef": "off",
+		"eqeqeq": "error",
+		"array-callback-return": "error",
+		"no-promise-executor-return": "error",
+		"no-throw-literal": "error",
+		"prefer-promise-reject-errors": "error",
+		"no-shadow": "error",
+		"no-fallthrough": "error",
+		"ban-ts-comment": "error",
+		"no-else-return": "error",
+		"no-unneeded-ternary": "error",
+		"no-useless-constructor": "error",
+		"no-this-in-exported-function": "error",
+		"no-extraneous-class": "error",
+		"consistent-function-scoping": "error",
+		"preserve-caught-error": "error",
+		"no-prototype-builtins": "error",
+		"no-accumulating-spread": "error",
+		"prefer-array-flat-map": "error",
+		"no-non-null-assertion": "error",
+		"no-console": "error"
+	},
+	"overrides": [
+		{
+			"files": ["tools/**"],
+			"rules": {
+				"no-console": "off"
+			}
+		}
+	]
+}
