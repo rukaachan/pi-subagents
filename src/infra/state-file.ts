@@ -11,6 +11,15 @@ export const STATE_VERSION = 1;
 export const STATE_FILE_NAME = "pi-subagents-state.json";
 /** Resume reads the tail, so 60 messages bound the row. */
 export const MAX_HISTORY_MESSAGES = 60;
+/**
+ * A character budget for those messages.
+ *
+ * Message count alone is not a size bound: 60 tool results can be megabytes,
+ * and every save rewrites the whole state file. Oldest messages are dropped
+ * first, and the newest message always survives so a resume still has the
+ * last turn.
+ */
+export const MAX_HISTORY_CHARS = 24_000;
 export const MAX_RESULT_CHARS = 60_000;
 export const MAX_STATE_BYTES = 2_000_000;
 
@@ -29,8 +38,23 @@ export function defaultStatePath(agentDir?: string): string {
 
 export function capRecord(rec: TaskRecord): TaskRecord {
 	const out: TaskRecord = { ...rec };
-	if (Array.isArray(out.history) && out.history.length > MAX_HISTORY_MESSAGES) {
-		out.history = out.history.slice(-MAX_HISTORY_MESSAGES);
+	if (Array.isArray(out.history)) {
+		let history = out.history;
+		if (history.length > MAX_HISTORY_MESSAGES) history = history.slice(-MAX_HISTORY_MESSAGES);
+		const sizes = history.map((message) => {
+			try {
+				return JSON.stringify(message)?.length ?? 0;
+			} catch {
+				return 0;
+			}
+		});
+		let total = sizes.reduce((sum, size) => sum + size, 0);
+		let start = 0;
+		while (start < history.length - 1 && total > MAX_HISTORY_CHARS) {
+			total -= sizes[start] ?? 0;
+			start += 1;
+		}
+		out.history = history.slice(start);
 	}
 	if (out.result && out.result.text.length > MAX_RESULT_CHARS) {
 		out.result = {
@@ -81,6 +105,36 @@ export function loadState(statePath: string): PersistedState | null {
 		return decodeState(fs.readFileSync(statePath, "utf-8"));
 	} catch {
 		return null;
+	}
+}
+
+let asyncSeq = 0;
+
+/**
+ * Write atomically (tmp + rename) without blocking the event loop.
+ *
+ * `isCurrent` lets the caller cancel a stale snapshot before the rename, so a
+ * newer synchronous flush can never be overwritten by an older async write.
+ * Never throws.
+ */
+export async function saveStateAsync(
+	statePath: string,
+	json: string,
+	isCurrent: () => boolean = () => true,
+): Promise<{ error?: string }> {
+	try {
+		await fs.promises.mkdir(path.dirname(statePath), { recursive: true });
+		asyncSeq += 1;
+		const tmp = `${statePath}.${process.pid}.${asyncSeq}.tmp`;
+		await fs.promises.writeFile(tmp, json, "utf-8");
+		if (!isCurrent()) {
+			await fs.promises.rm(tmp, { force: true });
+			return {};
+		}
+		await fs.promises.rename(tmp, statePath);
+		return {};
+	} catch (err) {
+		return { error: err instanceof Error ? err.message : String(err) };
 	}
 }
 

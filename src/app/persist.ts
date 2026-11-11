@@ -10,6 +10,7 @@ import {
 	encodeState,
 	loadState,
 	saveState,
+	saveStateAsync,
 	STATE_VERSION,
 	type PersistedState,
 } from "../infra/state-file.ts";
@@ -56,12 +57,29 @@ export function attachPersistence(
 	statePath = defaultStatePath(),
 ): () => void {
 	let timer: ReturnType<typeof setTimeout> | null = null;
+	// Every save gets a generation. A synchronous flush bumps it, so an async
+	// write that started earlier sees `isCurrent() === false` and drops its tmp
+	// file instead of renaming over the newer state.
+	let generation = 0;
 	const flush = () => {
 		if (timer) {
 			clearTimeout(timer);
 			timer = null;
 		}
+		generation += 1;
 		saveState(statePath, encodeState(serializeState(store, ledger)));
+	};
+	const schedule = () => {
+		if (timer) return;
+		timer = setTimeout(() => {
+			timer = null;
+			generation += 1;
+			const current = generation;
+			const json = encodeState(serializeState(store, ledger));
+			// Encoding stays on this thread (it reads live objects); the write
+			// and rename, which block on the file system, run off it.
+			void saveStateAsync(statePath, json, () => current === generation);
+		}, SAVE_DEBOUNCE_MS);
 	};
 	const onExit = () => flush();
 	try {
@@ -69,13 +87,7 @@ export function attachPersistence(
 	} catch {
 		/* no process hooks in some hosts */
 	}
-	store.onChange = () => {
-		if (timer) return;
-		timer = setTimeout(() => {
-			timer = null;
-			saveState(statePath, encodeState(serializeState(store, ledger)));
-		}, SAVE_DEBOUNCE_MS);
-	};
+	store.onChange = schedule;
 	return () => {
 		store.onChange = null;
 		try {
