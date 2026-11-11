@@ -1,7 +1,7 @@
 /**
  * pi-subagents: folding journal lines into per-run state.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { defaultJournalPath } from "./journal-path.ts";
 
 export interface JournalRun {
@@ -28,31 +28,115 @@ export interface JournalRun {
 
 export const STALE_AFTER_MS = 15 * 60 * 1000;
 
-export function foldJournalFile(path = defaultJournalPath(), maxLines = 20_000): JournalRun[] {
-	try {
-		let text = "";
+/** A journal file with its identity at one instant. */
+interface JournalFile {
+	path: string;
+	/** Nanosecond mtime and byte size, so a rewrite can never look unchanged. */
+	key: string;
+}
+
+interface FoldCache {
+	key: string;
+	runs: JournalRun[];
+}
+
+const foldCache = new Map<string, FoldCache>();
+const idCache = new Map<string, FoldCache>();
+const CACHE_LIMIT = 4;
+
+/** A cached run must never be mutated by a caller, so every return is a copy. */
+function cloneRun(run: JournalRun): JournalRun {
+	return {
+		...run,
+		...(run.recent ? { recent: run.recent.map((step) => ({ ...step })) } : {}),
+	};
+}
+
+function remember(
+	cache: Map<string, FoldCache>,
+	path: string,
+	key: string,
+	runs: JournalRun[],
+): void {
+	cache.delete(path);
+	cache.set(path, { key, runs });
+	if (cache.size > CACHE_LIMIT) {
+		const oldest = cache.keys().next().value;
+		if (oldest !== undefined) cache.delete(oldest);
+	}
+}
+
+/** The live file, or the rotated one when the live file is missing. */
+function journalFile(path: string): JournalFile | null {
+	for (const candidate of [path, `${path}.1`]) {
 		try {
-			text = readFileSync(path, "utf8");
+			const stat = statSync(candidate, { bigint: true });
+			return { path: candidate, key: `${stat.mtimeNs}:${stat.size}` };
 		} catch {
-			text = "";
+			/* try the rotated file */
 		}
-		if (!text) {
-			try {
-				text = readFileSync(`${path}.1`, "utf8");
-			} catch {
-				text = "";
-			}
-		}
-		return foldJournal(text.split("\n").slice(-maxLines));
+	}
+	return null;
+}
+
+function linesOf(path: string, maxLines: number): string[] {
+	try {
+		return readFileSync(path, "utf8").split("\n").slice(-maxLines);
 	} catch {
 		return [];
 	}
 }
 
-/** One run's folded state by id, newest file first. Never throws. */
+export function foldJournalFile(path = defaultJournalPath(), maxLines = 20_000): JournalRun[] {
+	const file = journalFile(path);
+	if (!file) return [];
+	const cached = foldCache.get(file.path);
+	if (cached && cached.key === file.key) return cached.runs.map(cloneRun);
+	const runs = foldJournal(linesOf(file.path, maxLines));
+	remember(foldCache, file.path, file.key, runs);
+	return runs;
+}
+
+/**
+ * One run's folded state by id, newest file first. Never throws.
+ *
+ * Only the lines that mention the id are parsed, so one lookup costs a scan
+ * of the file instead of a JSON parse of every event in it. Repeat lookups
+ * against an unchanged file are served from a one-entry memo.
+ */
 export function findJournalRun(id: string, path = defaultJournalPath()): JournalRun | undefined {
-	const runs = foldJournalFile(path);
-	return runs.findLast((r) => r.id === id);
+	const file = journalFile(path);
+	if (!file) return undefined;
+	const cached = idCache.get(file.path);
+	if (cached && cached.key === file.key) {
+		const hit = cached.runs.find((run) => run.id === id);
+		if (hit) return cloneRun(hit);
+	}
+	let text: string;
+	try {
+		text = readFileSync(file.path, "utf8");
+	} catch {
+		return undefined;
+	}
+	const needle = `"${id}"`;
+	const mine: string[] = [];
+	let from = 0;
+	for (;;) {
+		const hit = text.indexOf(needle, from);
+		if (hit < 0) break;
+		const start = text.lastIndexOf("\n", hit) + 1;
+		const end = text.indexOf("\n", hit);
+		mine.push(text.slice(start, end < 0 ? text.length : end));
+		from = end < 0 ? text.length : end + 1;
+	}
+	if (mine.length === 0) {
+		remember(idCache, file.path, file.key, []);
+		return undefined;
+	}
+	const runs = foldJournal(mine);
+	remember(idCache, file.path, file.key, runs);
+	const found = runs.findLast((run) => run.id === id);
+	return found ? cloneRun(found) : undefined;
 }
 
 export function foldJournal(lines: string[]): JournalRun[] {

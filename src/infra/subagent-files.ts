@@ -78,11 +78,56 @@ function findNearestProjectSubagentsDir(cwd: string): string | null {
 	}
 }
 
+interface DiscoveryCache {
+	key: string;
+	result: SubagentDiscoveryResult;
+}
+
+const discoveryCache = new Map<string, DiscoveryCache>();
+const DISCOVERY_CACHE_LIMIT = 8;
+
+/**
+ * A cheap identity for one directory's markdown set: name, nanosecond mtime
+ * and size per file. `null` means "cannot tell", and then nothing is cached.
+ */
+function dirSignature(dir: string | null): string | null {
+	if (!dir) return "missing";
+	let entries: fs.Dirent[];
+	try {
+		entries = fs.readdirSync(dir, { withFileTypes: true });
+	} catch {
+		return fs.existsSync(dir) ? null : "missing";
+	}
+	const parts: string[] = [];
+	try {
+		for (const entry of entries) {
+			if (!entry.name.endsWith(".md")) continue;
+			if (!entry.isFile() && !entry.isSymbolicLink()) continue;
+			const stat = fs.statSync(path.join(dir, entry.name), { bigint: true });
+			parts.push(`${entry.name}:${stat.mtimeNs}:${stat.size}`);
+		}
+	} catch {
+		return null;
+	}
+	parts.sort();
+	return parts.join("|");
+}
+
 /** Discover subagents: personal + project (project wins on name clash). Errors never throw. */
 export function discoverSubagents(cwd: string): SubagentDiscoveryResult {
 	const errors: string[] = [];
 	const userSubagentsDir = path.join(getAgentDir(), SUBAGENT_DIR_NAME);
 	const projectSubagentsDir = findNearestProjectSubagentsDir(cwd);
+	const signature = (() => {
+		const user = dirSignature(userSubagentsDir);
+		const project = dirSignature(projectSubagentsDir);
+		if (user === null || project === null) return null;
+		return `${userSubagentsDir}#${user}##${projectSubagentsDir ?? ""}#${project}`;
+	})();
+	if (signature !== null) {
+		const cached = discoveryCache.get(cwd);
+		if (cached && cached.key === signature) return cached.result;
+	}
 	const userSubs = loadSubagentsFromDir(userSubagentsDir, "user", errors);
 	const projectSubs = projectSubagentsDir
 		? loadSubagentsFromDir(projectSubagentsDir, "project", errors)
@@ -90,10 +135,19 @@ export function discoverSubagents(cwd: string): SubagentDiscoveryResult {
 	const map = new Map<string, SubagentConfig>();
 	for (const d of userSubs) map.set(d.name, d);
 	for (const d of projectSubs) map.set(d.name, d);
-	return {
+	const result: SubagentDiscoveryResult = {
 		subagents: [...map.values()].toSorted((a, b) => a.name.localeCompare(b.name)),
 		errors,
 		userSubagentsDir,
 		projectSubagentsDir,
 	};
+	if (signature !== null) {
+		discoveryCache.delete(cwd);
+		discoveryCache.set(cwd, { key: signature, result });
+		if (discoveryCache.size > DISCOVERY_CACHE_LIMIT) {
+			const oldest = discoveryCache.keys().next().value;
+			if (oldest !== undefined) discoveryCache.delete(oldest);
+		}
+	}
+	return result;
 }
