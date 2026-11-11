@@ -12,6 +12,7 @@ import { stopAllLiveRuns } from "../src/app/stop-all.ts";
 import { watchEscapeKey } from "../src/app/esc-watch.ts";
 import { liveCount } from "../src/app/live-runs.ts";
 import { applyCodemodeWorkerDefault } from "../src/infra/worker-pool.ts";
+import { aliasEnabled } from "../src/app/global-config.ts";
 
 export { restoredCount } from "../src/app/live-store.ts";
 
@@ -20,7 +21,11 @@ export default function (pi: ExtensionAPI) {
 	applyCodemodeWorkerDefault();
 	pi.registerTool(taskTool);
 	pi.registerTool(taskOutputTool);
-	pi.registerTool(subagentAliasTool);
+	// The alias is a compatibility shim for models that only know Pi's sample
+	// `subagent` tool. It duplicates part of Task's schema, so an operator who
+	// does not need it can turn it off with `"alias": false` in settings.
+	// Read at load: /reload after changing it.
+	if (aliasEnabled(process.cwd())) pi.registerTool(subagentAliasTool);
 	let unwatch: (() => void) | null = null;
 	pi.on("session_start", (_event, ctx) => {
 		unwatch?.();

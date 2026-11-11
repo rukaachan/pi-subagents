@@ -65,10 +65,21 @@ Put it in settings — `~/.pi/agent/settings.json`, or the project's
 | `tools`    | a group or a tool list, as in the file                     | replaces the tool policy; the autonomy clamp still runs |
 | `autonomy` | `inherit`, `off`, `low`, `medium`, `high`                  | replaces the file's autonomy                            |
 | `budget`   | `{ timeoutSec, maxTurns, maxInputTokens, maxReportChars }` | merges key by key over the file's budget                |
+| `alias`    | `true`, `false`, `on`, `off`                               | registers the `subagent` alias tool (read at load)      |
 
 Every key is optional, and an invalid value is ignored instead of
 failing a run. The block is read for every launch, so a change takes
-effect on the next run without a restart.
+effect on the next run without a restart — except `alias`, which changes
+tool registration and needs `/reload`.
+
+The model is `inherit` unless a file, this block, or a per-run switch says
+otherwise, so routing a subagent to a cheaper model is a one-line change:
+
+```json
+{ "pi-subagents": { "model": "acme/fast" } }
+```
+
+Set it per file with `model: provider/id` when only one starter should move.
 
 Precedence, highest first:
 

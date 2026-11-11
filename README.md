@@ -125,7 +125,8 @@ modified. They apply to single runs, fan-out, chains, and resumes.
 
 `model`, `tools`, and `autonomy` replace the file's value; `budget` merges
 key by key. Invalid values are ignored, and the block is read on every
-launch.
+launch. `"alias": false` stops the `subagent` compatibility tool from
+registering; that one is read at load, so `/reload` after changing it.
 
 Defaults: `codemode: only`, inherited model, file tools, `inherit`
 autonomy, `timeoutSec: 3600`. Safety limits are fixed: 12 live tasks,

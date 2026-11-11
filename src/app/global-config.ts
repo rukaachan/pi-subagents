@@ -15,6 +15,8 @@ export interface GlobalConfig {
 	tools?: string[];
 	autonomy?: SubagentAutonomy;
 	budget?: SubagentBudget;
+	/** Whether the `subagent` compatibility alias registers. Default true. */
+	alias?: boolean;
 }
 
 const AUTONOMY: readonly string[] = ["inherit", "off", "low", "medium", "high"];
@@ -43,10 +45,22 @@ export function readGlobalConfig(cwd: string, agentDir: string = getAgentDir()):
 		}
 		const budget = parseBudget(raw.budget);
 		if (budget && typeof budget !== "string") out.budget = budget;
+		if (raw.alias === false || raw.alias === "off") out.alias = false;
+		else if (raw.alias === true || raw.alias === "on") out.alias = true;
 		return out;
 	} catch {
 		return {};
 	}
+}
+
+/**
+ * Whether the `subagent` alias should register.
+ *
+ * Read once at extension load, so changing it needs `/reload`. The default is
+ * on: models that only know Pi's sample `subagent` tool keep working.
+ */
+export function aliasEnabled(cwd: string, agentDir: string = getAgentDir()): boolean {
+	return readGlobalConfig(cwd, agentDir).alias !== false;
 }
 
 /** Settings win over the file; a per-run Task switch still wins over both. */

@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { readGlobalConfig, withGlobalConfig } from "../src/app/global-config.ts";
+import { aliasEnabled, readGlobalConfig, withGlobalConfig } from "../src/app/global-config.ts";
 import { applyRunOverrides } from "../src/domain/tiers.ts";
 import type { SubagentConfig } from "../src/domain/subagent/config.ts";
 import { subagentAliasTool } from "../src/tools/subagent-alias.ts";
@@ -51,6 +51,23 @@ describe("readGlobalConfig", () => {
 			assert.equal(g.budget?.timeoutSec, 600);
 		} finally {
 			s.done();
+		}
+	});
+
+	it("reads the alias switch, and defaults it on", () => {
+		const off = withSettings({ alias: false });
+		try {
+			assert.equal(readGlobalConfig(off.cwd, off.agentDir).alias, false);
+			assert.equal(aliasEnabled(off.cwd, off.agentDir), false);
+		} finally {
+			off.done();
+		}
+		const on = withSettings({});
+		try {
+			assert.equal(readGlobalConfig(on.cwd, on.agentDir).alias, undefined);
+			assert.equal(aliasEnabled(on.cwd, on.agentDir), true);
+		} finally {
+			on.done();
 		}
 	});
 
