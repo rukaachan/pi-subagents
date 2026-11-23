@@ -6,6 +6,8 @@ import type { Theme } from "@earendil-works/pi-coding-agent";
 import { Key, matchesKey, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { rowLine, type BoardRow, type BoardSection } from "./board-model.ts";
 import { detailLines } from "./board-detail.ts";
+import { boardHint } from "./board-hint.ts";
+import { hintFrame } from "./frame.ts";
 
 export interface BoardRender {
 	width: number;
@@ -13,6 +15,10 @@ export interface BoardRender {
 	cursor: number;
 	theme: Pick<Theme, "fg" | "bold">;
 	team?: { open: number; done: number; enabled: boolean };
+	/** The last few steps of a run; only asked for the selected row. */
+	activity?: (taskId: string) => readonly string[] | undefined;
+	/** Failed runs stay collapsed until the user asks for them. */
+	failed?: { total: number; hidden: boolean };
 }
 
 interface Line {
@@ -28,9 +34,9 @@ const SECTION_TITLE: Record<BoardSection, string> = {
 	failed: "FAILED",
 };
 
-/** Header, rules, hint, section and run headings, then one line per row. */
+/** Header, stats, rules, boxed hint, section and run headings, then one row each. */
 export function boardHeight(rows: readonly BoardRow[]): number {
-	let height = 4;
+	let height = 5;
 	let section: BoardSection | undefined;
 	let runId: string | undefined;
 	for (const row of rows) {
@@ -80,7 +86,7 @@ function displayLines(
 
 export function renderBoard(rows: BoardRow[], opts: BoardRender): string[] {
 	const { width, height, theme } = opts;
-	const bodyRows = Math.max(1, height - 4);
+	const bodyRows = Math.max(1, height - 5);
 	const cursor = rows.length === 0 ? 0 : Math.max(0, Math.min(opts.cursor, rows.length - 1));
 	const wide = width >= 96;
 	const listWidth = wide ? Math.min(74, Math.max(56, Math.floor(width * 0.62))) : width;
@@ -93,7 +99,11 @@ export function renderBoard(rows: BoardRow[], opts: BoardRender): string[] {
 	}
 	const shown = lines.slice(top, top + bodyRows).map((line) => line.text);
 	while (shown.length < bodyRows) shown.push("");
-	const details = wide ? detailLines(rows[cursor], detailWidth, theme) : [];
+	const selectedRow = rows[cursor];
+	const steps = wide && selectedRow ? opts.activity?.(selectedRow.taskId) : undefined;
+	const details = wide
+		? detailLines(selectedRow, detailWidth, theme, { steps, height: bodyRows })
+		: [];
 	const body = shown.map((line, index) => {
 		if (!wide) return line;
 		const clipped = truncateToWidth(line, listWidth, "…");
@@ -103,22 +113,14 @@ export function renderBoard(rows: BoardRow[], opts: BoardRender): string[] {
 	});
 	const live = rows.filter((r) => r.section === "running" || r.section === "queued").length;
 	const done = rows.filter((r) => r.section === "done").length;
-	const failed = rows.filter((r) => r.section === "failed").length;
+	const failed = opts.failed?.total ?? rows.filter((r) => r.section === "failed").length;
 	const counts = `${live} live · ${done} done · ${failed} failed`;
 	const team = opts.team ? ` · team ${opts.team.open} open` : "";
 	const title = `${theme.bold("Mission control")}  ${theme.fg("muted", counts + team)}`;
 	const rule = theme.fg("borderMuted", "─".repeat(Math.max(1, width)));
-	const hint = theme.fg(
-		"dim",
-		`↑↓ move · tab team · f finish · enter open · s steer · x stop · r retry · c copy · esc back · ${rows.length === 0 ? "0/0" : `${cursor + 1}/${rows.length}`}`,
-	);
-	const out = [
-		truncateToWidth(title, width, "…"),
-		rule,
-		...body,
-		rule,
-		truncateToWidth(hint, width, "…"),
-	];
+	const hint = theme.fg("dim", boardHint(rows, cursor, opts.failed));
+	const box = hintFrame(hint, width, wide ? listWidth + 1 : undefined, theme);
+	const out = [title, rule, ...body, ...box];
 	return out.map((line) => truncateToWidth(line, width, ""));
 }
 

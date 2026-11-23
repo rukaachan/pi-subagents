@@ -163,14 +163,21 @@ copies the visible tab, `e` jumps to the next error, and `esc` returns.
 `/subagents` opens mission control even when nothing runs. The RUNS tab
 shows queued, running, done and failed runs, grouped by run. Keys:
 `↑↓` move, `enter` open, `s` steer, `x` stop, `r` retry, `c` copy,
-`f` finish, `tab` switch to TEAM, `esc` back. The TEAM tab shows one
-row per board task and keeps every board action: `t` team on/off,
+`f` finish, `tab` switch to TEAM, `esc` back. The footer lists only the
+keys that work for the selected row, so a done row does not advertise
+steer or retry. On a wide terminal the right pane shows the selected
+run's last three steps, says `waiting for the first step` before any
+arrive, and pins that row's keys to its bottom line. Failed runs stay
+collapsed; the title still counts them, and `e` shows or hides them. The
+Team tab shows one row per board task and keeps every board action:
+`t` team on/off (also shown as `(t)` beside the counts),
 `n` new, `e` edit, `a` assign, `c` claim, `r` release, `x` complete,
 `d` delete, `s` start, `enter` detail. Pi's own footer shows `⇄` live
 progress, including legs that wait for a slot, and clears when the board
 is idle. The board takes only the lines it needs, and on a wide terminal
 it shows a selected-task or selected-run pane instead of leaving the
-right side empty. Each settled leg posts one card (status, time, turns,
+right side empty. The title carries the live counts on its left, and the
+key hint sits in its own box at the bottom. Each settled leg posts one card (status, time, turns,
 tokens, cost); `ctrl+o` shows its report.
 
 Long tool output follows Pi's own rule: the newest 10 lines stay visible

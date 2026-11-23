@@ -20,6 +20,9 @@ export interface WorkspaceViewDeps {
 	teamEnabled: () => boolean;
 	summary: () => { open: number; done: number; enabled: boolean };
 	height: () => number;
+	activity?: (taskId: string) => readonly string[] | undefined;
+	failed?: () => { total: number; hidden: boolean };
+	toggleFailed?: () => void;
 	theme: WorkspaceRender["theme"];
 	render: () => void;
 	onAction: (action: WorkspaceAction) => void;
@@ -69,11 +72,13 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 
 	function keyOf(): string {
 		const all = data();
+		const failed = deps.failed?.();
 		return [
 			tab,
 			runsCursor,
 			teamCursor,
 			all.teamEnabled,
+			`${failed?.total ?? 0}:${failed?.hidden ? 1 : 0}`,
 			all.runs
 				.map((row) => `${row.taskId}:${row.section}:${row.turns}:${row.elapsedSec}`)
 				.join("|"),
@@ -172,6 +177,8 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 				runsCursor,
 				teamCursor,
 				theme: deps.theme,
+				activity: deps.activity,
+				...(deps.failed ? { failed: deps.failed() } : {}),
 			});
 		},
 
@@ -185,6 +192,11 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 			if (key === "1") return switchTab("runs");
 			if (key === "2") return switchTab("team");
 			if (key === "f") return emit({ kind: "finish" });
+			if (key === "e" && tab === "runs" && deps.failed?.().total) {
+				deps.toggleFailed?.();
+				runsCursor = Math.max(0, Math.min(runsCursor, deps.runs().length - 1));
+				return;
+			}
 			if (matchesKey(key, Key.up) || key === "k") return move(-1);
 			if (matchesKey(key, Key.down) || key === "j") return move(1);
 			if (tab === "runs") handleRuns(key);

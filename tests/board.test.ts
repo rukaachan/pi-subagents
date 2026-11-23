@@ -64,11 +64,11 @@ describe("the board screen", () => {
 			rec({ taskId: "d", status: "done", startedAt: 1_000, endedAt: 2_000 }),
 		]);
 		const height = boardHeight(rows);
-		assert.equal(height, 8);
+		assert.equal(height, 9);
 		const out = renderBoard(rows, { width: 100, height, cursor: 0, theme: plainTheme() as never });
 		assert.equal(out.length, height);
 		assert.ok(
-			out.slice(2, -2).every((line) => line.trim().length > 0),
+			out.slice(2, -3).every((line) => line.trim().length > 0),
 			"no blank body lines",
 		);
 	});

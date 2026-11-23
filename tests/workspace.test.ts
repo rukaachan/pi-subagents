@@ -35,6 +35,18 @@ function teamView(over: Partial<TeamTaskView["task"]> = {}): TeamTaskView {
 	};
 }
 
+function teamHint(status: "pending" | "in_progress" | "completed") {
+	const rows = buildTeamRows([teamView({ status })], () => false);
+	const out = renderTeamScreen(rows, {
+		width: 120,
+		height: 12,
+		cursor: 0,
+		theme: plainTheme() as never,
+		enabled: true,
+	});
+	return { footer: out.at(-2) ?? "", head: out[0] ?? "" };
+}
+
 function data(over: Partial<WorkspaceData> = {}): WorkspaceData {
 	return {
 		runs: [],
@@ -77,7 +89,7 @@ describe("mission control", () => {
 		assert.ok(out.some((line) => line.includes("RUNS")));
 		assert.ok(out.some((line) => line.includes("TEAM")));
 		for (const line of out) assert.ok(visibleWidth(line) <= 90);
-		assert.equal(workspaceHeight("runs", empty), 5);
+		assert.equal(workspaceHeight("runs", empty), 6);
 	});
 
 	it("switches to Team and emits every Team action", () => {
@@ -138,6 +150,44 @@ describe("mission control", () => {
 		assert.ok(out.some((line) => line.includes("alice")));
 		assert.ok(out.some((line) => line.includes("rev 3")));
 		assert.ok(out.some((line) => line.includes("live")));
+	});
+
+	it("lists the Team actions for the selected task status", () => {
+		const pending = teamHint("pending");
+		assert.match(pending.footer, /c claim/);
+		assert.doesNotMatch(pending.footer, /x done/);
+		assert.match(pending.head, /team on \(t\)/);
+		const active = teamHint("in_progress");
+		assert.match(active.footer, /x done/);
+		assert.match(active.footer, /r release/);
+		assert.doesNotMatch(active.footer, /c claim/);
+		const done = teamHint("completed");
+		assert.doesNotMatch(done.footer, /claim|release|x done/);
+		assert.match(done.footer, /e edit/);
+		assert.ok(visibleWidth(done.footer) <= 120, done.footer);
+	});
+
+	it("feeds the selected run's steps to the pane", () => {
+		const runs = board([rec({ taskId: "task-1", startedAt: 1_000 })], ["task-1"]);
+		const seen: string[] = [];
+		const out = renderWorkspace({
+			runs,
+			team: [],
+			teamEnabled: false,
+			summary: { open: 0, done: 0, enabled: false },
+			tab: "runs",
+			width: 120,
+			height: 18,
+			runsCursor: 0,
+			teamCursor: 0,
+			theme: plainTheme() as never,
+			activity: (taskId) => {
+				seen.push(taskId);
+				return ["bash · rg -n store"];
+			},
+		});
+		assert.deepEqual(seen, ["task-1"]);
+		assert.ok(out.some((line) => line.includes("bash · rg -n store")));
 	});
 
 	it("keeps the Runs tab working with a row", () => {

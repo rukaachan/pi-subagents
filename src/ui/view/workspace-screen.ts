@@ -2,9 +2,9 @@
  * pi-subagents: mission control with Runs and Team tabs.
  */
 
-import { truncateToWidth } from "@earendil-works/pi-tui";
 import { boardHeight, renderBoard } from "./board-screen.ts";
 import type { BoardRow } from "./board-model.ts";
+import { truncateToWidth } from "@earendil-works/pi-tui";
 import { renderTeamScreen, teamHeight, type TeamRow } from "./team-screen.ts";
 
 export type WorkspaceTab = "runs" | "team";
@@ -42,6 +42,8 @@ export interface WorkspaceRender extends WorkspaceData {
 	runsCursor: number;
 	teamCursor: number;
 	theme: Pick<import("@earendil-works/pi-coding-agent").Theme, "fg" | "bold">;
+	activity?: (taskId: string) => readonly string[] | undefined;
+	failed?: { total: number; hidden: boolean };
 }
 
 export function workspaceHeight(tab: WorkspaceTab, data: WorkspaceData): number {
@@ -68,6 +70,8 @@ export function renderWorkspace(opts: WorkspaceRender): string[] {
 					cursor: opts.runsCursor,
 					theme: opts.theme,
 					team: opts.summary,
+					activity: opts.activity,
+					...(opts.failed ? { failed: opts.failed } : {}),
 				})
 			: renderTeamScreen(opts.team, {
 					width: opts.width,

@@ -20,6 +20,7 @@ import { scopeTasks, type TaskScope } from "../../app/task-scope.ts";
 import type { TaskStore } from "../../app/task-store.ts";
 import { buildBoard, type BoardRow } from "../view/board-model.ts";
 import { taskRow } from "../view/rows.ts";
+import { recentSteps } from "./task-list.ts";
 import { buildTeamRows, type TeamRow } from "../view/team-screen.ts";
 import { teamText } from "../view/team-text.ts";
 import {
@@ -47,9 +48,13 @@ function teamRows(): TeamRow[] {
 	return buildTeamRows(taskList({ limit: MAX_TEAM_TASKS }), (name) => Boolean(liveMember(name)));
 }
 
-function dataOf(store: TaskStore, scope: TaskScope): WorkspaceData {
+function dataOf(
+	store: TaskStore,
+	scope: TaskScope,
+	runs: BoardRow[] = runsOf(store, scope),
+): WorkspaceData {
 	return {
-		runs: runsOf(store, scope),
+		runs,
 		team: teamRows(),
 		teamEnabled: teamEnabled(),
 		summary: teamSummary(),
@@ -64,6 +69,15 @@ function mountWorkspace(
 ): Promise<WorkspaceAction | undefined> {
 	return ctx.ui.custom<WorkspaceAction | undefined>((tui, theme, _kb, done) => {
 		let finished = false;
+		let showFailed = false;
+		const runs = () => {
+			const rows = runsOf(store, scope);
+			return showFailed ? rows : rows.filter((row) => row.section !== "failed");
+		};
+		const failed = () => {
+			const total = runsOf(store, scope).filter((row) => row.section === "failed").length;
+			return { total, hidden: !showFailed };
+		};
 		const finish = (action: WorkspaceAction | undefined) => {
 			if (finished) return;
 			finished = true;
@@ -71,12 +85,17 @@ function mountWorkspace(
 		};
 		const view = createWorkspaceView({
 			tab,
-			runs: () => runsOf(store, scope),
+			runs,
+			failed,
+			toggleFailed: () => {
+				showFailed = !showFailed;
+				tui.requestRender();
+			},
 			team: teamRows,
 			teamEnabled,
 			summary: teamSummary,
 			height: () => {
-				const data = dataOf(store, scope);
+				const data = dataOf(store, scope, runs());
 				return Math.max(
 					6,
 					Math.min(
@@ -86,6 +105,10 @@ function mountWorkspace(
 				);
 			},
 			theme,
+			activity: (taskId) => {
+				const rec = store.get(taskId);
+				return rec ? recentSteps(rec) : undefined;
+			},
 			render: () => tui.requestRender(),
 			onAction: finish,
 			poll: true,

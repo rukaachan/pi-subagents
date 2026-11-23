@@ -6,6 +6,7 @@ import type { Theme } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import type { TeamTaskView } from "../../domain/team.ts";
 import { shortText } from "./format.ts";
+import { hintFrame } from "./frame.ts";
 
 export interface TeamRow {
 	view: TeamTaskView;
@@ -39,7 +40,7 @@ export function buildTeamRows(
 }
 
 export function teamHeight(rows: readonly TeamRow[]): number {
-	return Math.max(8, rows.length + 7);
+	return Math.max(9, rows.length + 8);
 }
 
 function scopeText(view: TeamTaskView): string {
@@ -99,9 +100,21 @@ export function teamDetailLines(
 	return lines.map((line) => truncateToWidth(line, width, "…"));
 }
 
+function teamHint(rows: readonly TeamRow[], cursor: number): string {
+	const status = rows[cursor]?.view.task.status;
+	const parts = ["↑↓"];
+	if (status) parts.push("enter");
+	if (status === "pending") parts.push("c claim");
+	if (status === "in_progress") parts.push("x done", "r release");
+	if (status === "pending" || status === "in_progress") parts.push("a assign");
+	if (status && status !== "deleted") parts.push("e edit", "d delete");
+	parts.push("n new", "s start", "tab", "esc");
+	return parts.join(" · ");
+}
+
 export function renderTeamScreen(rows: readonly TeamRow[], opts: TeamScreenOptions): string[] {
 	const { width, height, theme } = opts;
-	const bodyRows = Math.max(1, height - 4);
+	const bodyRows = Math.max(1, height - 5);
 	const cursor = rows.length === 0 ? 0 : Math.max(0, Math.min(opts.cursor, rows.length - 1));
 	const wide = width >= 96;
 	const listWidth = wide ? Math.min(74, Math.max(56, Math.floor(width * 0.62))) : width;
@@ -123,17 +136,9 @@ export function renderTeamScreen(rows: readonly TeamRow[], opts: TeamScreenOptio
 	});
 	const open = rows.filter((row) => row.view.task.status !== "completed").length;
 	const done = rows.filter((row) => row.view.task.status === "completed").length;
-	const title = `${theme.bold("Mission control")}  ${theme.fg("muted", `${open} open · ${done} done · team ${opts.enabled ? "on" : "off"}`)}`;
+	const title = `${theme.bold("Mission control")}  ${theme.fg("muted", `${open} open · ${done} done · team ${opts.enabled ? "on" : "off"} (t)`)}`;
 	const rule = theme.fg("borderMuted", "─".repeat(Math.max(1, width)));
-	const hint = theme.fg(
-		"dim",
-		`↑↓ move · enter detail · t team on/off · n new · s start · e edit · a assign · c claim · r release · x complete · d delete · tab runs · esc back`,
-	);
-	return [
-		truncateToWidth(title, width, "…"),
-		rule,
-		...body,
-		rule,
-		truncateToWidth(hint, width, "…"),
-	];
+	const hint = theme.fg("dim", teamHint(rows, cursor));
+	const box = hintFrame(hint, width, wide ? listWidth + 1 : undefined, theme);
+	return [title, rule, ...body, ...box];
 }
