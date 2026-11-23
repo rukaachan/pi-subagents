@@ -55,6 +55,7 @@ describe("runFinishHook", () => {
 				const command = `cat > ${JSON.stringify(file)}; printf %s "$PI_SUBAGENTS_EVENT" > ${JSON.stringify(envFile)}`;
 				const child = runFinishHook(command, payload, 2000);
 				assert.ok(child);
+				child.ref();
 				await once(child, "exit");
 				const lines = readFileSync(file, "utf8").trim().split("\n");
 				assert.equal(lines.length, 1);
@@ -73,6 +74,7 @@ describe("runFinishHook", () => {
 			const started = Date.now();
 			const child = runFinishHook("sleep 5", payload, 100);
 			assert.ok(child);
+			child.ref();
 			const [code, signal] = (await once(child, "exit")) as [number | null, string | null];
 			assert.ok(Date.now() - started < 2000);
 			assert.ok(signal === "SIGKILL" || code !== 0);

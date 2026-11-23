@@ -1,12 +1,26 @@
-import { beforeEach, describe, it } from "node:test";
+import { after, beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { beginTeamSession, teamEnabled } from "../src/app/team-store.ts";
 import { startTeamLaunch } from "../src/app/team-launch.ts";
 import { MAX_TEAM_MEMBERS } from "../src/domain/team.ts";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 
+const project = mkdtempSync(join(tmpdir(), "pi-team-launch-"));
+mkdirSync(join(project, ".pi", "subagents"), { recursive: true });
+writeFileSync(
+	join(project, ".pi", "subagents", "worker.md"),
+	"---\nname: worker\ndescription: test worker\ntools: read\n---\n\nDo the task.\n",
+);
+
+after(() => {
+	rmSync(project, { recursive: true, force: true });
+});
+
 function ctx(): ExtensionContext {
-	return { cwd: process.cwd(), ui: { setStatus: () => {} } } as unknown as ExtensionContext;
+	return { cwd: project, ui: { setStatus: () => {} } } as unknown as ExtensionContext;
 }
 
 beforeEach(() => {
