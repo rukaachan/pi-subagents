@@ -80,16 +80,10 @@ describe("starter prompts", () => {
 					r.tools.includes("read"),
 					`${name} opted into codemode, so its list must carry read`,
 				);
-				for (const w of ["edit", "write", "powershell"]) {
+				for (const w of ["bash", "edit", "write", "powershell"]) {
 					assert.ok(
 						!r.tools.includes(w),
 						`${name} says read-only, so its list must not carry ${w}`,
-					);
-				}
-				if (r.tools.includes("bash")) {
-					assert.ok(
-						r.systemPrompt.includes("Do not change files"),
-						`${name} carries bash, so the prompt must forbid file changes`,
 					);
 				}
 			}

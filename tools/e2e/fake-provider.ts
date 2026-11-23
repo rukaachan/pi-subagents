@@ -78,6 +78,16 @@ function toolResult(messages: Record<string, unknown>[]): boolean {
 	return messages.some((m) => m.role === "tool" || m.role === "toolResult");
 }
 
+function lastToolText(messages: Record<string, unknown>[]): string {
+	for (let i = messages.length - 1; i >= 0; i -= 1) {
+		const message = messages[i];
+		if (message?.role === "tool" || message?.role === "toolResult") {
+			return textOf(message.content);
+		}
+	}
+	return "";
+}
+
 interface ToolCall {
 	name: string;
 	args: Record<string, unknown>;
@@ -245,6 +255,32 @@ function answerFor(messages: Record<string, unknown>[], state: { retry: number }
 			tool: {
 				name: "Team",
 				args: { action: "claim", task_id: assigned, expected_revision: 1 },
+			},
+		};
+	}
+	if (hasToken(prompt, "E2E_MCP_CHILD")) {
+		const call = lastToolCall(messages);
+		if (!toolResult(messages) || call?.name !== "codemode")
+			return {
+				tool: {
+					name: "codemode",
+					args: {
+						code: 'const r = await tools.mcp__echo__echo({ text: "mcp-ok" }); return r;',
+					},
+				},
+			};
+		return { text: lastToolText(messages).includes("mcp-ok") ? "MCP_PROVEN" : "MCP_MISSING" };
+	}
+	if (hasToken(prompt, "E2E_MCP")) {
+		return {
+			tool: {
+				name: "Task",
+				args: {
+					description: "e2e mcp",
+					subagent_type: "e2e-mcp",
+					prompt: "E2E_MCP_CHILD",
+					run_in_background: true,
+				},
 			},
 		};
 	}

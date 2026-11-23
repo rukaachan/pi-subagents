@@ -123,6 +123,7 @@ function subagent(value: unknown, fallbackName: string): SubagentConfig | undefi
 		warnings: strings(raw.warnings),
 		...(tools && tools.length > 0 ? { tools } : {}),
 		...(paths && paths.length > 0 ? { paths } : {}),
+		...(raw.mcp === true ? { mcp: true } : {}),
 		...(budget
 			? {
 					budget: {

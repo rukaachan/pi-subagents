@@ -21,6 +21,7 @@ export const EDITABLE_FIELDS = [
 	"autonomy",
 	"promptPrefix",
 	"codemode",
+	"mcp",
 ] as const;
 export type EditableField = (typeof EDITABLE_FIELDS)[number];
 
@@ -33,6 +34,7 @@ export const FIELD_CHOICES: Record<EditableField, string[]> = {
 	autonomy: ["inherit", "off", "low", "medium", "high"],
 	promptPrefix: [],
 	codemode: ["(default: only)", "off", "on", "only"],
+	mcp: ["(default: off)", "on", "off"],
 };
 
 export const BUDGET_EDIT_FIELDS = [
@@ -101,6 +103,11 @@ export function validateField(field: EditableField, value: string): string | nul
 		if (["off", "on", "only", "false", "true"].includes(v)) return null;
 		return "Use off, on, only, or (default: only).";
 	}
+	if (field === "mcp") {
+		if (v === "" || v === "(default: off)" || ["off", "on", "false", "true"].includes(v))
+			return null;
+		return "Use on, off, or (default: off).";
+	}
 	return null;
 }
 
@@ -115,8 +122,16 @@ export function editSubagentField(
 	if ("error" in read) return read.error;
 	const { frontmatter, body } = parseFrontmatter<Record<string, unknown>>(read.text);
 	const v = value.trim();
-	const clearWord = v === "" || v === "(inherit)" || v === "all tools" || v === "(default: only)";
-	if (
+	const clearWord =
+		v === "" ||
+		v === "(inherit)" ||
+		v === "all tools" ||
+		v === "(default: only)" ||
+		v === "(default: off)";
+	if (field === "mcp") {
+		if (v === "on" || v === "true") frontmatter.mcp = true;
+		else delete frontmatter.mcp;
+	} else if (
 		clearWord &&
 		(field === "thinkingLevel" ||
 			field === "tools" ||

@@ -91,6 +91,7 @@ export function subagentDetail(
 		["thinking", sub.thinkingLevel ?? "(inherit)"],
 		["tools", sub.tools ? sub.tools.join(", ") : "(all)"],
 		["autonomy", sub.autonomy],
+		...(sub.mcp ? ([["mcp", "on"]] as [string, string][]) : []),
 	];
 	if (sub.promptPrefix) rows.push(["prefix", shortText(sub.promptPrefix, 60)]);
 	if (spawns && spawns.total > 0) rows.push(["runs", spawnLine(spawns)]);

@@ -179,6 +179,37 @@ touches it.** Each subagent is its own pi session with its own
 in-memory history, so the parent's `/compact` cannot shrink the child's
 context and the child's compaction cannot shrink the parent's.
 
+## MCP in child sessions
+
+MCP is opt-in per subagent: `mcp: true` (or `on`) in the frontmatter, or the
+`mcp` field in the editor. A child without it loads no MCP extension, so
+existing agents pay nothing.
+
+When it is on, `startSubagentSession` adds Pi's `createMcpExtension()` to the
+loader factories and calls `session.bindExtensions({})`. That emits
+`session_start`, which connects the servers from `mcp.json` in the agent
+directory and the trusted project. Default exposure is `codemode`, so tools
+do not clutter the model's declarations: a script calls
+`tools.mcp__<server>__<tool>`. The parent can list and sign in to servers
+with `/mcp`; a child cannot open a browser.
+
+Costs and limits:
+
+- One connection per live leg per server. A 12-leg team with one MCP server
+  opens 12 child connections.
+- `mcp` is refused below `medium`, with `codemode: off`, and with `paths`.
+  MCP tools are not path-fenced, and the child's path guard does not inspect
+  their arguments.
+- Startup problems and connection errors go to `mcp.log` in the agent
+  directory. A failed call rejects the script with the server's message.
+- Host permission gates still do not run in child sessions. `mcp: true` is
+  only for servers you already trust in the parent.
+
+The fake-provider e2e starts a real stdio MCP server
+(`tests/fixtures/mcp-echo-server.mjs`), a real child session, and the real
+codemode sandbox. It answers `MCP_PROVEN` only when the echoed `mcp-ok`
+comes back through the tool result; otherwise it reports `MCP_MISSING`.
+
 The rule inside the child is pi's own: the host summarizes the early
 messages when the child's projected context crosses
 `contextWindow - reserveTokens`, using the `compaction.*` settings from

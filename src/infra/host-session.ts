@@ -25,9 +25,10 @@ import { planCodemode, withScriptRoute } from "../domain/subagent/codemode.ts";
 import { contractPrompt } from "../domain/subagent/contract.ts";
 import { taskPrompt } from "../domain/subagent/prompt.ts";
 
-// The host surface for codemode.
-type CodemodeHost = {
+// The host surface for codemode and MCP.
+type ChildExtensionHost = {
 	createCodemodeExtension?(options?: { models?: boolean; mode?: "on" | "only" }): unknown;
+	createMcpExtension?(): unknown;
 };
 
 export interface ChildExtras {
@@ -98,6 +99,7 @@ export async function startSubagentSession(
 
 	let sessionTools = tools;
 	let codemodeFactories: unknown[] | undefined;
+	let mcpFactories: unknown[] | undefined;
 	const settingsManager = SettingsManager.create(cwd, getAgentDir());
 	// A subagent with no tools line gets the host's own default
 	// selection, so granting codemode does not narrow it.
@@ -108,7 +110,7 @@ export async function startSubagentSession(
 	}
 	if (plan) {
 		sessionTools = plan.toolIds;
-		const host = (await import("@earendil-works/pi-coding-agent")) as unknown as CodemodeHost;
+		const host = (await import("@earendil-works/pi-coding-agent")) as unknown as ChildExtensionHost;
 		const createCodemodeExtension = host.createCodemodeExtension;
 		if (typeof createCodemodeExtension !== "function") {
 			// An older host without the factory: the scripting tool does
@@ -122,6 +124,17 @@ export async function startSubagentSession(
 		}
 	}
 
+	if (sub.mcp) {
+		const host = (await import("@earendil-works/pi-coding-agent")) as unknown as ChildExtensionHost;
+		const createMcpExtension = host.createMcpExtension;
+		if (typeof createMcpExtension !== "function") {
+			notes.push("MCP unavailable on this host: the run keeps the ordinary tools.");
+		} else {
+			mcpFactories = [createMcpExtension()];
+		}
+	}
+
+	const factories = [...(codemodeFactories ?? []), ...(mcpFactories ?? [])];
 	const loader = new DefaultResourceLoader({
 		cwd,
 		agentDir: getAgentDir(),
@@ -131,9 +144,9 @@ export async function startSubagentSession(
 		noPromptTemplates: true,
 		noContextFiles: true,
 		systemPrompt: plan ? withScriptRoute(sub.systemPrompt) : sub.systemPrompt,
-		...(codemodeFactories
+		...(factories.length > 0
 			? {
-					extensionFactories: codemodeFactories as never as ConstructorParameters<
+					extensionFactories: factories as never as ConstructorParameters<
 						typeof DefaultResourceLoader
 					>[0]["extensionFactories"],
 				}
@@ -172,6 +185,13 @@ export async function startSubagentSession(
 		resourceLoader: loader,
 		sessionManager: SessionManager.inMemory(),
 	});
+	if (mcpFactories) {
+		try {
+			await session.bindExtensions({});
+		} catch (err) {
+			notes.push(`MCP failed to bind: ${err instanceof Error ? err.message : String(err)}`);
+		}
+	}
 	return {
 		session,
 		prompt: (text, contract) =>

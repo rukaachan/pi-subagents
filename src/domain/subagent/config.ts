@@ -64,6 +64,7 @@ export type SubagentFrontmatter = {
 	paths?: unknown;
 	autonomy?: unknown;
 	codemode?: unknown;
+	mcp?: unknown;
 	budget?: unknown;
 	promptPrefix?: unknown;
 };
@@ -79,6 +80,8 @@ export interface SubagentConfig {
 	autonomy: SubagentAutonomy;
 	// How the model meets the tools.
 	codemode?: boolean | "only";
+	// Open the configured MCP servers in this child; opt-in, medium+ only.
+	mcp?: boolean;
 	budget?: SubagentBudget;
 	// Fixed framing prepended to every task this subagent gets.
 	promptPrefix?: string;
@@ -118,33 +121,61 @@ export function resolveToolPolicy(value: unknown): string[] | undefined {
 	throw new Error("Invalid tools value. Use a group name or a list of tool IDs.");
 }
 
-/** Autonomy clamp: off = read tools only; read-only subagent never runs above low. */
+const SHELL_TOOLS = new Set(["bash", "powershell"]);
+
+function withoutShell(tools: readonly string[]): string[] {
+	return tools.filter((t) => !SHELL_TOOLS.has(t));
+}
+
+/**
+ * Autonomy clamp: a policy, not a note.
+ *
+ * off/low are read-only; medium removes shell; high/inherit keep the declared
+ * list, with shell removed whenever a path fence is set.
+ */
 export function clampToolsForAutonomy(sub: SubagentConfig): {
 	tools: string[] | undefined;
 	notes: string[];
 } {
 	const notes: string[] = [];
 	const readOnly = TOOL_GROUPS["read-only"] ?? [];
-	if (sub.autonomy === "off") {
-		if (!sub.tools)
-			return {
-				tools: [...readOnly],
-				notes: ["autonomy off: clamped to read-only."],
-			};
-		const allowed = new Set(readOnly);
-		const clamped = sub.tools.filter((t) => allowed.has(t));
-		if (clamped.length !== sub.tools.length) notes.push("autonomy off: clamped to read-only.");
-		return { tools: clamped, notes };
-	}
 	const isReadOnly =
 		sub.tools !== undefined && sub.tools.length > 0 && sub.tools.every((t) => readOnly.includes(t));
 	if (isReadOnly && (sub.autonomy === "medium" || sub.autonomy === "high")) {
 		notes.push("read-only subagent never runs above low.");
 	}
-	if (sub.autonomy === "medium" || sub.autonomy === "high") {
-		notes.push(
-			`autonomy ${sub.autonomy}: runs with tool policy only; full confirm gates land in v3.`,
-		);
+	if (sub.autonomy === "off" || sub.autonomy === "low") {
+		if (!sub.tools) {
+			notes.push(`autonomy ${sub.autonomy}: clamped to read-only.`);
+			return { tools: [...readOnly], notes };
+		}
+		const allowed = new Set(readOnly);
+		const clamped = sub.tools.filter((t) => allowed.has(t));
+		if (clamped.length !== sub.tools.length)
+			notes.push(`autonomy ${sub.autonomy}: clamped to read-only.`);
+		return { tools: clamped, notes };
 	}
-	return { tools: sub.tools ? [...sub.tools] : undefined, notes };
+	if (sub.autonomy === "medium") {
+		const base = sub.tools ?? [...(TOOL_GROUPS.edit ?? [])];
+		const clamped = withoutShell(base);
+		if (clamped.length === 0) {
+			notes.push("autonomy medium: no tools remain after removing shell; clamped to read-only.");
+			return { tools: [...readOnly], notes };
+		}
+		if (clamped.length !== base.length) notes.push("autonomy medium: shell is off.");
+		return { tools: clamped, notes };
+	}
+	const fenced = sub.paths !== undefined && sub.paths.length > 0;
+	const base = sub.tools;
+	if (base && fenced) {
+		const clamped = withoutShell(base);
+		if (clamped.length !== base.length) notes.push("paths: shell is off.");
+		return { tools: clamped, notes };
+	}
+	if (sub.autonomy === "high") {
+		notes.push("autonomy high: host permission gates do not run in subagent sessions.");
+	} else if (base?.some((t) => SHELL_TOOLS.has(t))) {
+		notes.push("autonomy inherit: host permission gates do not run in subagent sessions.");
+	}
+	return { tools: base ? [...base] : undefined, notes };
 }

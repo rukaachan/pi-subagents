@@ -23,14 +23,15 @@ System prompt body. Cannot be empty.
 | thinkingLevel    | `off, minimal, low, medium, high, xhigh, max`. Ignored when model is `inherit`. `reasoningEffort` is accepted as an alias.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | tools            | Omit = all. Or `read-only`, `edit`, `execute`. Or a list of Pi tool IDs. `tools: all` is rejected.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | paths            | Optional write fence: one workspace-relative folder, a comma list, or a YAML list. Absolute roots, parent roots, and symlink escapes are refused. `write` and `edit` refuse any path outside it. `bash` and `powershell` are switched off while the fence is on, because a shell can write anywhere. Omit = no fence.                                                                                                                                                                                                                                                                                                                                                                                       |
-| autonomy         | `inherit` (default), `off`, `low`, `medium`, `high`. v2 clamp: `off` = read-only; read-only subagents never run above low.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| autonomy         | `inherit` (default), `off`, `low`, `medium`, `high`. This is enforced, not a note: `off` and `low` are read-only (no shell, edit, write, or MCP); `medium` removes shell; `high` keeps shell unless `paths` is set. The table below is the exact policy.                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | promptPrefix     | One line (≤400 chars) put in front of every task this subagent gets, then a blank line, then `Task: <prompt>`. The six starters ship one. It is applied where the child session is prompted, so team start, `Task`, `parallel` legs, every chain step, and resumes all see their own subagent's prefix. Use it for durable framing ("cite file:line", "run the checks before reporting"), not for steps that belong to one task. Blank means none. Invalid or over 400 chars = error, subagent skipped.                                                                                                                                                                                                     |
 | codemode         | Omitted = the run gets pi's codemode tool and the model sees it **alone**: every read, search, edit and command runs inside a script (one script can batch many calls per turn, Promise.allSettled). `only` says the same out loud, `true` keeps pi's default (the scripting tool beside the ordinary tools), `false` (or `off`) means no scripting at all, and `on` is the alias of `true`. A `Task` call may override the file for one run with `codemode: off                                                                                                                                                                                                                                            | on  | only`. The grant adds no capability: scripts reach the session's own tools only, so a read-only list stays read-only in every mode. A prompt that never mentions scripts gets the route appended. |
 | budget           | `{ timeoutSec, maxTurns, maxInputTokens, maxReportChars }`. `timeoutSec` is the wall-clock ceiling and the only guard that needs nothing from the provider, so it binds on a hung request too; the starters ship `maxTurns: 0` and `maxInputTokens: 0` (off) and rely on it. The turn and token caps abort the stream and note it when a paid lane asks for them; `maxReportChars` cuts the returned text with an explicit `[truncated: …]` marker. A stopped run keeps the text it produced and only falls back to a `[cut short]` report — ceiling plus last steps — when it never spoke. The editor changes one cap at a time.                                                                           |
 | budget opt-out   | `{ }` reaches the run as `{ }`: `parseBudget` used to fold an empty block into `undefined`, which is what an _absent_ block means, so the documented opt-out was silently dropped and the starter's caps stayed on. Absence still means "use the defaults".                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | budget (v0.13.3) | The turn cap binds on foreground, background, and resume legs alike. A throwaway-worktree simulation caught background legs bypassing the cap; `installTurnBudget` now arms every path. Sim verdict (real session, maxTurns 3, task demanding 8): run stopped at 3 turns, `_notes_` gained `turn budget 3 reached`, report 37 chars.                                                                                                                                                                                                                                                                                                                                                                        |
 | Task budget      | Per-run override on Task/`subagent` that **merges** onto the subagent's own budget: `budget: { maxReportChars: 12000 }` raises that cap and leaves the 5,400s timeout alone; `0` turns a single cap off; `budget: { }` clears them all for one run; omitting the field keeps the subagent's budget untouched. Unknown keys and non-integers are rejected outright. (It replaced the whole budget once: a one-field override silently dropped worker's 5,400s back to the 3,600s default.)                                                                                                                                                                                                                   |
-| editor           | `/subagents` → Edit offers description, model, thinkingLevel, tools, autonomy, promptPrefix, codemode, and each budget cap. A pick or input rewrites only that field, so the rest of the file (including a budget it does not touch) survives.                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| mcp              | `true` or `on` opens the configured MCP servers in this child; omitted/off stays closed. Requires `autonomy` `medium` or higher, `codemode` `on`/`only`, and no `paths` fence. Tools are reached inside a script as `tools.mcp__<server>__<tool>`. Each live leg opens its own connections; OAuth servers must be signed in from the parent first. MCP tools are not path-fenced, and host permission gates do not run inside the child.                                                                                                                                                                                                                                                                    |
+| editor           | `/subagents` → Edit offers description, model, thinkingLevel, tools, autonomy, promptPrefix, codemode, mcp, and each budget cap. A pick or input rewrites only that field, so the rest of the file (including a budget it does not touch) survives.                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | watch            | `node tools/watch.mjs` tails the run journal in a second terminal: per-run status, turns (completed), elapsed, current step (`bash · go test ./...`), report size, `!cap` when the turn budget bound. `--once` prints one table; `--json` prints folded rows. Journal writes one NDJSON line per start/turn/tool/end event to `~/.pi/agent/pi-subagents-journal.ndjson` (bounded at 2 MB, rotates to `.1`); `PI_SUBAGENTS_JOURNAL=off` disables it, `PI_SUBAGENTS_JOURNAL=<path>` redirects it. `run_end` also carries `gapMaxSec` (longest silence between any two session events) and `gapOver60` (silences of a minute or more), so the stall floor can be re-fitted with `npx tsx tools/stall-fit.mts`. |
 
 Tool groups:
@@ -41,7 +42,21 @@ Tool groups:
 | edit      | read-only + edit, write |
 | execute   | edit + bash             |
 
-Validator: bad name, empty body, unknown tool, bad model shape, bad level, bad autonomy = error, subagent skipped. Missing description, duplicate tools, thinkingLevel with inherit = warn, subagent loads.
+`autonomy` decides the ceiling, then the declared list chooses inside it:
+
+| autonomy  | result                                                                   |
+| --------- | ------------------------------------------------------------------------ |
+| `off`     | exactly `read, grep, find, ls`                                           |
+| `low`     | exactly the read-only group; codemode may be added, MCP is stripped      |
+| `medium`  | declared tools minus `bash`/`powershell`; no list = the edit group       |
+| `high`    | declared tools; no list = all tools; shell off when `paths` is set       |
+| `inherit` | declared tools; no list = the host default; shell warns about host gates |
+
+A `medium` list that is only shell falls back to read-only instead of a
+child with no tools. A read-only list above `low` still gets the
+read-only tools and a note; the clamp never widens a list.
+
+Validator: bad name, empty body, unknown tool, bad model shape, bad level, bad autonomy, invalid `mcp`, or an MCP combination the policy rejects = error, subagent skipped. Missing description, duplicate tools, thinkingLevel with inherit = warn, subagent loads.
 
 ### Global policy
 
@@ -254,8 +269,8 @@ viewer change can make a 2 s leg finish in 20 ms.
 
 Type `/subagents ` and Pi completes list, new, tasks, trash, and names.
 Edit changes description, model, thinkingLevel, tools, autonomy,
-promptPrefix, codemode, and each budget cap; it rewrites only the field you
-pick. A `promptPrefix` is quoted on write, so a colon or a `#` in the text
+promptPrefix, codemode, mcp, and each budget cap; it rewrites only the field
+you pick. A `promptPrefix` is quoted on write, so a colon or a `#` in the text
 cannot break the frontmatter.
 
 The bare command opens mission control even when nothing runs. RUNS
@@ -684,11 +699,16 @@ same way:
 - **Failure clause** — what it does when blocked: report, never ask.
 
 `read-only` agents (`explorer`, `planner`, `code-reviewer`,
-`researcher`) run with exactly the `read-only` tool group:
-`read`, `grep`, `find`, `ls`. `tester` adds `edit`, `write`, `bash`.
-`worker` keeps all tools. `tests/prompts.test.ts` guards this shape.
+`researcher`) run with `read`, `grep`, `find`, `ls`, and `codemode`; the
+clamp strips shell, edit, and write even if a list names them. `tester` and
+`worker` use the `execute` group (with `codemode`). The explorer can no
+longer run `git log` or `git grep`; use `grep`, `find`, `read`, and
+codemode. `tests/prompts.test.ts` fails any read-only starter that carries
+`bash`.
 
-## v3 roadmap
+## Roadmap
 
-- Full autonomy gates (confirm before risky tools)
-- Import from Claude Code agents
+- Host permission gates inside child sessions. The package's autonomy
+  clamp is now in force, but Pi's `tool_call` confirm hooks still do not
+  run in a child; a write-capable child can bypass a parent's confirmation.
+- Import from Claude Code agents.

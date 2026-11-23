@@ -103,6 +103,30 @@ export function validateSubagent(
 	const codemode = parseCodemodeFlag(frontmatter.codemode);
 	if (codemode.error) return codemode.error;
 
+	let mcp = false;
+	const rawMcp = frontmatter.mcp;
+	if (rawMcp !== undefined && rawMcp !== null && rawMcp !== "") {
+		if (rawMcp === true || rawMcp === "on") mcp = true;
+		else if (rawMcp === false || rawMcp === "off") mcp = false;
+		else {
+			return `invalid mcp ${showValue(rawMcp)}. Use on, off, true, false, or drop the field.`;
+		}
+	}
+	if (mcp) {
+		if (autonomy === "off" || autonomy === "low") {
+			return "mcp requires autonomy medium or higher; low/off stay read-only.";
+		}
+		if (codemode.mode === false) {
+			return "mcp requires codemode on or only; MCP tools are reached through codemode.";
+		}
+		if (parsedPaths.paths.length > 0) {
+			return "mcp cannot be combined with paths; MCP tools are not path-fenced.";
+		}
+	}
+	if (!mcp && tools?.some((t) => t.startsWith("mcp__"))) {
+		return "mcp__ tools require mcp: true.";
+	}
+
 	const budget = parseBudget(frontmatter.budget);
 	if (typeof budget === "string") return budget;
 
@@ -118,6 +142,7 @@ export function validateSubagent(
 			codemode.mode === true || codemode.mode === false || codemode.mode === "only"
 				? codemode.mode
 				: undefined,
+		...(mcp ? { mcp: true } : {}),
 		budget,
 		promptPrefix,
 		systemPrompt,

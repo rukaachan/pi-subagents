@@ -34,6 +34,8 @@ export function currentFieldValue(sub: SubagentConfig, field: EditableField): st
 					: sub.codemode === true
 						? "on"
 						: "only";
+		case "mcp":
+			return sub.mcp ? "on" : "(default: off)";
 	}
 }
 
