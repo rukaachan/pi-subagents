@@ -11,6 +11,7 @@ import {
 	type TeamUpdate,
 } from "../domain/team.ts";
 import { UPDATE_ACTIONS, type Params } from "./team-tool-schema.ts";
+import { shutDown } from "./team-tool-gate.ts";
 import type { TeamApi } from "./team-tool-types.ts";
 
 function taskLine(view: TeamTaskView): string {
@@ -182,6 +183,8 @@ export async function runTeam(
 		);
 	}
 	if (params.action === "create") {
+		const shut = shutDown(api, caller);
+		if (shut) return fail(shut);
 		if (!params.subject) return fail("A task needs a subject.");
 		const result = api.create({
 			subject: params.subject,
@@ -215,6 +218,8 @@ export async function runTeam(
 	if (params.expected_revision === undefined) {
 		return fail(`${params.action} needs expected_revision; read the task first.`, params.task_id);
 	}
+	const shut = shutDown(api, caller);
+	if (shut) return fail(shut, params.task_id);
 	const update: TeamUpdate = {
 		taskId: params.task_id,
 		expectedRevision: params.expected_revision,

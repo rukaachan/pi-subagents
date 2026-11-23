@@ -85,7 +85,8 @@ export async function resumeTask(
 
 	void (async () => {
 		try {
-			const team = teamChildExtras(sub.name, rec.taskId);
+			const gate = { open: true };
+			const team = teamChildExtras(sub.name, rec.taskId, gate);
 			const child = await startSubagentSession(sub, rec.cwd, ctx, team);
 			const unbindMail = team
 				? bindTeamMember(
@@ -111,6 +112,7 @@ export async function resumeTask(
 				},
 			);
 			const live = liveStop(followId, sub.name, child.session, (why) => {
+				gate.open = false;
 				store.remove(followId);
 				removedIds.add(followId);
 				ledger.finish(sub.name, "stopped");
@@ -170,6 +172,7 @@ export async function resumeTask(
 				announceSettle(follow, parentSessionId, rec.taskId);
 				store.touch();
 			} catch (err) {
+				gate.open = false;
 				if (live.wasStopped()) throw new RunStopped(live.why());
 				const why = annotateFailure(err, surfaceBudgetNotes(child.notes, budgetStop));
 				follow.history = snapshotHistory(child.session);
@@ -177,12 +180,14 @@ export async function resumeTask(
 				stop({ status: "error", error: why instanceof Error ? why.message : String(why) });
 				throw why;
 			} finally {
+				gate.open = false;
 				unbindMail();
 				budgetStop.dispose();
 				unregisterView();
 				live.unregister();
 				stop();
 				child.session.dispose();
+				if (live.wasStopped()) sweepMemberTasks(rec.taskId, false, Date.now(), "stopped");
 			}
 		} catch (err) {
 			if (isRunStopped(err)) return;

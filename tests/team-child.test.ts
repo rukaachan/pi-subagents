@@ -76,4 +76,27 @@ describe("team child", () => {
 		assert.equal(reassign.isError, undefined);
 		assert.equal(taskList()[0]?.task.owner, "lead");
 	});
+
+	it("refuses a claim that races the stop", async () => {
+		enableTeam();
+		createTask({ subject: "one", description: "" });
+		const gate = { open: true };
+		const child = joinTeamChild("worker", "run-a", gate);
+		assert.ok(child);
+		const tool = child.tools[0];
+		assert.ok(tool);
+		gate.open = false;
+		const ctx = { sessionManager: { getSessionId: () => "s-child" } };
+		const result = await tool.execute(
+			"id",
+			{ action: "claim", task_id: "task-1", expected_revision: 1 } as never,
+			undefined,
+			undefined,
+			ctx as never,
+		);
+		assert.equal(result.isError, true);
+		const body = result.content[0];
+		if (body?.type === "text") assert.match(body.text, /has stopped/);
+		assert.equal(taskList()[0]?.task.status, "pending");
+	});
 });

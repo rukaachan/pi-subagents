@@ -20,6 +20,7 @@ import { checkReturn } from "../domain/subagent/contract.ts";
 import { journalWrite } from "../telemetry/journal.ts";
 import { startSubagentSession } from "../infra/host-session.ts";
 import { teamChildExtras } from "./team-child.ts";
+import { sweepMemberTasks } from "./team-sweep.ts";
 import { bindTeamMember } from "./team-mail.ts";
 import { windDownSignal } from "./guards/wind.ts";
 import { applyReportBudget, effectiveBudget } from "../domain/subagent/budget.ts";
@@ -53,7 +54,8 @@ export interface AttemptDeps {
 /** Run one child session. Never books the ledger; the caller owns that. */
 export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptResult> {
 	const { rec, sub, prompt, cwd, ctx, kind, contract, live, holder, setStopHandle } = deps;
-	const team = teamChildExtras(sub.name, rec.taskId);
+	const gate = { open: true };
+	const team = teamChildExtras(sub.name, rec.taskId, gate);
 	const child = await startSubagentSession(sub, cwd, ctx, team);
 	const unbindMail = team
 		? bindTeamMember(
@@ -82,7 +84,10 @@ export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptRe
 			...(rec.runId ? { runId: rec.runId } : {}),
 		},
 	);
-	setStopHandle((why) => stop({ status: "interrupted", error: stoppedRowNote(why) }));
+	setStopHandle((why) => {
+		gate.open = false;
+		stop({ status: "interrupted", error: stoppedRowNote(why) });
+	});
 	const budgetStop = installRunBudget(child.session, effectiveBudget(sub.budget));
 	budgetStop.windDown((secsLeft) => {
 		void windDownSignal(child.session, child.notes, secsLeft);
@@ -143,6 +148,7 @@ export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptRe
 		});
 		return { ok: true };
 	} catch (err) {
+		gate.open = false;
 		if (isRunStopped(err)) return { ok: false, stopped: true };
 		const why = annotateFailure(err, surfaceBudgetNotes(child.notes, budgetStop));
 		const message = why instanceof Error ? why.message : String(why);
@@ -151,6 +157,7 @@ export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptRe
 		stop({ status: "error", error: message });
 		return { ok: false, error: message, transient: isTransientFailure(message) };
 	} finally {
+		gate.open = false;
 		unbindMail();
 		dropSteers(rec.taskId);
 		setStopHandle(null);
@@ -158,6 +165,7 @@ export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptRe
 		unregisterView();
 		stop();
 		child.session.dispose();
+		if (live.wasStopped()) sweepMemberTasks(rec.taskId, false, Date.now(), "stopped");
 		holder.abort = () => {};
 		holder.dispose = () => {};
 	}

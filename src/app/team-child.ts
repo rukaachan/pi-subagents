@@ -19,9 +19,18 @@ export interface TeamChild {
 	prompt: string;
 }
 
+/** A run closes its gate when it stops; late claims are refused. */
+export interface TeamGate {
+	open: boolean;
+}
+
 /** Extras for the child session, or nothing when team mode is off. */
-export function teamChildExtras(starter: string, key?: string): TeamChildExtras | undefined {
-	const team = joinTeamChild(starter, key);
+export function teamChildExtras(
+	starter: string,
+	key?: string,
+	gate?: TeamGate,
+): TeamChildExtras | undefined {
+	const team = joinTeamChild(starter, key, gate);
 	return team
 		? {
 				member: team.member,
@@ -33,13 +42,24 @@ export function teamChildExtras(starter: string, key?: string): TeamChildExtras 
 }
 
 /** Join a leg to the live team, or return nothing when team mode is off. */
-export function joinTeamChild(starter: string, key?: string): TeamChild | undefined {
+export function joinTeamChild(
+	starter: string,
+	key?: string,
+	gate?: TeamGate,
+): TeamChild | undefined {
 	if (!teamEnabled()) return undefined;
 	const member = joinTeam(starter, key);
 	return {
 		member,
 		tools: [
-			createTeamTool({ ...teamApi, isLive: (name) => Boolean(liveMember(name)) }, member),
+			createTeamTool(
+				{
+					...teamApi,
+					isLive: (name) => Boolean(liveMember(name)),
+					...(gate ? { canWork: () => gate.open } : {}),
+				},
+				member,
+			),
 			createTeamMessageTool(teamMessageApi, member),
 		],
 		prompt: teamPrompt(member),

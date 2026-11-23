@@ -56,6 +56,8 @@ export interface TeamApi {
 	members: () => TeamMember[];
 	resolve: (taskId: string) => TeamResolution | undefined;
 	isLive?: (name: string) => boolean;
+	/** False once the run is stopped; late board changes must not land. */
+	canWork?: () => boolean;
 	launch?: (input: TeamLaunchInput, ctx: ExtensionContext) => Promise<TeamLaunchResult>;
 	create: (input: {
 		subject: string;

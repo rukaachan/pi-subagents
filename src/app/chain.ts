@@ -98,9 +98,10 @@ export function runChain(
 				step.startedAt = Date.now();
 				step.prompt = stepPrompt(spec, step.idx, priorReport);
 				store.touch();
-				const team = teamChildExtras(sub.name, `${taskId}-${step.idx}`);
-				const child = await startSubagentSession(sub, cwd, ctx, team);
 				const runId = `${taskId}-${step.idx}`;
+				const gate = { open: true };
+				const team = teamChildExtras(sub.name, runId, gate);
+				const child = await startSubagentSession(sub, cwd, ctx, team);
 				const unbindMail = team
 					? bindTeamMember(
 							team.member,
@@ -126,6 +127,7 @@ export function runChain(
 					`${sub.name} ${step.idx + 1}`,
 					child.session,
 					(why) => {
+						gate.open = false;
 						stop({ status: "interrupted", error: `interrupted by ${why}` });
 					},
 				);
@@ -161,12 +163,13 @@ export function runChain(
 						notes: [...child.notes],
 					});
 				} catch (err) {
+					gate.open = false;
 					const why = live.wasStopped()
 						? "stopped"
 						: err instanceof Error
 							? err.message
 							: String(err);
-					sweepMemberTasks(`${taskId}-${step.idx}`, false, Date.now(), why);
+					sweepMemberTasks(runId, false, Date.now(), why);
 					if (live.wasStopped()) {
 						live.unregister();
 						throw new RunStopped(live.why());
@@ -174,10 +177,12 @@ export function runChain(
 					stop({ status: "error", error: err instanceof Error ? err.message : String(err) });
 					throw err;
 				} finally {
+					gate.open = false;
 					unbindMail();
 					live.unregister();
 					stop();
 					child.session.dispose();
+					if (live.wasStopped()) sweepMemberTasks(runId, false, Date.now(), "stopped");
 				}
 			}
 			rec.status = "done";

@@ -46,7 +46,8 @@ export async function runSubagent(
 ): Promise<SubagentRunResult> {
 	ledger.begin(sub.name);
 	const teamKey = attach?.taskId;
-	const team = teamChildExtras(sub.name, teamKey);
+	const gate = { open: true };
+	const team = teamChildExtras(sub.name, teamKey, gate);
 	const child = await startSubagentSession(sub, cwd, ctx, team);
 	const unbindMail = team
 		? bindTeamMember(
@@ -71,6 +72,7 @@ export async function runSubagent(
 	// One stop request reaches this run like any other: the row goes, the
 	// ledger books a stop, and the journal says `interrupted`.
 	const live = liveStop(trackKey ?? `${sub.name}-foreground`, sub.name, child.session, (why) => {
+		gate.open = false;
 		ledger.finish(sub.name, "stopped");
 		sweepMemberTasks(teamKey, false, Date.now(), "stopped");
 		stop?.({ status: "interrupted", error: stoppedRowNote(why) });
@@ -141,6 +143,7 @@ export async function runSubagent(
 		ledger.finish(sub.name, "done");
 		return result;
 	} catch (err) {
+		gate.open = false;
 		if (live.wasStopped()) throw new RunStopped(live.why());
 		const why = annotateFailure(err, surfaceBudgetNotes(child.notes, budgetStop));
 		const message = attach
@@ -153,10 +156,12 @@ export async function runSubagent(
 		stop?.({ status: "error", error: message });
 		throw why;
 	} finally {
+		gate.open = false;
 		unbindMail();
 		budgetStop.dispose();
 		live.unregister();
 		stop?.();
 		child.session.dispose();
+		if (live.wasStopped()) sweepMemberTasks(teamKey, false, Date.now(), "stopped");
 	}
 }
