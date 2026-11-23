@@ -20,6 +20,7 @@ import { HYBRID_POLICY } from "../src/app/hybrid-policy.ts";
 import { TEAM_LEAD_POLICY } from "../src/app/team-policy.ts";
 import { teamMessageTool, teamTool } from "../src/tools/team.ts";
 import { beginSession, store, stopPersistence } from "../src/app/live-store.ts";
+import { reportStateError } from "../src/app/persist.ts";
 import { stopAllLiveRuns } from "../src/app/stop-all.ts";
 import { queuedLegCount, stopLaunchSchedulers } from "../src/app/launch.ts";
 import { watchEscapeKey } from "../src/app/esc-watch.ts";
@@ -59,8 +60,10 @@ export default function (pi: ExtensionAPI) {
 	let unwatchQueue: (() => void) | null = null;
 	pi.on("session_start", (_event, ctx) => {
 		const sessionId = ctx.sessionManager.getSessionId();
-		beginSession(ctx.cwd, sessionId);
 		clearTeamMail();
+		beginSession(ctx.cwd, sessionId, (message) =>
+			reportStateError(message, (text) => ctx.ui.notify(`state save failed: ${text}`, "warning")),
+		);
 		setLeadInbox((text) => {
 			pi.sendMessage(
 				{ customType: TEAM_MESSAGE_CUSTOM_TYPE, content: text, display: true },

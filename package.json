@@ -18,6 +18,8 @@
 	"type": "module",
 	"scripts": {
 		"test": "node --experimental-strip-types --test tests/*.test.ts",
+		"coverage": "node --experimental-strip-types --experimental-test-coverage --test tests/*.test.ts",
+		"smoke:live": "node --experimental-strip-types tools/live-smoke.mts",
 		"typecheck": "tsc --noEmit",
 		"lint": "oxlint -D correctness -D suspicious",
 		"lint:fix": "oxlint -D correctness -D suspicious --fix",

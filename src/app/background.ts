@@ -16,20 +16,14 @@ import { ledger, markKind } from "./ledger.ts";
 import { announceSettle } from "./settle-notice.ts";
 import { sweepMemberTasks } from "./team-sweep.ts";
 import { runBackgroundAttempt, type AttemptResult } from "./background-attempt.ts";
+import { RetryPolicy, sleepUnlessStopped } from "./retry-policy.ts";
 import type { RunKind, TaskRecord } from "./task-record.ts";
 import type { TaskStore } from "./task-store.ts";
 
 export { resumeTask } from "./background-resume.ts";
 
 const MAX_ATTEMPTS = 3;
-const RETRY_DELAYS_MS = [1000, 4000] as const;
-
-function sleep(ms: number): Promise<void> {
-	return new Promise((resolve) => {
-		const timer = setTimeout(resolve, ms);
-		timer.unref?.();
-	});
-}
+const retryPolicy = new RetryPolicy();
 
 export function launchBackground(
 	store: TaskStore,
@@ -123,11 +117,18 @@ export function launchBackground(
 				if (outcome.stopped || live.wasStopped()) return;
 				lastError = outcome.error ?? "run failed";
 				if (!isTransientFailure(lastError) || attempt === MAX_ATTEMPTS) break;
-				journalWrite({ event: "retry", id: taskId, attempt, error: cut(lastError, 200) });
+				const plan = retryPolicy.delayFor(attempt, lastError, sub.model);
+				journalWrite({
+					event: "retry",
+					id: taskId,
+					attempt,
+					delayMs: plan.delayMs,
+					reason: plan.reason,
+					error: cut(lastError, 200),
+				});
 				rec.error = lastError;
 				store.touch();
-				await sleep(RETRY_DELAYS_MS[attempt - 1] ?? 4000);
-				if (live.wasStopped()) return;
+				if (!(await sleepUnlessStopped(plan.delayMs, () => live.wasStopped()))) return;
 			}
 			rec.status = "error";
 			rec.error = lastError;

@@ -18,7 +18,15 @@ export type JournalEvent =
 			nested?: string;
 	  }
 	| { event: "failure"; id: string; family: string; auto?: boolean }
-	| { event: "retry"; id: string; attempt: number; error?: string }
+	| {
+			event: "retry";
+			id: string;
+			attempt: number;
+			delayMs?: number;
+			reason?: string;
+			error?: string;
+	  }
+	| { event: "state_error"; message: string }
 	| { event: "steer"; id: string; text: string }
 	| { event: "team_message"; from: string; to: string; chars: number; queued?: boolean }
 	| { event: "stop"; id: string; family: string; why?: string }

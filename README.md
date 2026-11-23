@@ -265,6 +265,8 @@ grace.
 npm ci
 npm run check   # format, lint, typecheck, tests
 npm run arch    # architecture tests only
+npm run coverage      # line/branch/function coverage, no gate
+PI_IT_LIVE=1 PI_IT_MODEL=provider/model npm run smoke:live  # real Task/Team/steer/resume
 npm run bench:launch   # local render and admission timings
 npm run bench:layers  # viewer paint, streaming, and state save
 npm run bench:finish  # roster pick latency over the six starters

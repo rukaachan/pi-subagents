@@ -15,6 +15,7 @@ import {
 	type TeamTaskStatus,
 } from "../domain/team.ts";
 import { canonicalWorkspacePath } from "../domain/workspace-path.ts";
+import { MAX_COLD_CHARS, MAX_COLD_MESSAGES } from "../domain/team-mail.ts";
 
 export interface PersistedTeam {
 	teamId: string;
@@ -22,6 +23,7 @@ export interface PersistedTeam {
 	nextId: number;
 	tasks: TeamTask[];
 	members: TeamMember[];
+	coldMail?: Record<string, string[]>;
 }
 
 const STATUSES = new Set<TeamTaskStatus>(["pending", "in_progress", "completed", "deleted"]);
@@ -105,6 +107,28 @@ function decodeMember(value: unknown): TeamMember | undefined {
 	return { name, starter, joinedAt, ...(key ? { key } : {}) };
 }
 
+function decodeColdMail(
+	value: unknown,
+	names: ReadonlySet<string>,
+): Record<string, string[]> | undefined {
+	if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+	const row = value as Record<string, unknown>;
+	const out: Record<string, string[]> = {};
+	for (const [name, queue] of Object.entries(row)) {
+		if (!names.has(name) || !Array.isArray(queue)) continue;
+		const kept: string[] = [];
+		let chars = 0;
+		for (const item of queue) {
+			if (typeof item !== "string" || !item) continue;
+			if (kept.length >= MAX_COLD_MESSAGES || chars + item.length > MAX_COLD_CHARS) break;
+			kept.push(item);
+			chars += item.length;
+		}
+		if (kept.length > 0) out[name] = kept;
+	}
+	return Object.keys(out).length > 0 ? out : undefined;
+}
+
 function highestId(tasks: readonly TeamTask[]): number {
 	let max = 0;
 	for (const task of tasks) {
@@ -147,5 +171,13 @@ export function decodeTeam(value: unknown): PersistedTeam | undefined {
 		typeof stored === "number" && Number.isSafeInteger(stored) && stored > 0
 			? Math.max(stored, highestId(tasks) + 1)
 			: highestId(tasks) + 1;
-	return { teamId, enabled: row.enabled === true, nextId, tasks, members };
+	const coldMail = decodeColdMail(row.coldMail, names);
+	return {
+		teamId,
+		enabled: row.enabled === true,
+		nextId,
+		tasks,
+		members,
+		...(coldMail ? { coldMail } : {}),
+	};
 }

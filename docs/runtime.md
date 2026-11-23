@@ -61,9 +61,13 @@ never wake.
 ## Retry, steer, stop
 
 A transient provider failure (408, 429, 5xx, timeout, reset) retries the
-same task twice: attempts 1, 2, 3, waits of 1 s and 4 s, one `retry`
-journal event per retry. Anything else fails at once. `TaskControl`
-retries an errored background task with a new id and the saved prompt.
+same task twice: attempts 1, 2, 3, waits of 1 s and 4 s with ±25% jitter,
+and one `retry` journal event per retry with `delayMs` and `reason`.
+`Retry-After` (seconds or an HTTP date) wins when it is longer; a 429 also
+sets a per-model cooldown shared by sibling legs. Every delay is capped at
+30 s, and a stop interrupts the wait in 100 ms slices. Anything else fails
+at once. `TaskControl` retries an errored background task with a new id and
+the saved prompt.
 
 Steering reaches the child before its next request. If the child session
 does not exist yet, the text waits in `steer-queue` (max 4 messages, 2000
@@ -141,8 +145,9 @@ back off. A stopped run leaves queued tasks pending; delete them from the
 TEAM tab. A child tool has no `launch` callback and returns a clear error.
 The enable-only path is the UI switch (`/subagents team on`, `t`), which
 calls the store directly without starting workers. The Team schema is
-exercised with the local fake provider in e2e; no paid live-provider smoke
-runs in CI.
+exercised with the local fake provider in e2e. `npm run smoke:live` is the
+manual real-provider check (`PI_IT_LIVE=1` and `PI_IT_MODEL`); it never runs
+in CI.
 
 ## Team tools and messages
 
@@ -160,7 +165,9 @@ function, bound after the child session starts and removed in the run's
 `extensions/index.ts`. A known cold member gets a session queue
 (`MAX_COLD_MESSAGES = 8`, `MAX_COLD_CHARS = 8_000`), flushed by
 `bindTeamMember`; a full queue is refused, never silently dropped. The
-queue is in memory only, so `/reload` drops it.
+queue is saved with the board (`coldMail`) and restored before the first
+prompt, so `/reload` keeps it; unknown members are dropped. A member that
+never rejoins never reads it.
 
 `wait` reads the shared task store and resolves on its next change,
 capped at 120s. It tracks active wait edges in a `Set`; a new edge that
@@ -171,13 +178,6 @@ marked running fails with `no live process`. A chain member is bound
 without a run id and `wait` says why. The journal records
 `team_message` with from/to/chars/queued, never the text. Messages are
 capped at 2,000 characters.
-
-## Compaction
-
-**A subagent compacts on its own, and the parent's compaction never
-touches it.** Each subagent is its own pi session with its own
-in-memory history, so the parent's `/compact` cannot shrink the child's
-context and the child's compaction cannot shrink the parent's.
 
 ## MCP in child sessions
 
@@ -209,6 +209,13 @@ The fake-provider e2e starts a real stdio MCP server
 (`tests/fixtures/mcp-echo-server.mjs`), a real child session, and the real
 codemode sandbox. It answers `MCP_PROVEN` only when the echoed `mcp-ok`
 comes back through the tool result; otherwise it reports `MCP_MISSING`.
+
+## Compaction
+
+**A subagent compacts on its own, and the parent's compaction never
+touches it.** Each subagent is its own pi session with its own
+in-memory history, so the parent's `/compact` cannot shrink the child's
+context and the child's compaction cannot shrink the parent's.
 
 The rule inside the child is pi's own: the host summarizes the early
 messages when the child's projected context crosses
@@ -326,7 +333,9 @@ not saved.`
   found there that was still `running` is frozen to `error` first.
 - Delivered reports are capped at 40,000 characters. The state file
   keeps up to 60,000; anything larger is cut on save. State files are
-  bounded at 2 MB of UTF-8 bytes; a larger file is ignored on read.
+  bounded at 2 MB of UTF-8 bytes; a larger file is ignored on read. A
+  failed save (bad path, permission, disk full) reports `state save failed`
+  once, journals `state_error`, and leaves the run alive.
 - On block: the subagent reports back instead of prompting.
 
 ## When the provider answers 400

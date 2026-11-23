@@ -8,8 +8,10 @@ import type { TaskStore } from "./task-store.ts";
 import type { TaskRecord } from "../domain/task.ts";
 import { freezeRestored } from "../domain/task.ts";
 import { restoreTeam, teamSnapshot } from "./team-store.ts";
+import { coldMailSnapshot, restoreColdMail } from "./team-mail.ts";
 import { releaseOrphanedTasks } from "./team-sweep.ts";
 import { findStateTask } from "../infra/state-find.ts";
+import { journalWrite } from "../telemetry/journal.ts";
 import {
 	capRecord,
 	defaultStatePath,
@@ -44,12 +46,13 @@ export function archivedTask(cwd: string, taskId: string): TaskRecord | undefine
 
 export function serializeState(store: TaskStore, ledger: InMemoryLedger): PersistedState {
 	const team = teamSnapshot();
+	const coldMail = coldMailSnapshot();
 	return {
 		version: STATE_VERSION,
 		savedAt: Date.now(),
 		tasks: store.snapshot().map(capRecord),
 		ledger: ledger.bySubagent(),
-		...(team ? { team } : {}),
+		...(team ? { team: { ...team, ...(coldMail ? { coldMail } : {}) } } : {}),
 	};
 }
 
@@ -60,6 +63,7 @@ export function restoreInto(store: TaskStore, ledger: InMemoryLedger, statePath:
 	const interrupted = state.tasks.filter((t) => t.status === "running");
 	if (state.team) {
 		restoreTeam(state.team);
+		restoreColdMail(state.team.coldMail);
 		releaseOrphanedTasks();
 	}
 	store.restore(state.tasks);
@@ -74,23 +78,36 @@ export function restoreInto(store: TaskStore, ledger: InMemoryLedger, statePath:
 
 export const SAVE_DEBOUNCE_MS = 250;
 
+/** One visible, journaled warning for a failed state write. */
+export function reportStateError(message: string, notify?: (message: string) => void): void {
+	journalWrite({ event: "state_error", message });
+	notify?.(message);
+}
+
 export function attachPersistence(
 	store: TaskStore,
 	ledger: InMemoryLedger,
 	statePath = defaultStatePath(),
+	onError?: (message: string) => void,
 ): () => void {
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	// Every save gets a generation. A synchronous flush bumps it, so an async
 	// write that started earlier sees `isCurrent() === false` and drops its tmp
 	// file instead of renaming over the newer state.
 	let generation = 0;
+	let lastError: string | undefined;
+	const report = (error: string | undefined) => {
+		if (!error || error === lastError) return;
+		lastError = error;
+		onError?.(error);
+	};
 	const flush = () => {
 		if (timer) {
 			clearTimeout(timer);
 			timer = null;
 		}
 		generation += 1;
-		saveState(statePath, encodeState(serializeState(store, ledger)));
+		report(saveState(statePath, encodeState(serializeState(store, ledger))).error);
 	};
 	const schedule = () => {
 		if (timer) return;
@@ -101,7 +118,9 @@ export function attachPersistence(
 			const json = encodeState(serializeState(store, ledger));
 			// Encoding stays on this thread (it reads live objects); the write
 			// and rename, which block on the file system, run off it.
-			void saveStateAsync(statePath, json, () => current === generation);
+			void saveStateAsync(statePath, json, () => current === generation).then((result) =>
+				report(result.error),
+			);
 		}, SAVE_DEBOUNCE_MS);
 	};
 	const onExit = () => flush();

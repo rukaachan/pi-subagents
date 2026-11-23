@@ -250,6 +250,10 @@ admission in about 0.75 s, footer painted in the same tick, a 2-leg run
 settled in 2–4 s, and a 271-char compact report.
 
 `npm run e2e` runs the real-model delegate probe and spends calls.
+`PI_IT_LIVE=1 PI_IT_MODEL=provider/model npm run smoke:live` checks one
+Task, one Team start, one steer, and one resume against a real provider;
+it is manual/nightly and never a CI gate. `npm run coverage` prints Node's
+line, branch, and function coverage without a percentage gate.
 `npm run e2e:fixtures` copies fixtures into a temp home, starts a local
 fake provider, and checks team start admission, the queue, hook lines, failure
 labels, chain, parallel, abort, the viewer, and the shipped defaults
@@ -396,7 +400,7 @@ Only the lead spawns; a teammate cannot delegate further.
 `TeamMessage` sends to a live member first. A known finished member gets
 a bounded session queue (8 messages or 8,000 characters): the send result
 says `queued`, and the queue flushes when that member rejoins or is
-retried. The queue is not saved to disk, so `/reload` drops it; a member
+retried. The queue is saved with the team board, so `/reload` keeps it; a member
 that never rejoins never reads it. A chain member can receive a message
 but cannot be waited on, because a chain has no per-step run row.
 Messages are capped at 2,000 characters; the journal records `from`,
@@ -469,8 +473,10 @@ legs share this cap, and a larger fan-out is refused, so split it into
 batches).
 
 A transient provider failure (408, 429, 5xx, timeout, reset) retries the
-same task twice, after 1 s and 4 s; the journal records `retry`. A third
-failure ends the task `error` and the wake message carries the error.
+same task twice, after 1 s and 4 s with ±25% jitter; `Retry-After` and a
+shared 429 cooldown can lengthen the wait, capped at 30 s. The journal
+records `retry` with `delayMs` and `reason`. A third failure ends the task
+`error` and the wake message carries the error.
 
 `TaskControl` acts on a live or errored task: `action: "steer"` with
 `text` reaches the child before its next request, `action: "stop"` stops
@@ -676,7 +682,8 @@ session's file, because the lookup scans the saved files for the
 folder. Live rows cannot survive:
 their child sessions are gone, so restore marks them `error —
 interrupted by Pi restart`, freezes their clock, and drops the kept
-history.
+history. A failed save reports `state save failed` once, journals
+`state_error`, and leaves the run alive.
 
 ## Live partial output (v0.8)
 

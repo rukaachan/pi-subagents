@@ -2,6 +2,9 @@
  * pi-subagents: the message contract between live team members.
  */
 
+export const MAX_COLD_MESSAGES = 8;
+export const MAX_COLD_CHARS = 8_000;
+
 export interface MailResult {
 	ok: boolean;
 	error?: string;

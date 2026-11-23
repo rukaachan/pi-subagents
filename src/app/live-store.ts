@@ -42,7 +42,11 @@ function restoreLegacySession(cwd: string, sessionId: string): number {
  * Load this session's rows and start saving. Called on every session start;
  * the previous session's writer is flushed and detached first.
  */
-export function beginSession(cwd = process.cwd(), sessionId?: string): void {
+export function beginSession(
+	cwd = process.cwd(),
+	sessionId?: string,
+	onError?: (message: string) => void,
+): void {
 	stopPersistence();
 	store.clear();
 	ledger.restore({});
@@ -50,7 +54,7 @@ export function beginSession(cwd = process.cwd(), sessionId?: string): void {
 	statePath = sessionFile(cwd, sessionId);
 	restoredRows = restoreIntoCurrent(cwd, sessionId);
 	setTeamChangeHook(() => store.touch());
-	detach = attachPersistence(store, ledger, statePath);
+	detach = attachPersistence(store, ledger, statePath, onError);
 }
 
 function restoreIntoCurrent(cwd: string, sessionId?: string): number {
