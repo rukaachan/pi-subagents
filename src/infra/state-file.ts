@@ -110,7 +110,7 @@ export function encodeState(state: PersistedState): string {
 	const tasks = state.tasks.slice();
 	for (;;) {
 		const json = JSON.stringify({ ...state, tasks });
-		if (json.length <= MAX_STATE_BYTES || tasks.length === 0) return json;
+		if (Buffer.byteLength(json, "utf8") <= MAX_STATE_BYTES || tasks.length === 0) return json;
 		tasks.shift();
 	}
 }
@@ -165,14 +165,21 @@ function numberOrUndefined(value: unknown): number | undefined {
 	return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
-/** Read + decode. Missing file = null. Never throws. */
-export function loadState(statePath: string): PersistedState | null {
+/** Read one state file under the byte budget. Missing, oversized, or unreadable = null. */
+export function readStateFile(file: string): string | null {
 	try {
-		if (!fs.existsSync(statePath)) return null;
-		return decodeState(fs.readFileSync(statePath, "utf-8"));
+		const stat = fs.statSync(file);
+		if (!stat.isFile() || stat.size > MAX_STATE_BYTES) return null;
+		return fs.readFileSync(file, "utf-8");
 	} catch {
 		return null;
 	}
+}
+
+/** Read + decode. Missing file = null. Never throws. */
+export function loadState(statePath: string): PersistedState | null {
+	const raw = readStateFile(statePath);
+	return raw === null ? null : decodeState(raw);
 }
 
 let asyncSeq = 0;

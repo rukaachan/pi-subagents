@@ -91,10 +91,9 @@ and `pi-tui` are optional peers with a deliberately open range (`*` —
 this package tracks the host, which moves fast, and a local-path plugin
 install never resolves peers anyway), so a plugin install never pulls a
 second copy of the framework — two `Usage` types in one process is the
-bug that shape produces. The tested host stays pinned where it is
-enforced: `devDependencies` at exactly `1.4.0`, the version the gate
-runs against (moved up from 1.3.0 for the codemode worker queue,
-measured below). Every
+bug that shape produces. The tested host is pinned where it is
+enforced: `package.json` names the exact `devDependencies`, and the gate
+runs against that version. Every
 host import is a root import; the single dynamic one (the codemode
 factory) keeps pre-1.2 hosts green by never loading there.
 
@@ -105,15 +104,15 @@ result looks had to be read past chain scheduling. Then `src/` itself was
 one flat folder of 20 files, and the biggest of them was 646 lines.
 Both were split, with no logic change:
 
-| folder                | files            | owns                                      |
-| --------------------- | ---------------- | ----------------------------------------- |
-| `extensions/index.ts` | 1 file, 27 lines | the three tool definitions and the wiring |
-| `src/app/`            | 12 files         | drivers, store, ledger, guards            |
-| `src/domain/`         | 11 files         | the rules and the vocabulary              |
-| `src/infra/`          | 7 files          | disk and host adapters                    |
-| `src/telemetry/`      | 4 files          | journal, progress, activity               |
-| `src/ui/`             | 15 files         | picker, menu, rows, result shells         |
-| `src/tools/`          | 8 files          | the tool definitions                      |
+| folder                | owns                                |
+| --------------------- | ----------------------------------- |
+| `extensions/index.ts` | the tool definitions and the wiring |
+| `src/app/`            | drivers, store, ledger, guards      |
+| `src/domain/`         | the rules and the vocabulary        |
+| `src/infra/`          | disk and host adapters              |
+| `src/telemetry/`      | journal, progress, activity         |
+| `src/ui/`             | picker, menu, rows, result shells   |
+| `src/tools/`          | the tool definitions                |
 
 `runChainTask` and `runParallelTask` now take the `TaskStore` as a
 parameter instead of reaching for a module-level singleton, which is
@@ -164,7 +163,8 @@ The UI grew without adding a second source of truth: `TaskRecord` and
   It names the ladder; the model chooses. `Team { action: "start", prompt }`
   is lead-only and launches one worker per leg; it also turns team mode on.
   The UI `/subagents team on` is the enable-only path. Team start creates
-  one board task per leg and reuses the `startLaunch` queue.
+  one board task per leg, seeds its write scopes from that subagent's `paths`,
+  and reuses the `startLaunch` queue.
 - Wake on settle is one message, once. `announceSettle` marks
   `fullDelivered` only when the sink accepted and reverts on failure; the
   report rides along unless `TaskOutput` already delivered it.
@@ -175,10 +175,11 @@ The UI grew without adding a second source of truth: `TaskRecord` and
 - `contract.ts` reads only the final contiguous `Field: value` block and
   returns `failure: "verification"` when a field is missing, so the label
   is a fact, not a model guess.
-- Temp tools and `paths` narrow, never widen: `registerTemp` refuses a
-  tool the caller cannot call, and `guardPaths` replaces `write`/`edit`
-  in the child session. A fenced child loses `bash` and `powershell`,
-  because a shell can write anywhere.
+- Temp tools cannot widen the active tool set: `registerTemp` refuses a
+  tool the caller cannot call. `paths` is workspace-relative; `guardPaths`
+  resolves symlinks and replaces `write`/`edit` in the child session. A
+  fenced child loses `bash` and `powershell`, because a shell can write
+  anywhere. A symlink swapped after the check is a TOCTOU limit, not a sandbox.
 
 Measured (`npm run bench:finish`, 4000 calls over the six starters): a
 roster pick is p50 38–82 µs and p95 73–110 µs across local runs, with 1.2

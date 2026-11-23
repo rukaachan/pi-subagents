@@ -145,7 +145,7 @@ field, built-in default.
 codemode: off      # off | on | only (true/false also work)
 budget: { timeoutSec: 600, maxReportChars: 4000 }
 promptPrefix: "Map first. Cite file:line."
-paths: [src, docs]  # optional: write/edit outside these is refused; bash is off
+paths: [src, docs]  # optional: workspace-relative; outside, absolute, and symlink escapes refused; bash is off
 ```
 
 `promptPrefix` is a fixed one-liner (≤400 chars) placed before every task
@@ -207,8 +207,9 @@ grace.
   auto-label the run `verification`.
 - **Fan-out** — `parallel[]`, up to the live cap (default 12).
 - **Team start / Delegate** — `/subagents team <prompt>` creates one board task
-  and one worker per leg; `/delegate` runs explorer + worker. Legs past
-  the live cap wait in a queue.
+  and one worker per leg; each task inherits its subagent's `paths` as write
+  scopes, and an unscoped leg warns. `/delegate` runs explorer + worker. Legs
+  past the live cap wait in a queue.
 - **Finish** — `/subagents finish <prompt>` (or `f` in RUNS) picks the
   smallest matched roster (max 4, never above `liveCap`).
 - **Teams** — `/subagents team on` or the TEAM tab opens a shared
@@ -223,9 +224,9 @@ grace.
   native footer progress, settled cards, and viewer tabs.
 - **TaskControl** — `steer`, `stop`, and `retry` a task from the model or
   the board (`s`, `x`, `r`).
-- **Paths fence** — a subagent may name the folders it writes into;
-  `write`/`edit` outside them are refused, and `bash`/`powershell`
-  are off because a shell cannot be fenced.
+- **Paths fence** — a subagent may name workspace-relative folders it writes
+  into; `write`/`edit` outside them, or through a symlink escape, are refused,
+  and `bash`/`powershell` are off because a shell cannot be fenced.
 - **Chains** — `chain[]`, fresh context per step.
 - **Temp subagents** — `temp_definition`, session-only.
 - **Codemode** — one script per turn, with a worker pool.

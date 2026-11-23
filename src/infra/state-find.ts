@@ -5,18 +5,16 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { TaskRecord } from "../domain/task.ts";
-import { PROJECT_STATE_DIR, STATE_FILE_NAME, decodeState, projectStatePath } from "./state-file.ts";
+import {
+	PROJECT_STATE_DIR,
+	STATE_FILE_NAME,
+	decodeState,
+	projectStatePath,
+	readStateFile,
+} from "./state-file.ts";
 
 /** Bounds a resume lookup; state files are small and few in practice. */
 const MAX_ARCHIVE_FILES = 200;
-
-function readOrNull(file: string): string | null {
-	try {
-		return fs.readFileSync(file, "utf-8");
-	} catch {
-		return null;
-	}
-}
 
 /**
  * Find one task in any state file for this folder. Resume uses this after a
@@ -47,7 +45,7 @@ export function findStateTask(
 	const newest = files.slice(0, MAX_ARCHIVE_FILES).map((entry) => entry.file);
 	newest.push(projectStatePath(agentDir, cwd), path.join(agentDir, STATE_FILE_NAME));
 	for (const file of newest) {
-		const raw = readOrNull(file);
+		const raw = readStateFile(file);
 		if (!raw || !raw.includes(taskId)) continue;
 		const hit = decodeState(raw)?.tasks.find((rec) => rec.taskId === taskId && rec.cwd === cwd);
 		if (hit) return hit;

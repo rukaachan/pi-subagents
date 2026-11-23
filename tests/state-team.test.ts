@@ -76,7 +76,21 @@ describe("team state decoding", () => {
 		assert.equal(team.tasks[0]?.subject.length, 120);
 		assert.equal(team.tasks[0]?.description.length, 2000);
 		assert.deepEqual(team.tasks[0]?.blockedBy, ["task-1"]);
-		assert.deepEqual(team.tasks[0]?.writeScopes, ["a", "/etc"]);
+		assert.deepEqual(team.tasks[0]?.writeScopes, ["a"]);
+	});
+
+	it("canonicalizes persisted scopes and drops outside roots", () => {
+		const team = decodeTeam({
+			...valid,
+			tasks: [
+				{
+					...valid.tasks[0],
+					writeScopes: ["src/./app", "src//app", "/etc", "../escape"],
+				},
+			],
+		});
+		assert.ok(team);
+		assert.deepEqual(team.tasks[0]?.writeScopes, ["src/app"]);
 	});
 
 	it("bumps nextId above the highest surviving task", () => {

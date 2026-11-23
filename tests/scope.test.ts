@@ -4,7 +4,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createWriteToolDefinition } from "@earendil-works/pi-coding-agent";
@@ -24,7 +24,7 @@ const def = (over: Record<string, unknown> = {}) => ({
 describe("parsePaths", () => {
 	it("takes a comma string or a list", () => {
 		for (const [raw, want] of [
-			["src, docs/", ["src", "docs/"]],
+			["src, docs/", ["src", "docs"]],
 			[
 				["src", "src", "lib"],
 				["src", "lib"],
@@ -44,6 +44,19 @@ describe("parsePaths", () => {
 		assert.equal(parsePaths(Array.from({ length: 21 }, (_, i) => `d${i}`)).ok, false);
 		assert.equal(parsePaths([1]).ok, false);
 	});
+
+	it("rejects roots outside the workspace", () => {
+		for (const raw of ["/etc", "../repo2", ".", "src/../../out", "C:\\repo"]) {
+			assert.equal(parsePaths(raw).ok, false, raw);
+		}
+	});
+
+	it("canonicalizes dot and duplicate segments", () => {
+		assert.deepEqual(parsePaths("src/./app, src//app, docs/"), {
+			ok: true,
+			paths: ["src/app", "docs"],
+		});
+	});
 });
 
 describe("isPathAllowed", () => {
@@ -59,6 +72,32 @@ describe("isPathAllowed", () => {
 		assert.equal(isPathAllowed("src-evil/a.ts", ["src"], cwd), false);
 		assert.equal(isPathAllowed("/tmp/a.ts", ["src"], cwd), false);
 		assert.equal(isPathAllowed("docs/a.md", ["src"], cwd), false);
+	});
+
+	it("refuses roots outside the workspace", () => {
+		assert.equal(isPathAllowed("/etc/passwd", ["/etc"], cwd), false);
+		assert.equal(isPathAllowed("../repo2/x", ["../repo2"], cwd), false);
+	});
+
+	it("refuses symlink files, folders, roots and dangling links", () => {
+		const repo = mkdtempSync(join(tmpdir(), "pi-fence-repo-"));
+		const outside = mkdtempSync(join(tmpdir(), "pi-fence-out-"));
+		try {
+			mkdirSync(join(repo, "src"));
+			writeFileSync(join(outside, "secret.txt"), "secret");
+			symlinkSync(join(outside, "secret.txt"), join(repo, "src", "file-link"));
+			symlinkSync(outside, join(repo, "src", "dir-link"));
+			symlinkSync(outside, join(repo, "src", "root-link"));
+			symlinkSync(join(outside, "missing.txt"), join(repo, "src", "dangling"));
+			assert.equal(isPathAllowed("src/file-link", ["src"], repo), false);
+			assert.equal(isPathAllowed("src/dir-link/secret.txt", ["src"], repo), false);
+			assert.equal(isPathAllowed("src/root-link/secret.txt", ["src/root-link"], repo), false);
+			assert.equal(isPathAllowed("src/dangling", ["src"], repo), false);
+			assert.equal(isPathAllowed("src/new/file.txt", ["src"], repo), true);
+		} finally {
+			rmSync(repo, { recursive: true, force: true });
+			rmSync(outside, { recursive: true, force: true });
+		}
 	});
 });
 

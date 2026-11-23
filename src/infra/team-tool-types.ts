@@ -45,6 +45,7 @@ export type TeamLaunchResult =
 			tasks: TeamLaunchLeg[];
 			started: number;
 			queued: number;
+			warnings?: string[];
 	  }
 	| { ok: false; error: string };
 

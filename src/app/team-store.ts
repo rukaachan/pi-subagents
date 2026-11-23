@@ -7,6 +7,7 @@ import type { TeamApi } from "../infra/team-tool-types.ts";
 import {
 	LEAD_NAME,
 	MAX_TEAM_MEMBERS,
+	MAX_TEAM_TASKS,
 	createTeamTask,
 	liveTasks,
 	newTeam,
@@ -107,19 +108,24 @@ export function joinTeam(starter: string, key?: string, now = Date.now()): strin
 		if (known) return known.name;
 	}
 	const base = baseName(starter);
+	const reserved = new Set(
+		liveTasks(team.board)
+			.filter((task) => task.status === "pending" || task.status === "in_progress")
+			.flatMap((task) => (task.owner ? [task.owner] : [])),
+	);
+	if (team.members.length >= MAX_TEAM_MEMBERS) {
+		const idle = team.members.findIndex((member) => !reserved.has(member.name));
+		if (idle < 0) {
+			throw new Error(`Team is full: all ${MAX_TEAM_MEMBERS} members own live tasks.`);
+		}
+		team.members.splice(idle, 1);
+	}
 	const used = new Set([
 		...team.members.map((member) => member.name),
 		...team.board.tasks.flatMap((task) => (task.owner ? [task.owner] : [])),
 	]);
 	let name = base;
 	for (let n = 2; used.has(name); n += 1) name = `${base}-${n}`;
-	if (team.members.length >= MAX_TEAM_MEMBERS) {
-		const owned = new Set(
-			liveTasks(team.board).flatMap((task) => (task.owner ? [task.owner] : [])),
-		);
-		const idle = team.members.findIndex((member) => !owned.has(member.name));
-		if (idle >= 0) team.members.splice(idle, 1);
-	}
 	team.members.push({ name, starter, joinedAt: now, ...(key ? { key } : {}) });
 	return name;
 }
@@ -163,7 +169,7 @@ export function taskList(filters: TeamFilters = {}): TeamTaskView[] {
 		if (filters.ready !== undefined && row.ready !== filters.ready) return false;
 		return true;
 	});
-	const limit = Math.max(1, Math.min(100, filters.limit ?? 100));
+	const limit = Math.max(1, Math.min(MAX_TEAM_TASKS, filters.limit ?? MAX_TEAM_TASKS));
 	return filtered.slice(0, limit);
 }
 

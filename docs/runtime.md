@@ -86,9 +86,11 @@ task so a new id can never collide. The last-attempt fields
 (`lastOwner`, `lastError`, `returnedAt`) are validated too; a bad value
 drops only that field. Deleted tasks stay as tombstones, so
 a blocker reference still resolves; a task that still blocks a live task
-cannot be deleted until that dependency is cleared. Caps: 128 live
-tasks, 32 idle members (a live owner is never evicted), 2,000-character
-descriptions, and 20 scopes or blockers per task.
+cannot be deleted until that dependency is cleared. Caps: 128 live tasks,
+32 members, 2,000-character descriptions, and 20 scopes or blockers per
+task. Idle members are evicted; a 33rd join is refused when all 32 own live
+tasks, and a start takes at most 32 legs. The Team list and TEAM tab show the
+whole board, up to 128 tasks.
 
 A member name is tied to the run that created it, so a retried
 background leg rejoins as the same member and can finish the task it
@@ -129,15 +131,18 @@ with `Task`, and the settle card still owns the wake.
 launches. It handles the request before the active gate, validates the
 prompt, then calls `startTeamLaunch` in `src/app/team-launch.ts`. That
 function validates the roster and cap, turns team mode on if it was off,
-creates one board task per leg (subject, full description, no write
-scopes), builds one child prompt naming the task id, and calls
-`startLaunch(store, "team", names, prompt, ctx, { promptFor })`. The
-existing queue owns the live cap. If task creation fails partway, the
-created tasks are deleted and a board that was off is turned back off. A
-stopped run leaves queued tasks pending; delete them from the TEAM tab. A
-child tool has no `launch` callback and returns a clear error. The
-enable-only path is the UI switch (`/subagents team on`, `t`), which calls
-the store directly without starting workers.
+creates one board task per leg (subject, full description, write scopes
+from that subagent's `paths`), builds one child prompt naming the task id,
+and calls `startLaunch(store, "team", names, prompt, ctx, { promptFor })`.
+A leg without `paths` is unscoped; the report says parallel edits can
+collide. The existing queue owns the live cap. If task creation fails
+partway, the created tasks are deleted and a board that was off is turned
+back off. A stopped run leaves queued tasks pending; delete them from the
+TEAM tab. A child tool has no `launch` callback and returns a clear error.
+The enable-only path is the UI switch (`/subagents team on`, `t`), which
+calls the store directly without starting workers. The Team schema is
+exercised with the local fake provider in e2e; no paid live-provider smoke
+runs in CI.
 
 ## Team tools and messages
 
@@ -289,7 +294,8 @@ not saved.`
   per-project file for this folder, so a restart keeps resume. A row
   found there that was still `running` is frozen to `error` first.
 - Delivered reports are capped at 40,000 characters. The state file
-  keeps up to 60,000; anything larger is cut on save.
+  keeps up to 60,000; anything larger is cut on save. State files are
+  bounded at 2 MB of UTF-8 bytes; a larger file is ignored on read.
 - On block: the subagent reports back instead of prompting.
 
 ## When the provider answers 400

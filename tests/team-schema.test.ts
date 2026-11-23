@@ -2,11 +2,12 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { PARAMETERS as TEAM } from "../src/infra/team-tool-schema.ts";
 import { PARAMETERS as MESSAGE } from "../src/infra/team-message-schema.ts";
+import { MAX_TEAM_TASKS } from "../src/domain/team.ts";
 
 interface Shape {
 	type?: string;
 	required?: string[];
-	properties?: Record<string, { enum?: string[]; type?: string }>;
+	properties?: Record<string, { enum?: string[]; type?: string; maximum?: number }>;
 }
 
 function shape(schema: unknown): Shape {
@@ -40,6 +41,7 @@ describe("team tool schemas", () => {
 		assert.deepEqual(team.properties?.status?.enum, ["pending", "in_progress", "completed"]);
 		assert.equal(team.properties?.prompt?.type, "string");
 		assert.equal(team.properties?.roster?.type, "array");
+		assert.equal(team.properties?.limit?.maximum, MAX_TEAM_TASKS);
 		const text = JSON.stringify(team);
 		assert.equal(text.includes("anyOf"), false);
 		assert.equal(text.includes("enable"), false);

@@ -18,7 +18,7 @@ const sleep = (ms: number) =>
 interface SavedState {
 	team?: {
 		enabled?: boolean;
-		tasks?: Array<{ id: string; status: string; subject: string }>;
+		tasks?: Array<{ id: string; status: string; subject: string; writeScopes?: string[] }>;
 	};
 }
 
@@ -82,6 +82,39 @@ describe("e2e: team start", () => {
 					provider.requests.some((req) => JSON.stringify(req.body).includes("Board task task-")),
 					"each child got its board task id",
 				);
+			} finally {
+				await rpc.stop();
+				await provider.close();
+				home.cleanup();
+			}
+		},
+	);
+
+	it(
+		"seeds task scopes from paths and warns when a leg has none",
+		{ timeout: 120_000 },
+		async () => {
+			const provider = await startFakeProvider();
+			const home = createE2EHome({ baseUrl: provider.baseUrl, subagents: "fixtures", liveCap: 2 });
+			const rpc = startRpc(home);
+			try {
+				const started = await command(
+					rpc,
+					"/subagents team @e2e-scoped,@e2e-leg1 E2E_SCOPED",
+					/Team started ·/,
+				);
+				assert.match(started, /2 started/);
+				assert.match(started, /Warning: no write scopes on e2e-leg1/);
+				await waitFor(() => hooks(home).length >= 2, "two hooks");
+				await waitFor(() => {
+					const tasks = saved(home).team?.tasks ?? [];
+					return tasks.length === 2 && tasks.every((task) => task.status === "completed");
+				}, "both tasks completed");
+				const tasks = saved(home).team?.tasks ?? [];
+				const scoped = tasks.find((task) => task.subject.startsWith("e2e-scoped:"));
+				const unscoped = tasks.find((task) => task.subject.startsWith("e2e-leg1:"));
+				assert.deepEqual(scoped?.writeScopes, ["src"]);
+				assert.deepEqual(unscoped?.writeScopes, []);
 			} finally {
 				await rpc.stop();
 				await provider.close();

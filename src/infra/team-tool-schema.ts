@@ -4,6 +4,7 @@
 
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
+import { MAX_TEAM_TASKS } from "../domain/team.ts";
 
 const UPDATE_ACTIONS = new Set<string>([
 	"claim",
@@ -73,7 +74,7 @@ const PARAMETERS = Type.Object({
 	unowned: Type.Optional(Type.Boolean({ description: "Filter by no owner (list)." })),
 	ready: Type.Optional(Type.Boolean({ description: "Filter by claimable readiness (list)." })),
 	limit: Type.Optional(
-		Type.Integer({ minimum: 1, maximum: 100, description: "Rows to return (list)." }),
+		Type.Integer({ minimum: 1, maximum: MAX_TEAM_TASKS, description: "Rows to return (list)." }),
 	),
 	prompt: Type.Optional(Type.String({ description: "Shared task text (start); required." })),
 	roster: Type.Optional(

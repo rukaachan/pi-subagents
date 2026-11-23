@@ -51,6 +51,14 @@ describe("team scope reservation", () => {
 		assert.equal(run(b, "task-2", "claim", {}, bob).ok, true);
 	});
 
+	it("normalizes dot segments before comparing", () => {
+		const b = newTeam("s-1");
+		add(b, "one", ["src/app"]);
+		add(b, "two", ["src/./app"]);
+		assert.equal(run(b, "task-1", "claim", {}, alice).ok, true);
+		assert.equal(run(b, "task-2", "claim", {}, bob).ok, false);
+	});
+
 	it("allows disjoint scopes", () => {
 		const b = newTeam("s-1");
 		add(b, "one", ["src/app"]);

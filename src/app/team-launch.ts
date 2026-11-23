@@ -4,7 +4,12 @@
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { discoverSubagents } from "../infra/subagent-files.ts";
-import { MAX_TEAM_DESCRIPTION, MAX_TEAM_SUBJECT, MAX_TEAM_TASKS } from "../domain/team.ts";
+import {
+	MAX_TEAM_DESCRIPTION,
+	MAX_TEAM_MEMBERS,
+	MAX_TEAM_SUBJECT,
+	MAX_TEAM_TASKS,
+} from "../domain/team.ts";
 import { withTemps } from "../domain/temp.ts";
 import type { TeamLaunchInput, TeamLaunchLeg, TeamLaunchResult } from "../infra/team-tool-types.ts";
 import { startLaunch } from "./launch.ts";
@@ -62,6 +67,9 @@ export async function startTeamLaunch(
 	const requested = input.roster?.map((name) => name.trim()).filter(Boolean) ?? available;
 	const roster = [...new Set(requested)];
 	if (roster.length === 0) return { ok: false, error: "Pick at least one subagent." };
+	if (roster.length > MAX_TEAM_MEMBERS) {
+		return { ok: false, error: `Team start takes at most ${MAX_TEAM_MEMBERS} legs.` };
+	}
 	const missing = roster.filter((name) => !available.includes(name));
 	if (missing.length > 0) {
 		return {
@@ -73,21 +81,24 @@ export async function startTeamLaunch(
 	if (summary.open + summary.done + roster.length > MAX_TEAM_TASKS) {
 		return { ok: false, error: `Team board is full (max ${MAX_TEAM_TASKS} tasks).` };
 	}
+	const byName = new Map(disk.subagents.map((sub) => [sub.name, sub]));
 	const wasEnabled = teamEnabled();
 	if (!wasEnabled) enableTeam();
-	const created: { name: string; taskId: string }[] = [];
+	const created: { name: string; taskId: string; scopes: string[] }[] = [];
 	const undo = (error: string): TeamLaunchResult => {
 		rollback(created);
 		if (!wasEnabled) disableTeam();
 		return { ok: false, error };
 	};
 	for (const name of roster) {
+		const scopes = byName.get(name)?.paths ?? [];
 		const result = createTask({
 			subject: cut(`${name}: ${prompt}`, MAX_TEAM_SUBJECT),
 			description: prompt,
+			...(scopes.length > 0 ? { writeScopes: scopes } : {}),
 		});
 		if (!result.ok) return undo(result.error);
-		created.push({ name, taskId: result.task.id });
+		created.push({ name, taskId: result.task.id, scopes });
 	}
 	const prompts = created.map((task) => legPrompt(task.taskId, prompt));
 	const started = startLaunch(store, "team", roster, prompt, ctx, {
@@ -98,6 +109,13 @@ export async function startTeamLaunch(
 		const runId = started.run.legs[index]?.taskId;
 		return { name: task.name, taskId: task.taskId, ...(runId ? { runId } : {}) };
 	});
+	const unscoped = created.filter((task) => task.scopes.length === 0).map((task) => task.name);
+	const warnings =
+		unscoped.length > 0
+			? [
+					`no write scopes on ${unscoped.join(", ")}; parallel edits can collide. Add paths to those subagents or set scopes on the board.`,
+				]
+			: [];
 	return {
 		ok: true,
 		teamId: teamSummary().teamId,
@@ -105,5 +123,6 @@ export async function startTeamLaunch(
 		tasks,
 		started: started.started,
 		queued: started.queued,
+		...(warnings.length > 0 ? { warnings } : {}),
 	};
 }

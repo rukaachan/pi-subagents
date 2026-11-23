@@ -3,11 +3,12 @@
  */
 
 import { taskList, teamMembers, teamSummary } from "../../app/team-store.ts";
+import { MAX_TEAM_TASKS } from "../../domain/team.ts";
 
 export function teamText(): string {
 	const summary = teamSummary();
 	const members = teamMembers();
-	const rows = taskList({ limit: 100 });
+	const rows = taskList({ limit: MAX_TEAM_TASKS });
 	const head = `Team ${summary.teamId} · ${summary.enabled ? "on" : "off"} · ${summary.open} open · ${summary.done} done`;
 	const roster = members.length
 		? [`Members: ${members.map((member) => member.name).join(", ")}`]

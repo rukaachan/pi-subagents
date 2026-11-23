@@ -2,6 +2,7 @@ import { beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { beginTeamSession, teamEnabled } from "../src/app/team-store.ts";
 import { startTeamLaunch } from "../src/app/team-launch.ts";
+import { MAX_TEAM_MEMBERS } from "../src/domain/team.ts";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 function ctx(): ExtensionContext {
@@ -24,6 +25,14 @@ describe("team start", () => {
 		const result = await startTeamLaunch({} as never, { prompt: "x".repeat(2_001) }, ctx());
 		assert.equal(result.ok, false);
 		if (!result.ok) assert.match(result.error, /2000/);
+		assert.equal(teamEnabled(), false);
+	});
+
+	it("caps a start at the member ceiling", async () => {
+		const roster = Array.from({ length: MAX_TEAM_MEMBERS + 1 }, (_, i) => `m${i}`);
+		const result = await startTeamLaunch({} as never, { prompt: "map auth", roster }, ctx());
+		assert.equal(result.ok, false);
+		if (!result.ok) assert.match(result.error, /32 legs/);
 		assert.equal(teamEnabled(), false);
 	});
 

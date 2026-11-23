@@ -3,6 +3,7 @@
  */
 
 import { writeScopeWarnings } from "./team-scope.ts";
+import { canonicalWorkspacePath } from "./workspace-path.ts";
 
 export const LEAD_NAME = "lead";
 export const MAX_TEAM_TASKS = 128;
@@ -111,19 +112,17 @@ export function normalizeScopes(raw: readonly string[]): { ok: true; scopes: str
 	}
 	const out: string[] = [];
 	for (const item of raw) {
-		let scope = item
-			.trim()
-			.replace(/\\/g, "/")
-			.replace(/\/{2,}/g, "/");
-		while (scope.startsWith("./")) scope = scope.slice(2);
-		if (scope.endsWith("/")) scope = scope.slice(0, -1);
-		if (!scope) return { ok: false, error: "A write scope cannot be empty." };
-		if (scope.startsWith("/") || /^[a-zA-Z]:/.test(scope)) {
-			return { ok: false, error: `Write scope "${item}" must be workspace-relative.` };
+		const canonical = canonicalWorkspacePath(item);
+		if (!canonical.ok) {
+			const reason =
+				canonical.error === "path is empty."
+					? "cannot be empty."
+					: canonical.error === 'path cannot contain "..".'
+						? 'cannot contain "..".'
+						: "must be workspace-relative.";
+			return { ok: false, error: `Write scope "${item}" ${reason}` };
 		}
-		if (scope.split("/").includes("..")) {
-			return { ok: false, error: `Write scope "${item}" cannot contain "..".` };
-		}
+		const scope = canonical.path;
 		if (scope.length > 160)
 			return { ok: false, error: "A write scope is limited to 160 characters." };
 		if (!out.includes(scope)) out.push(scope);

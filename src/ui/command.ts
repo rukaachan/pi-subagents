@@ -86,8 +86,12 @@ export function registerSubagentsCommand(pi: ExtensionAPI, store: TaskStore): vo
 					return;
 				}
 				const rows = result.tasks.map((leg) => `${leg.name} — ${leg.taskId}`).join(" · ");
+				const warning =
+					result.warnings && result.warnings.length > 0
+						? `\nWarning: ${result.warnings.join(" ")}`
+						: "";
 				ctx.ui.notify(
-					`Team started · ${result.started} started${result.queued ? ` · ${result.queued} queued` : ""}\n${rows}`,
+					`Team started · ${result.started} started${result.queued ? ` · ${result.queued} queued` : ""}\n${rows}${warning}`,
 					"info",
 				);
 				return;

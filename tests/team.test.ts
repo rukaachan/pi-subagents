@@ -73,10 +73,13 @@ describe("team board: create", () => {
 
 	it("normalizes write scopes and rejects escapes", () => {
 		const b = newBoard();
-		const task = add(b, "work", { writeScopes: ["./src/app/", "src/app//x", "src/app"] });
+		const task = add(b, "work", { writeScopes: ["./src/app/", "src/app//x", "src/./app"] });
 		assert.deepEqual(task.writeScopes, ["src/app", "src/app/x"]);
+		assert.deepEqual(normalizeScopes(["src/./app"]), { ok: true, scopes: ["src/app"] });
 		assert.equal(normalizeScopes(["/etc/passwd"]).ok, false);
-		assert.equal(normalizeScopes(["../x"]).ok, false);
+		const parent = normalizeScopes(["../x"]);
+		assert.equal(parent.ok, false);
+		if (!parent.ok) assert.match(parent.error, /cannot contain "\.\."/);
 		assert.equal(normalizeScopes([""]).ok, false);
 	});
 

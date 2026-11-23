@@ -126,9 +126,11 @@ async function startFlow(ctx: ExtensionCommandContext, store: TaskStore): Promis
 		return;
 	}
 	const rows = result.tasks.map((leg) => `${leg.name} — ${leg.taskId}`).join(" · ");
+	const warning =
+		result.warnings && result.warnings.length > 0 ? `\nWarning: ${result.warnings.join(" ")}` : "";
 	notice(
 		ctx,
-		`Team started · ${result.started} started${result.queued ? ` · ${result.queued} queued` : ""}\n${rows}`,
+		`Team started · ${result.started} started${result.queued ? ` · ${result.queued} queued` : ""}\n${rows}${warning}`,
 	);
 }
 

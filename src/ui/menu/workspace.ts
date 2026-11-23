@@ -6,6 +6,7 @@ import { copyToClipboard, type ExtensionCommandContext } from "@earendil-works/p
 import { inModal } from "../../app/modal-depth.ts";
 import { liveSession } from "../../app/live-sessions.ts";
 import { liveMember } from "../../app/team-mail.ts";
+import { MAX_TEAM_TASKS } from "../../domain/team.ts";
 import {
 	disableTeam,
 	enableTeam,
@@ -43,7 +44,7 @@ function runsOf(store: TaskStore, scope: TaskScope): BoardRow[] {
 }
 
 function teamRows(): TeamRow[] {
-	return buildTeamRows(taskList({ limit: 100 }), (name) => Boolean(liveMember(name)));
+	return buildTeamRows(taskList({ limit: MAX_TEAM_TASKS }), (name) => Boolean(liveMember(name)));
 }
 
 function dataOf(store: TaskStore, scope: TaskScope): WorkspaceData {

@@ -3,7 +3,13 @@
  */
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import type { TeamCaller, TeamFilters, TeamTaskView, TeamUpdate } from "../domain/team.ts";
+import {
+	MAX_TEAM_TASKS,
+	type TeamCaller,
+	type TeamFilters,
+	type TeamTaskView,
+	type TeamUpdate,
+} from "../domain/team.ts";
 import { UPDATE_ACTIONS, type Params } from "./team-tool-schema.ts";
 import type { TeamApi } from "./team-tool-types.ts";
 
@@ -104,7 +110,7 @@ function resolveTask(api: TeamApi, taskId: string, caller: TeamCaller) {
 function boardSummary(api: TeamApi): { head: string; details: Record<string, unknown> } {
 	const summary = api.summary();
 	const members = api.members();
-	const rows = api.list({ limit: 100 });
+	const rows = api.list({ limit: MAX_TEAM_TASKS });
 	const head = `Team ${summary.teamId} · ${summary.enabled ? "on" : "off"} · ${summary.open} open · ${summary.done} done · ${members.length} members`;
 	return {
 		head,
@@ -133,13 +139,16 @@ async function startTeam(api: TeamApi, params: Params, caller: TeamCaller, ctx: 
 			`${index + 1}. ${leg.name} — ${leg.taskId}${leg.runId ? ` · ${leg.runId}` : ""}`,
 	);
 	const state = `${result.started} started${result.queued > 0 ? ` · ${result.queued} queued` : ""}`;
-	return ok(`Team started · ${state}\n${rows.join("\n")}`, {
+	const warning =
+		result.warnings && result.warnings.length > 0 ? `\nWarning: ${result.warnings.join(" ")}` : "";
+	return ok(`Team started · ${state}\n${rows.join("\n")}${warning}`, {
 		team_id: result.teamId,
 		team_mode: "on",
 		run_id: result.runId,
 		started: result.started,
 		queued: result.queued,
 		tasks: result.tasks,
+		...(result.warnings ? { warnings: result.warnings } : {}),
 	});
 }
 
@@ -156,9 +165,12 @@ export async function runTeam(
 		const roster = members.length
 			? [`Members: ${members.map((member) => member.name).join(", ")}`]
 			: [];
-		return ok([board.head, ...roster, ...api.list({ limit: 100 }).map(taskLine)].join("\n"), {
-			...board.details,
-		});
+		return ok(
+			[board.head, ...roster, ...api.list({ limit: MAX_TEAM_TASKS }).map(taskLine)].join("\n"),
+			{
+				...board.details,
+			},
+		);
 	}
 	if (params.action === "resolve") {
 		if (!params.task_id) return fail("resolve needs task_id.");

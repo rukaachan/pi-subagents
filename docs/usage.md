@@ -22,7 +22,7 @@ System prompt body. Cannot be empty.
 | model            | `inherit` (default) or `provider/id`. Unknown model falls back to parent with a note.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | thinkingLevel    | `off, minimal, low, medium, high, xhigh, max`. Ignored when model is `inherit`. `reasoningEffort` is accepted as an alias.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | tools            | Omit = all. Or `read-only`, `edit`, `execute`. Or a list of Pi tool IDs. `tools: all` is rejected.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| paths            | Optional write fence: one folder, a comma list, or a YAML list. `write` and `edit` refuse any path outside it. `bash` and `powershell` are switched off while the fence is on, because a shell can write anywhere. Omit = no fence.                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| paths            | Optional write fence: one workspace-relative folder, a comma list, or a YAML list. Absolute roots, parent roots, and symlink escapes are refused. `write` and `edit` refuse any path outside it. `bash` and `powershell` are switched off while the fence is on, because a shell can write anywhere. Omit = no fence.                                                                                                                                                                                                                                                                                                                                                                                       |
 | autonomy         | `inherit` (default), `off`, `low`, `medium`, `high`. v2 clamp: `off` = read-only; read-only subagents never run above low.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | promptPrefix     | One line (≤400 chars) put in front of every task this subagent gets, then a blank line, then `Task: <prompt>`. The six starters ship one. It is applied where the child session is prompted, so team start, `Task`, `parallel` legs, every chain step, and resumes all see their own subagent's prefix. Use it for durable framing ("cite file:line", "run the checks before reporting"), not for steps that belong to one task. Blank means none. Invalid or over 400 chars = error, subagent skipped.                                                                                                                                                                                                     |
 | codemode         | Omitted = the run gets pi's codemode tool and the model sees it **alone**: every read, search, edit and command runs inside a script (one script can batch many calls per turn, Promise.allSettled). `only` says the same out loud, `true` keeps pi's default (the scripting tool beside the ordinary tools), `false` (or `off`) means no scripting at all, and `on` is the alias of `true`. A `Task` call may override the file for one run with `codemode: off                                                                                                                                                                                                                                            | on  | only`. The grant adds no capability: scripts reach the session's own tools only, so a read-only list stays read-only in every mode. A prompt that never mentions scripts gets the route appended. |
@@ -354,18 +354,18 @@ delegates, and a finished leg still wakes the lead with its report. Use
 For broad independent fan-out, the lead calls
 `Team { action: "start", prompt, roster? }`, or you can use
 `/subagents team <prompt>`. It creates one board task and one worker per leg,
-turns team mode on if it was off, and reuses the live-cap queue. A stopped
-run leaves queued tasks pending; delete them in the TEAM tab. Team start
-uses no write scopes, so use explicit tasks with `write_scopes`
-when files overlap.
+turns team mode on if it was off, and reuses the live-cap queue. Each task
+inherits its subagent's `paths` as `write_scopes`; a leg without `paths` is
+unscoped, and the report warns that parallel edits can collide. A stopped
+run leaves queued tasks pending; delete them in the TEAM tab.
 
 The board lives in the same per-session state file as runs, so
 `/reload` keeps tasks, revisions, owners, and member names.
 `/subagents team off` keeps the board and lets a claimed task finish; it
 only stops new legs from joining. A new Pi session starts empty. Limits: 128 live tasks,
-100 rows per list, 2,000 characters per description, 20 blockers and 20
-scopes per task, and 32 remembered idle members (a live task's owner
-is never evicted).
+128 rows per list, 2,000 characters per description, 20 blockers and 20
+scopes per task, and 32 members. Idle members are evicted; a 33rd join is
+refused when all 32 own live tasks, and a start takes at most 32 legs.
 
 While team mode is on, the lead's system prompt gets a short policy
 section: plan, create tasks, split write scopes, delegate, then wait.
@@ -642,7 +642,8 @@ Chains restart as a new Task — steps do not resume alone.
 Tasks and spawn counts survive a reload, or a restart that continues
 the same Pi session, at
 `~/.pi/agent/pi-subagents-state/s-<hash>.json`, one file per Pi
-session (atomic write, 2 MB cap, oldest rows drop first). A brand-new
+session (atomic write, 2 MB cap measured in UTF-8 bytes, oldest rows drop
+first; a larger file is ignored on read rather than parsed on the main thread). A brand-new
 session starts with an empty board. The old per-project file is
 imported once when a matching session row exists.
 The board and `/subagents tasks` show only runs from the current

@@ -14,6 +14,7 @@ import {
 	type TeamTask,
 	type TeamTaskStatus,
 } from "../domain/team.ts";
+import { canonicalWorkspacePath } from "../domain/workspace-path.ts";
 
 export interface PersistedTeam {
 	teamId: string;
@@ -37,6 +38,16 @@ function stringList(value: unknown, max: number, each: number): string[] {
 		if (typeof item !== "string" || !item || item.length > each) continue;
 		if (!out.includes(item)) out.push(item);
 		if (out.length >= max) break;
+	}
+	return out;
+}
+
+function decodeScopes(value: unknown): string[] {
+	const out: string[] = [];
+	for (const item of stringList(value, MAX_TEAM_SCOPES, 160)) {
+		const canonical = canonicalWorkspacePath(item);
+		if (!canonical.ok || out.includes(canonical.path)) continue;
+		out.push(canonical.path);
 	}
 	return out;
 }
@@ -76,7 +87,7 @@ function decodeTask(value: unknown): TeamTask | undefined {
 		...(lastError ? { lastError } : {}),
 		...(returnedAt !== undefined ? { returnedAt } : {}),
 		blockedBy: stringList(row.blockedBy, MAX_TEAM_BLOCKERS, 64),
-		writeScopes: stringList(row.writeScopes, MAX_TEAM_SCOPES, 160),
+		writeScopes: decodeScopes(row.writeScopes),
 		createdAt,
 		updatedAt,
 	};
