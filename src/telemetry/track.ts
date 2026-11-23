@@ -6,6 +6,7 @@ import { describeToolCall } from "./activity.ts";
 import { compactionNote, nestedStep } from "../domain/activity-step.ts";
 import { journalWrite } from "./journal.ts";
 import { cut, footerProgress } from "./progress.ts";
+import { finishPayload, runFinishHook } from "./finish-hook.ts";
 
 export interface TrackableSession {
 	subscribe(
@@ -57,9 +58,18 @@ export function trackSession(
 	session: TrackableSession,
 	key: string,
 	label: string,
-	opts?: { journalId?: string; kind?: string },
+	opts?: {
+		journalId?: string;
+		kind?: string;
+		hook?: string;
+		subagent?: string;
+		cwd?: string;
+		runId?: string;
+	},
 ): (final?: RunEndInfo) => void {
 	footerProgress.start(key, label);
+	const hook = opts?.hook?.trim();
+	let hooked = false;
 	const journalId = opts?.journalId;
 	const startedAt = Date.now();
 	let turns = 0;
@@ -74,6 +84,7 @@ export function trackSession(
 			id: journalId,
 			label,
 			kind: opts?.kind ?? "run",
+			...(opts?.runId ? { run: opts.runId } : {}),
 		});
 	}
 	// The tool the model called, and its id.
@@ -145,7 +156,7 @@ export function trackSession(
 		try {
 			unsub?.();
 		} catch {}
-		footerProgress.finish(key);
+		footerProgress.finish(key, final);
 		if (journalId && !ended) {
 			ended = true;
 			journalWrite({
@@ -160,7 +171,24 @@ export function trackSession(
 				...(final?.notes && final.notes.length > 0 ? { notes: final.notes } : {}),
 				gapMaxSec: Math.round(gapMaxMs / 1000),
 				gapOver60,
+				...(opts?.runId ? { run: opts.runId } : {}),
 			});
+		}
+		if (final && hook && !hooked) {
+			hooked = true;
+			runFinishHook(
+				hook,
+				finishPayload({
+					task_id: journalId ?? key,
+					subagent: opts?.subagent ?? label,
+					status: final.status,
+					ms: Date.now() - startedAt,
+					chars: final.reportChars ?? 0,
+					model: final.model,
+					cwd: opts?.cwd ?? process.cwd(),
+					error: final.error,
+				}),
+			);
 		}
 	};
 }

@@ -4,25 +4,54 @@
 
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import type { Api, Model } from "@earendil-works/pi-ai";
-import type { AgentSession, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type {
+	AgentSession,
+	ExtensionContext,
+	ToolDefinition,
+} from "@earendil-works/pi-coding-agent";
 import {
 	DefaultResourceLoader,
 	SessionManager,
 	SettingsManager,
 	createAgentSession,
+	createEditToolDefinition,
+	createWriteToolDefinition,
 	getAgentDir,
 } from "@earendil-works/pi-coding-agent";
+import { guardPaths } from "./tool-guard.ts";
 import { clampToolsForAutonomy } from "../domain/subagent/config.ts";
 import type { SubagentConfig } from "../domain/subagent/config.ts";
 import { planCodemode, withScriptRoute } from "../domain/subagent/codemode.ts";
+import { contractPrompt } from "../domain/subagent/contract.ts";
+import { taskPrompt } from "../domain/subagent/prompt.ts";
 
 // The host surface for codemode.
 type CodemodeHost = {
 	createCodemodeExtension?(options?: { models?: boolean; mode?: "on" | "only" }): unknown;
 };
 
+export interface ChildExtras {
+	/** Extra custom tools, e.g. the teammate's Team tool. */
+	tools?: ToolDefinition[];
+	/** Names to activate after session creation, without narrowing the subagent's tool list. */
+	activate?: string[];
+	/** Prepended once to the first task prompt. */
+	promptPrefix?: string;
+}
+
+/** Keep an explicit tool list, or add one tool to Pi's default selection. */
+export function activateTools(
+	selected: readonly string[] | undefined,
+	activate: readonly string[],
+): string[] | undefined {
+	if (activate.length === 0) return selected ? [...selected] : undefined;
+	return selected ? [...new Set([...selected, ...activate])] : activate.map((name) => `+${name}`);
+}
+
 export interface LiveChild {
 	session: AgentSession;
+	/** Send task text with this subagent's prefix and the caller's contract applied. */
+	prompt: (text: string, contract?: readonly string[]) => Promise<void>;
 	subagent: SubagentConfig;
 	tools?: string[];
 	notes: string[];
@@ -49,6 +78,7 @@ export async function startSubagentSession(
 	sub: SubagentConfig,
 	cwd: string,
 	ctx: ExtensionContext,
+	extras?: ChildExtras,
 ): Promise<LiveChild> {
 	const notes: string[] = [...sub.warnings];
 	const { tools, notes: clampNotes } = clampToolsForAutonomy(sub);
@@ -111,13 +141,46 @@ export async function startSubagentSession(
 	});
 	await loader.reload();
 
+	const fenced = sub.paths && sub.paths.length > 0;
+	const builtTools = [
+		...(fenced
+			? [
+					guardPaths(createWriteToolDefinition(cwd), sub.paths ?? [], cwd),
+					guardPaths(createEditToolDefinition(cwd), sub.paths ?? [], cwd),
+				]
+			: []),
+		...(extras?.tools ?? []),
+	] as ToolDefinition[];
+	const customTools = builtTools.length > 0 ? builtTools : undefined;
+	// A shell can write anywhere; it is off whenever writes have a fence.
+	const excludeTools = fenced ? ["bash", "powershell"] : undefined;
+	if (fenced) {
+		notes.push(`paths: writes limited to ${sub.paths?.join(", ")}; bash is off.`);
+	}
+
+	if (extras?.activate?.length) {
+		sessionTools = activateTools(sessionTools, extras.activate);
+	}
+
 	const { session } = await createAgentSession({
 		cwd,
 		model,
 		thinkingLevel,
 		tools: sessionTools,
+		excludeTools,
+		customTools,
 		resourceLoader: loader,
 		sessionManager: SessionManager.inMemory(),
 	});
-	return { session, subagent: sub, tools: sessionTools, notes, cwd };
+	return {
+		session,
+		prompt: (text, contract) =>
+			session.prompt(
+				`${extras?.promptPrefix ?? ""}${taskPrompt(sub, text)}${contractPrompt(contract ?? [])}`,
+			),
+		subagent: sub,
+		tools: sessionTools,
+		notes,
+		cwd,
+	};
 }

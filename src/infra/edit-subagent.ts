@@ -4,7 +4,11 @@
 
 import * as fs from "node:fs";
 import { parseFrontmatter } from "@earendil-works/pi-coding-agent";
-import { MAX_DESCRIPTION_CHARS, TOOL_GROUPS } from "../domain/subagent/config.ts";
+import {
+	MAX_DESCRIPTION_CHARS,
+	MAX_PROMPT_PREFIX_CHARS,
+	TOOL_GROUPS,
+} from "../domain/subagent/config.ts";
 import type { SubagentConfig } from "../domain/subagent/config.ts";
 import { loadSubagentFromContent } from "./subagent-files.ts";
 
@@ -13,7 +17,9 @@ export const EDITABLE_FIELDS = [
 	"model",
 	"thinkingLevel",
 	"tools",
+	"paths",
 	"autonomy",
+	"promptPrefix",
 	"codemode",
 ] as const;
 export type EditableField = (typeof EDITABLE_FIELDS)[number];
@@ -23,7 +29,9 @@ export const FIELD_CHOICES: Record<EditableField, string[]> = {
 	model: [],
 	thinkingLevel: ["(inherit)", "off", "minimal", "low", "medium", "high", "xhigh", "max"],
 	tools: ["all tools", "read-only", "edit", "execute", "custom…"],
+	paths: [],
 	autonomy: ["inherit", "off", "low", "medium", "high"],
+	promptPrefix: [],
 	codemode: ["(default: only)", "off", "on", "only"],
 };
 
@@ -67,9 +75,26 @@ export function validateField(field: EditableField, value: string): string | nul
 		if (bad.length > 0) return `Unknown tools: ${bad.join(", ")}.`;
 		return null;
 	}
+	if (field === "paths") {
+		if (v === "") return null;
+		const list = v
+			.split(",")
+			.map((p) => p.trim())
+			.filter(Boolean);
+		if (list.length === 0) return "Name at least one folder, or leave it blank.";
+		if (list.length > 20) return "At most 20 folders.";
+		return null;
+	}
 	if (field === "autonomy") {
 		if (["inherit", "off", "low", "medium", "high"].includes(v)) return null;
 		return "Use inherit, off, low, medium, high.";
+	}
+	if (field === "promptPrefix") {
+		const oneLine = v.replace(/\s+/g, " ").trim();
+		if (oneLine.length > MAX_PROMPT_PREFIX_CHARS) {
+			return `Prefix over ${MAX_PROMPT_PREFIX_CHARS} chars.`;
+		}
+		return null;
 	}
 	if (field === "codemode") {
 		if (v === "" || v === "(default: only)") return null;
@@ -91,10 +116,24 @@ export function editSubagentField(
 	const { frontmatter, body } = parseFrontmatter<Record<string, unknown>>(read.text);
 	const v = value.trim();
 	const clearWord = v === "" || v === "(inherit)" || v === "all tools" || v === "(default: only)";
-	if (clearWord && (field === "thinkingLevel" || field === "tools" || field === "codemode")) {
+	if (
+		clearWord &&
+		(field === "thinkingLevel" ||
+			field === "tools" ||
+			field === "paths" ||
+			field === "codemode" ||
+			(field === "promptPrefix" && v === ""))
+	) {
 		delete frontmatter[field];
 	} else if (field === "tools" && v === "all-tools") {
 		delete frontmatter[field];
+	} else if (field === "promptPrefix") {
+		frontmatter[field] = v.replace(/\s+/g, " ").trim();
+	} else if (field === "paths") {
+		frontmatter[field] = v
+			.split(",")
+			.map((p) => p.trim())
+			.filter(Boolean);
 	} else if (field === "tools" && !TOOL_GROUPS[v] && v.includes(",")) {
 		frontmatter[field] = v
 			.split(",")
@@ -157,7 +196,8 @@ function writeFrontmatter(
 				.map(([key, v]) => `${key}: ${String(v)}`)
 				.join(", ");
 			lines.push(`${k}: { ${inner} }`);
-		} else lines.push(`${k}: ${String(val)}`);
+		} else if (k === "promptPrefix") lines.push(`${k}: ${JSON.stringify(String(val))}`);
+		else lines.push(`${k}: ${String(val)}`);
 	}
 	lines.push("---", "", body.trim(), "");
 	const next = lines.join("\n");

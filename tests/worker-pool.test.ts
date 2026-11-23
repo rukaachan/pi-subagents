@@ -49,6 +49,10 @@ describe("the codemode worker pool", () => {
 		// The pool must be in force before the first script runs, so the
 		// wiring belongs in the extension entry.
 		const text = readFileSync(new URL("../extensions/index.ts", import.meta.url), "utf8");
-		assert.match(text, /applyCodemodeWorkerDefault\(\)/, "the extension sets the pool");
+		assert.match(
+			text,
+			/applyCodemodeWorkerDefault\(.*liveCap/,
+			"the extension sets the pool from liveCap",
+		);
 	});
 });

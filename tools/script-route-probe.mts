@@ -51,7 +51,10 @@ async function main(): Promise<void> {
 		const modelRegistry = new (
 			pi as unknown as { ModelRegistry: new (r: unknown) => AnyRegistry }
 		).ModelRegistry(runtime);
-		const model = modelRegistry.find("opencode-zen-responses", "deepseek-v4.1-flash-free") as never;
+		const model = modelRegistry.find(
+			(process.env.PI_IT_MODEL ?? "").split("/")[0] ?? "",
+			(process.env.PI_IT_MODEL ?? "").split("/")[1] ?? "",
+		) as never;
 		const ctx = { ui: {}, model, thinkingLevel: "off", modelRegistry } as never;
 
 		const tools: string[] = [];

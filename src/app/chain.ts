@@ -5,8 +5,17 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { SubagentConfig } from "../domain/subagent/config.ts";
 import { trackSession } from "../telemetry/track.ts";
-import { activeModelId, lastText, snapshotHistory, sumUsage } from "../domain/run-result.ts";
+import {
+	activeModelId,
+	lastText,
+	providerFailure,
+	snapshotHistory,
+	sumUsage,
+} from "../domain/run-result.ts";
 import { startSubagentSession } from "../infra/host-session.ts";
+import { teamChildExtras } from "./team-child.ts";
+import { bindTeamMember } from "./team-mail.ts";
+import { sweepMemberTasks } from "./team-sweep.ts";
 import { ledger, markKind } from "./ledger.ts";
 import { newTaskId } from "./task-record.ts";
 import type { ChainStep, TaskRecord } from "./task-record.ts";
@@ -63,11 +72,14 @@ export function runChain(
 		description,
 		status: "running",
 		createdAt: Date.now(),
+		startedAt: Date.now(),
 		fullDelivered: false,
 		subagent: lead,
 		cwd,
+		sessionId: ctx.sessionManager.getSessionId(),
 		history: [],
 		kind: "chain",
+		runId: taskId,
 		steps: newChainSteps(spec),
 	};
 	store.add(rec);
@@ -86,12 +98,28 @@ export function runChain(
 				step.startedAt = Date.now();
 				step.prompt = stepPrompt(spec, step.idx, priorReport);
 				store.touch();
-				const child = await startSubagentSession(sub, cwd, ctx);
+				const team = teamChildExtras(sub.name, `${taskId}-${step.idx}`);
+				const child = await startSubagentSession(sub, cwd, ctx, team);
 				const runId = `${taskId}-${step.idx}`;
+				const unbindMail = team
+					? bindTeamMember(
+							team.member,
+							sub.name,
+							(text) => {
+								void child.session.steer(text).catch(() => {});
+							},
+							undefined,
+							true,
+						)
+					: () => {};
 				const stepLabel = `${sub.name} ${step.idx + 1}/${rec.steps?.length ?? "?"}`;
 				const stop = trackSession(child.session, runId, stepLabel, {
 					journalId: runId,
 					kind: "chain",
+					hook: sub.finishHook,
+					subagent: sub.name,
+					cwd,
+					runId: taskId,
 				});
 				const live: LiveStop = liveStop(
 					runId,
@@ -102,14 +130,16 @@ export function runChain(
 					},
 				);
 				try {
-					const onAbort = () => child.session.abort();
+					const onAbort = () => live.stop("Esc");
 					attachSignal?.addEventListener("abort", onAbort, { once: true });
 					try {
-						await child.session.prompt(step.prompt);
+						await child.prompt(step.prompt);
 					} finally {
 						attachSignal?.removeEventListener("abort", onAbort);
 					}
 					if (live.wasStopped()) throw new RunStopped(live.why());
+					const failure = providerFailure(child.session);
+					if (failure) throw new Error(failure);
 					const text = lastText(child.session);
 					step.report = text;
 					step.status = "done";
@@ -131,6 +161,12 @@ export function runChain(
 						notes: [...child.notes],
 					});
 				} catch (err) {
+					const why = live.wasStopped()
+						? "stopped"
+						: err instanceof Error
+							? err.message
+							: String(err);
+					sweepMemberTasks(`${taskId}-${step.idx}`, false, Date.now(), why);
 					if (live.wasStopped()) {
 						live.unregister();
 						throw new RunStopped(live.why());
@@ -138,12 +174,14 @@ export function runChain(
 					stop({ status: "error", error: err instanceof Error ? err.message : String(err) });
 					throw err;
 				} finally {
+					unbindMail();
 					live.unregister();
 					stop();
 					child.session.dispose();
 				}
 			}
 			rec.status = "done";
+			rec.endedAt = Date.now();
 			rec.result = aggregateResult(seen, rec);
 			ledger.finish(rec.subagentName, "done");
 		} catch (err) {
@@ -163,6 +201,7 @@ export function runChain(
 			}
 			rec.status = "error";
 			rec.error = message;
+			rec.endedAt = Date.now();
 			ledger.finish(rec.subagentName, "error");
 		} finally {
 			store.touch();

@@ -5,6 +5,7 @@ model: inherit
 tools: read, grep, find, ls, codemode
 codemode: only
 autonomy: low
+promptPrefix: "Plan the goal you were given, riskiest step first; every step needs a real file and a check."
 budget: { maxTurns: 0, maxInputTokens: 0, timeoutSec: 3600, maxReportChars: 6000 }
 ---
 

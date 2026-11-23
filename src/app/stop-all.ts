@@ -2,6 +2,7 @@
  * pi-subagents: the one stop request.
  */
 
+import { footerProgress } from "../telemetry/progress.ts";
 import { stopLiveRuns } from "./live-runs.ts";
 
 export const STOPPED_NAMES_SHOWN = 6;
@@ -16,5 +17,6 @@ export function stoppedSummary(stopped: string[], why: string): string {
 }
 
 export function stopAllLiveRuns(why: string): string {
+	footerProgress.clearDone();
 	return stoppedSummary(stopLiveRuns(why), why);
 }

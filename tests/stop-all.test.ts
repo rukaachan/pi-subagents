@@ -145,6 +145,11 @@ describe("the notice an operator reads", () => {
 
 describe("the three doors that stop runs", () => {
 	const source = readFileSync("extensions/index.ts", "utf8");
+	const window = (start: string, end: string, size = 220): boolean => {
+		const at = source.indexOf(start);
+		if (at < 0) return false;
+		return source.slice(at, at + size).includes(end);
+	};
 
 	it("watches Esc through the terminal listener, never a shortcut", () => {
 		assert.doesNotMatch(source, /registerShortcut\("escape"/);
@@ -154,13 +159,27 @@ describe("the three doors that stop runs", () => {
 
 	it("catches an abort that did not come from the key", () => {
 		assert.match(source, /on\("agent_settled"/);
-		assert.match(source, /if \(event\.aborted\) stopAllLiveRuns/);
+		assert.ok(window("if (event.aborted)", 'stopAllLiveRuns("Esc")'));
+	});
+
+	it("stops the launch queue before the live runs", () => {
+		assert.ok(window("if (event.aborted)", "stopLaunchSchedulers()", 80));
+		const body = source.slice(
+			source.indexOf("if (event.aborted)"),
+			source.indexOf("if (event.aborted)") + 220,
+		);
+		assert.ok(
+			body.indexOf("stopLaunchSchedulers") < body.indexOf("stopAllLiveRuns"),
+			"a queued leg must not start after Esc",
+		);
 	});
 
 	it("stops on reload and quit, and saves the board after", () => {
-		assert.match(
-			source,
-			/if \(event\.reason === "reload" \|\| event\.reason === "quit"\) stopAllLiveRuns\(event\.reason\)/,
+		assert.ok(
+			window(
+				'if (event.reason === "reload" || event.reason === "quit")',
+				"stopAllLiveRuns(event.reason)",
+			),
 		);
 		const body = source.slice(source.indexOf('on("session_shutdown"'));
 		assert.ok(

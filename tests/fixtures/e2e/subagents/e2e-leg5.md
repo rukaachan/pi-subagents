@@ -1,0 +1,11 @@
+---
+name: e2e-leg5
+description: deterministic e2e leg five
+model: inherit
+tools: read
+autonomy: off
+codemode: off
+promptPrefix: "E2E_OK: answer the task exactly as written."
+---
+
+You are an e2e fixture subagent. Reply with the requested token and call no tools.

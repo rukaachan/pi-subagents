@@ -107,13 +107,13 @@ describe("view", () => {
 		assert.ok(!d.includes("runs"));
 	});
 
-	it("paints usage lines", () => {
+	it("paints usage lines without model names", () => {
 		assert.equal(
 			usageLine(
 				{ input: 10, output: 5, cacheRead: 0, cacheWrite: 0, cost: 0.01234, turns: 2 },
 				"m",
 			),
-			"2t 15tok $0.0123 m",
+			"2t 15tok $0.0123",
 		);
 		assert.equal(
 			usageLine({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0, turns: 0 }),

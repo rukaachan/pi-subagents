@@ -9,6 +9,7 @@ import {
 	CODEMODE_WORKERS_DEFAULT,
 	HOST_CODEMODE_WORKERS,
 } from "../src/domain/subagent/codemode.ts";
+import { MAX_LIVE_TASKS } from "../src/domain/task.ts";
 import { clampToolsForAutonomy, type SubagentConfig } from "../src/domain/subagent/config.ts";
 
 const sub = (over: Partial<SubagentConfig> = {}): SubagentConfig => ({
@@ -29,8 +30,11 @@ describe("codemode worker pool", () => {
 		assert.equal(HOST_CODEMODE_WORKERS, 2);
 	});
 
-	it("this package asks for a wider pool", () => {
-		assert.equal(CODEMODE_WORKERS_DEFAULT, 8);
+	it("this package asks for one worker per live leg", () => {
+		// The pool used to be 8, so a full 12-leg board left four legs
+		// waiting behind a free worker on every script turn.
+		assert.equal(CODEMODE_WORKERS_DEFAULT, MAX_LIVE_TASKS);
+		assert.ok(CODEMODE_WORKERS_DEFAULT > HOST_CODEMODE_WORKERS);
 	});
 
 	it("names the legs that will hold a worker", () => {

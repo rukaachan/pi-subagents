@@ -38,8 +38,8 @@ function seedHistory(manager: ReturnType<typeof pi.SessionManager.inMemory>): vo
 				},
 			],
 			api: "openai-responses",
-			provider: "opencode-zen-responses",
-			model: "deepseek-v4.1-flash-free",
+			provider: (process.env.PI_IT_MODEL ?? "").split("/")[0] ?? "",
+			model: (process.env.PI_IT_MODEL ?? "").split("/")[1] ?? "",
 			usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 			stopReason: "stop",
 			timestamp: Date.now(),
@@ -154,7 +154,10 @@ async function runOne(arm: Arm, prompt: string): Promise<{ delegated: boolean; c
 			(await (
 				pi as unknown as { ModelRuntime: { create(): Promise<unknown> } }
 			).ModelRuntime.create()) as never,
-		).find("opencode-zen-responses", "deepseek-v4.1-flash-free");
+		).find(
+			(process.env.PI_IT_MODEL ?? "").split("/")[0] ?? "",
+			(process.env.PI_IT_MODEL ?? "").split("/")[1] ?? "",
+		);
 		if (!model) throw new Error("probe model not found");
 
 		const manager = pi.SessionManager.inMemory(work);

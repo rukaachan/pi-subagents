@@ -88,39 +88,41 @@ Checked and clean: our hard stop does **not** poison the pool. A leg
 aborted mid-script frees its worker at once, and the next leg gets
 one without waiting (`tools/codemode-abort-pool.mts`, both hosts).
 
-##### Twelve legs at once
+##### Live legs at once
 
-The subagents themselves run in parallel: the live cap is 12 tasks
-(`MAX_LIVE_TASKS`), the fan-out admits up to 12 legs, and each leg
-starts in 0–3 ms (`launchBackground`). What the pool limits is how many
-**scripts** run at the same moment.
+The subagents themselves run in parallel: the live cap is `liveCap`
+(default 12, settings 1–64), the fan-out admits up to that cap, and each
+leg starts in 0–3 ms (`launchBackground`). What the pool limits is how
+many **scripts** run at the same moment.
 
-**This package asks for eight workers.** The host ships two per
-process and shares them with every session in it, so twelve legs would
-queue on two slots. The extension sets
-`PI_CODEMODE_MAX_WORKERS=8` when pi loads it (`src/infra/worker-pool.ts`),
-and an operator who set that variable keeps their own number — a
-smaller one included, because that choice was deliberate.
+**This package asks for one worker per live leg (default 12).** The host
+ships two per process and shares them with every session in it, so twelve
+legs would queue on two slots. The extension sets
+`PI_CODEMODE_MAX_WORKERS=<liveCap or 12>` when pi loads it
+(`src/infra/worker-pool.ts`), and an operator who set that variable keeps
+their own number — a smaller one included, because that choice was
+deliberate. The number is the load-time `liveCap`, so raising the cap and
+running `/reload` raises the pool with it.
 
 Measured with 12 legs (`tools/codemode-worker-pool.mts`, host 1.4.0):
 
-| workers              | legs | each script holds | outcome                                                                                                                                   |
-| -------------------- | ---- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| 2 (host default)     | 12   | 20 s              | all 12 ran; **8 legs waited 1–13 s**; 0 failed                                                                                            |
-| 2 (host default)     | 12   | 30 s              | all 12 ran; the longest wait was 25 s; 0 failed                                                                                           |
-| 2 (host default)     | 12   | 60 s              | all 12 ran; the longest wait was 55 s — just under the 60 s queue limit; 0 failed                                                         |
-| 2 (host default)     | 6    | 150 s             | **2 legs failed**: `Script error: No codemode worker became free within 60 seconds. All 2 workers, shared by every session in this proc.` |
-| **8 (this package)** | 12   | 20 s              | all 12 ran; the longest wait was 4 s; 0 failed                                                                                            |
-| **8 (this package)** | 12   | 150 s             | all 12 ran; the longest wait was 51 s; 0 failed                                                                                           |
-| 12                   | 12   | 20 s              | all 12 ran, **no wait at all**                                                                                                            |
+| workers           | legs | each script holds | outcome                                                                                                                                   |
+| ----------------- | ---- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| 2 (host default)  | 12   | 20 s              | all 12 ran; **8 legs waited 1–13 s**; 0 failed                                                                                            |
+| 2 (host default)  | 12   | 30 s              | all 12 ran; the longest wait was 25 s; 0 failed                                                                                           |
+| 2 (host default)  | 12   | 60 s              | all 12 ran; the longest wait was 55 s — just under the 60 s queue limit; 0 failed                                                         |
+| 2 (host default)  | 6    | 150 s             | **2 legs failed**: `Script error: No codemode worker became free within 60 seconds. All 2 workers, shared by every session in this proc.` |
+| 8 (old default)   | 12   | 150 s             | all 12 ran; the longest wait was 51 s; 0 failed                                                                                           |
+| 12 (this package) | 12   | 20 s              | all 12 ran, **no wait at all**                                                                                                            |
+| 12 (this package) | 12   | 150 s             | all 12 ran, **no wait at all**                                                                                                            |
 
-So: twelve subagents do run at the same time, and with eight workers
-even a twelve-leg fan-out of long scripts stays inside the host's 60 s
-patience. The queue only bites when the legs outnumber the pool by
-more than that patience allows. To go wider, raise the pool yourself:
+So: twelve subagents run at the same time and every one of them can
+hold a worker. The old default of eight left four legs queuing on
+every script turn, and a long script could reach the host's 60 s
+patience. To go wider than the live cap, raise both:
 
 ```
-PI_CODEMODE_MAX_WORKERS=12 exec pi
+PI_CODEMODE_MAX_WORKERS=16 exec pi
 ```
 
 The host reads the value on every script call, so it can also be set

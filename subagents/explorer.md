@@ -4,6 +4,7 @@ description: Fast codebase search and structure questions. Use for find, map, an
 model: inherit
 tools: read, bash, codemode
 autonomy: low
+promptPrefix: "Map before you answer: every claim gets a file:line, and nothing gets changed."
 codemode: only
 budget: { maxTurns: 0, maxInputTokens: 0, timeoutSec: 3600, maxReportChars: 6000 }
 ---

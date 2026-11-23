@@ -22,7 +22,7 @@ async function runOnce() {
 		"---",
 		"name: swimmer",
 		"description: integration probe",
-		"model: opencode-zen-responses/glm-5.3-flash-free",
+		`model: ${process.env.PI_IT_MODEL ?? ""}`,
 		"thinkingLevel: off",
 		"autonomy: high",
 		"codemode: true",
@@ -47,7 +47,10 @@ async function runOnce() {
 			ModelRegistry: new (r: unknown) => AnyRegistry;
 		}
 	).ModelRegistry(runtime);
-	const model = modelRegistry.find("opencode-zen-responses", "glm-5.3-flash-free") as never;
+	const model = modelRegistry.find(
+		(process.env.PI_IT_MODEL ?? "").split("/")[0] ?? "",
+		(process.env.PI_IT_MODEL ?? "").split("/")[1] ?? "",
+	) as never;
 	const ctx = { ui: {}, model, thinkingLevel: "off", modelRegistry } as never;
 
 	let transcript = "";
@@ -66,7 +69,10 @@ describe("codemode integration (real session)", () => {
 	it(
 		"one codemode call reads both fixture files in a single turn",
 		{
-			skip: process.env.PI_IT_CODEMODE ? false : "set PI_IT_CODEMODE=1 to run (needs LLM proxy)",
+			skip:
+				process.env.PI_IT_CODEMODE && process.env.PI_IT_MODEL
+					? false
+					: "set PI_IT_CODEMODE=1 and PI_IT_MODEL=provider/model to run",
 			timeout: 180_000,
 		},
 		async () => {

@@ -6,14 +6,20 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { footerProgress } from "../telemetry/progress.ts";
 import { trackSession } from "../telemetry/track.ts";
 import { abandonedNote, installRunBudget } from "./guards/install.ts";
-import { activeModelId, snapshotHistory, sumUsage } from "../domain/run-result.ts";
+import { activeModelId, providerFailure, snapshotHistory, sumUsage } from "../domain/run-result.ts";
 import { annotateFailure, awaitWithHardStop, surfaceBudgetNotes } from "./guards/stop.ts";
 import { runReport } from "../domain/run-report.ts";
+import { checkReturn } from "../domain/subagent/contract.ts";
+import { resumePrompt } from "./resume-context.ts";
 import { startSubagentSession } from "../infra/host-session.ts";
+import { teamChildExtras } from "./team-child.ts";
+import { bindTeamMember } from "./team-mail.ts";
+import { sweepMemberTasks } from "./team-sweep.ts";
 import { windDownSignal } from "./guards/wind.ts";
 import { applyReportBudget, effectiveBudget } from "../domain/subagent/budget.ts";
 import { MAX_LIVE_TASKS, newTaskId } from "./task-record.ts";
 import { liveStop } from "./live-runs.ts";
+import { registerLiveSession } from "./live-sessions.ts";
 import { removedIds, unknownTaskMessage } from "./removed-ids.ts";
 import { isRunStopped, RunStopped, stoppedRowNote } from "../domain/run-stop.ts";
 import { applyRunOverrides } from "../domain/tiers.ts";
@@ -22,6 +28,8 @@ import { readGlobalConfig, withGlobalConfig } from "./global-config.ts";
 import { ledger, markKind } from "./ledger.ts";
 import type { TaskRecord } from "./task-record.ts";
 import type { TaskStore } from "./task-store.ts";
+import { announceSettle } from "./settle-notice.ts";
+import { archivedTask } from "./persist.ts";
 
 export async function resumeTask(
 	store: TaskStore,
@@ -30,8 +38,11 @@ export async function resumeTask(
 	prompt: string,
 	ctx: ExtensionContext,
 	overrides: RunOverrides = {},
+	contract: readonly string[] = [],
 ): Promise<{ taskId: string; resumed: true } | { error: string }> {
-	const rec = store.get(taskId);
+	const liveRow = store.get(taskId);
+	// A row from an older session still resumes by explicit id after a restart.
+	const rec = liveRow ?? archivedTask(ctx.cwd, taskId);
 	if (!rec) return { error: unknownTaskMessage(taskId) };
 	if (rec.status === "running")
 		return { error: `Task "${taskId}" is still running. Poll it with TaskOutput first.` };
@@ -40,17 +51,19 @@ export async function resumeTask(
 			error: `Resume keeps the same subagent ("${rec.subagentName}"). Start a new task to switch subagents.`,
 		};
 	}
-	if (!store.canStart()) {
+	const global = readGlobalConfig(ctx.cwd, undefined, {
+		trusted: ctx.isProjectTrusted?.() === true,
+	});
+	const cap = global.liveCap ?? MAX_LIVE_TASKS;
+	if (!store.canStart(cap)) {
 		return {
-			error: `Too many live tasks (max ${MAX_LIVE_TASKS}). Poll or wait for one to finish first.`,
+			error: `Too many live tasks (max ${cap}). Poll or wait for one to finish first.`,
 		};
 	}
 
+	const parentSessionId = ctx.sessionManager.getSessionId();
 	const followId = newTaskId();
-	const sub = applyRunOverrides(
-		withGlobalConfig(rec.subagent, readGlobalConfig(ctx.cwd)),
-		overrides,
-	);
+	const sub = applyRunOverrides(withGlobalConfig(rec.subagent, global), overrides);
 	const follow: TaskRecord = {
 		taskId: followId,
 		subagentName: rec.subagentName,
@@ -60,8 +73,11 @@ export async function resumeTask(
 		fullDelivered: false,
 		subagent: sub,
 		cwd: rec.cwd,
+		sessionId: parentSessionId,
 		history: [],
 		kind: "background",
+		prompt,
+		...(rec.runId ? { runId: rec.runId } : {}),
 	};
 	store.add(follow);
 	ledger.begin(rec.subagentName);
@@ -69,46 +85,81 @@ export async function resumeTask(
 
 	void (async () => {
 		try {
-			const child = await startSubagentSession(sub, rec.cwd, ctx);
+			const team = teamChildExtras(sub.name, rec.taskId);
+			const child = await startSubagentSession(sub, rec.cwd, ctx, team);
+			const unbindMail = team
+				? bindTeamMember(
+						team.member,
+						sub.name,
+						(text) => {
+							void child.session.steer(text).catch(() => {});
+						},
+						followId,
+					)
+				: () => {};
 			const stop = trackSession(
 				child.session,
 				followId,
 				`${sub.name} ${followId.replace(/[^a-z0-9]/gi, "").slice(-4)}`,
-				{ journalId: followId, kind: "resume" },
+				{
+					journalId: followId,
+					kind: "resume",
+					hook: sub.finishHook,
+					subagent: sub.name,
+					cwd: rec.cwd,
+					...(rec.runId ? { runId: rec.runId } : {}),
+				},
 			);
 			const live = liveStop(followId, sub.name, child.session, (why) => {
 				store.remove(followId);
 				removedIds.add(followId);
 				ledger.finish(sub.name, "stopped");
+				sweepMemberTasks(rec.taskId, false, Date.now(), "stopped");
 				stop({ status: "interrupted", error: stoppedRowNote(why) });
 			});
 			const budgetStop = installRunBudget(child.session, effectiveBudget(sub.budget));
 			budgetStop.windDown((secsLeft) => {
 				void windDownSignal(child.session, child.notes, secsLeft);
 			});
+			const unregisterView = registerLiveSession(followId, {
+				messages: () => child.session.messages,
+				streaming: () => child.session.agent.state.streamingMessage,
+				subscribe: (fn) => child.session.subscribe((event) => fn(event.type)),
+				steer: async (text) => {
+					try {
+						await child.session.steer(text);
+						return true;
+					} catch {
+						return false;
+					}
+				},
+			});
 			try {
-				const prior =
-					rec.history.length > 0 ? JSON.stringify(rec.history).slice(0, 20000) : "(no prior turns)";
 				const outcome = await awaitWithHardStop(
 					child.session,
-					child.session.prompt(
-						`Prior context (kept history, may be cut): ${prior}\n\nFollow-up task: ${prompt}`,
-					),
+					child.prompt(resumePrompt(rec.history, prompt), contract),
 					budgetStop,
 				);
 				if (live.wasStopped()) throw new RunStopped(live.why());
+				const failure = providerFailure(child.session);
+				if (failure) throw new Error(failure);
 				if (outcome === "abandoned") child.notes.push(abandonedNote());
 				follow.history = snapshotHistory(child.session);
 				const stopNote = surfaceBudgetNotes(child.notes, budgetStop);
-				const text = runReport(child.session, { stopNote, steps: footerProgress.recent(followId) });
+				const text = applyReportBudget(
+					runReport(child.session, { stopNote, steps: footerProgress.recent(followId) }),
+					sub.budget,
+				);
+				const checked = checkReturn(text, contract);
 				follow.result = {
-					text: applyReportBudget(text, sub.budget),
+					text: checked.text,
 					usage: sumUsage(child.session.messages),
 					model: activeModelId(child.session),
 					notes: child.notes,
+					...(checked.missing.length > 0 ? { missing: checked.missing } : {}),
 				};
 				follow.status = "done";
-				store.touch();
+				follow.endedAt = Date.now();
 				ledger.finish(rec.subagentName, "done");
 				stop({
 					status: "done",
@@ -116,6 +167,8 @@ export async function resumeTask(
 					model: follow.result.model,
 					notes: follow.result.notes,
 				});
+				announceSettle(follow, parentSessionId, rec.taskId);
+				store.touch();
 			} catch (err) {
 				if (live.wasStopped()) throw new RunStopped(live.why());
 				const why = annotateFailure(err, surfaceBudgetNotes(child.notes, budgetStop));
@@ -124,7 +177,9 @@ export async function resumeTask(
 				stop({ status: "error", error: why instanceof Error ? why.message : String(why) });
 				throw why;
 			} finally {
+				unbindMail();
 				budgetStop.dispose();
+				unregisterView();
 				live.unregister();
 				stop();
 				child.session.dispose();
@@ -135,6 +190,8 @@ export async function resumeTask(
 			ledger.finish(rec.subagentName, "error");
 			follow.status = "error";
 			follow.error = message;
+			follow.endedAt = Date.now();
+			announceSettle(follow, parentSessionId, rec.taskId);
 			store.touch();
 		}
 	})();

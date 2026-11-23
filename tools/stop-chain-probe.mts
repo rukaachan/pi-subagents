@@ -48,7 +48,10 @@ async function main(): Promise<void> {
 		const modelRegistry = new (
 			pi as unknown as { ModelRegistry: new (r: unknown) => ModelRegistry }
 		).ModelRegistry(runtime);
-		const model = modelRegistry.find("opencode-zen-responses", "deepseek-v4.1-flash-free");
+		const model = modelRegistry.find(
+			(process.env.PI_IT_MODEL ?? "").split("/")[0] ?? "",
+			(process.env.PI_IT_MODEL ?? "").split("/")[1] ?? "",
+		);
 		if (!model) throw new Error("no probe model resolved");
 		const ctx = { ui: {}, model, thinkingLevel: "off", modelRegistry, cwd: work } as never;
 

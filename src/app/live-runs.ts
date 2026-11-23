@@ -50,6 +50,19 @@ export function stopLiveRuns(why: string): string[] {
 	return stopped;
 }
 
+/** Stop one live run. False when the id is not live (already finished, or unknown). */
+export function stopTask(id: string, why: string): boolean {
+	const run = live.get(id);
+	if (!run) return false;
+	live.delete(id);
+	try {
+		run.stop(why);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 export interface LiveStop {
 	stop: (why: string) => void;
 	unregister: () => void;

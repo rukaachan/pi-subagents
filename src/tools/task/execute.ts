@@ -23,6 +23,12 @@ import { toUsage } from "../../infra/host-usage.ts";
 import { planTask } from "./validate.ts";
 import { removedIds } from "../../app/removed-ids.ts";
 import { isRunStopped, stoppedToolText } from "../../domain/run-stop.ts";
+import { capDelivery } from "../../domain/run-result.ts";
+
+function callerTools(ctx: ExtensionContext): string[] | undefined {
+	const tools = (ctx as unknown as { tools?: readonly { name: string }[] }).tools;
+	return tools?.map((t) => t.name);
+}
 
 export async function executeTask(
 	_toolCallId: string,
@@ -33,7 +39,7 @@ export async function executeTask(
 ): Promise<ToolResult> {
 	const planned = planTask(params);
 	if (!planned.ok) return planned.error;
-	const { overrides, chainNames, parallelNames } = planned.plan;
+	const { overrides, chainNames, parallelNames, returnFields } = planned.plan;
 	if (parallelNames.length > 0) {
 		return runParallelTask(store, parallelNames, params, ctx, overrides);
 	}
@@ -57,6 +63,7 @@ export async function executeTask(
 		const registered = registerTemp(
 			params.temp_definition,
 			disk.subagents.map((s) => s.name),
+			callerTools(ctx),
 		);
 		if (!registered.ok) {
 			return {
@@ -98,11 +105,23 @@ export async function executeTask(
 	if (!found) {
 		return unknownSubagentResult(wanted, subagents, errors);
 	}
-	const sub = applyRunOverrides(withGlobalConfig(found, readGlobalConfig(ctx.cwd)), overrides);
+	const global = readGlobalConfig(ctx.cwd, undefined, {
+		trusted: ctx.isProjectTrusted?.() === true,
+	});
+	const sub = applyRunOverrides(withGlobalConfig(found, global), overrides);
+	const cap = global.liveCap ?? MAX_LIVE_TASKS;
 
 	if (params.resume) {
 		useFooterUI(ctx.ui);
-		const r = await resumeTask(store, params.resume, sub.name, params.prompt, ctx, overrides);
+		const r = await resumeTask(
+			store,
+			params.resume,
+			sub.name,
+			params.prompt,
+			ctx,
+			overrides,
+			returnFields,
+		);
 		if ("error" in r) {
 			return {
 				content: [{ type: "text", text: r.error }],
@@ -118,15 +137,15 @@ export async function executeTask(
 
 	useFooterUI(ctx.ui);
 	if (params.run_in_background === true) {
-		if (!store.canStart()) {
+		if (!store.canStart(cap)) {
 			return {
 				content: [
 					{
 						type: "text",
-						text: `Too many live tasks (max ${MAX_LIVE_TASKS}). Poll or wait for one to finish first.`,
+						text: `Too many live tasks (max ${cap}). Poll or wait for one to finish first.`,
 					},
 				],
-				details: { live_cap: MAX_LIVE_TASKS },
+				details: { live_cap: cap },
 				isError: true,
 			};
 		}
@@ -139,6 +158,7 @@ export async function executeTask(
 			ctx,
 			{
 				dispatch: dispatchEcho,
+				contract: returnFields,
 			},
 		);
 		return {
@@ -154,9 +174,17 @@ export async function executeTask(
 
 	useFooterUI(ctx.ui);
 	const runKey = newRunKey();
-	const rec = newRecord(sub, params.description, ctx.cwd, "foreground");
+	const rec = newRecord(
+		sub,
+		params.description,
+		ctx.cwd,
+		"foreground",
+		ctx.sessionManager.getSessionId(),
+	);
 	try {
 		store.add(rec);
+		rec.startedAt = Date.now();
+		store.touch();
 		markKind(sub.name, "foreground");
 		const result = await runSubagent(
 			sub,
@@ -166,17 +194,19 @@ export async function executeTask(
 			signal ?? undefined,
 			runKey,
 			rec,
+			returnFields,
 		);
 		store.touch();
 		const noteText = result.notes.length > 0 ? `\n\n[notes: ${result.notes.join(" ")}]` : "";
 		return {
-			content: [{ type: "text", text: `${result.text}${noteText}` }],
+			content: [{ type: "text", text: capDelivery(`${result.text}${noteText}`) }],
 			details: {
 				subagent_type: sub.name,
 				source: sub.source,
 				model: result.model,
 				usage: result.usage,
 				notes: result.notes,
+				...(result.missing ? { missing: result.missing } : {}),
 				overrides: overrideNote(overrides) || undefined,
 				dispatch: dispatchEcho,
 			},

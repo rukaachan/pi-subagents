@@ -52,13 +52,12 @@ export function rowName(row: string): string {
 	return row.split(" ")[0] ?? row;
 }
 
-export function usageLine(usage: SubagentRunResult["usage"], model?: string): string {
+export function usageLine(usage: SubagentRunResult["usage"], _model?: string): string {
 	const parts: string[] = [];
 	if (usage.turns) parts.push(`${usage.turns}t`);
 	const tok = usage.input + usage.output;
 	if (tok) parts.push(`${tok}tok`);
 	if (usage.cost) parts.push(`$${usage.cost.toFixed(4)}`);
-	if (model) parts.push(model);
 	return parts.join(" ");
 }
 
@@ -69,7 +68,7 @@ export function taskStatusIcon(status: TaskRecord["status"]): string {
 }
 
 export function rowTaskKey(row: string): string {
-	return row.split(" ")[1] ?? "";
+	return row.trim().split(" ").at(-1) ?? "";
 }
 
 export function kvTable(rows: [string, string][]): string {

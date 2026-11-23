@@ -5,6 +5,7 @@
 import type { RunKind, TaskRecord } from "../domain/task.ts";
 import type { SubagentConfig } from "../domain/subagent/config.ts";
 
+export { MAX_DONE_TASKS, MAX_LIVE_TASKS } from "../domain/task.ts";
 export type {
 	ChainStep,
 	ParallelLeg,
@@ -14,10 +15,6 @@ export type {
 	TaskStatus,
 } from "../domain/task.ts";
 
-/** The live cap; fan-out legs share it. */
-export const MAX_LIVE_TASKS = 12;
-export const MAX_DONE_TASKS = 20;
-
 let seq = 0;
 
 export function newTaskId(): string {
@@ -25,11 +22,18 @@ export function newTaskId(): string {
 	return `task-${Date.now().toString(36)}-${seq}`;
 }
 
+/** One id for a group of legs launched by one orchestration call. */
+export function newRunId(kind: RunKind): string {
+	seq += 1;
+	return `run-${kind}-${Date.now().toString(36)}-${seq}`;
+}
+
 export function newRecord(
 	subagent: SubagentConfig,
 	description: string,
 	cwd: string,
 	kind: RunKind,
+	sessionId?: string,
 ): TaskRecord {
 	return {
 		taskId: newTaskId(),
@@ -40,6 +44,7 @@ export function newRecord(
 		fullDelivered: false,
 		subagent,
 		cwd,
+		...(sessionId ? { sessionId } : {}),
 		history: [],
 		kind,
 	};

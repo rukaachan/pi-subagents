@@ -5,6 +5,7 @@ model: inherit
 tools: execute
 codemode: only
 autonomy: inherit
+promptPrefix: "Do the task end to end: read first, change the smallest thing, run the check, report the real output."
 budget: { maxTurns: 0, maxInputTokens: 0, timeoutSec: 5400, maxReportChars: 6000 }
 ---
 

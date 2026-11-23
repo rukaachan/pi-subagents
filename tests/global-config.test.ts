@@ -71,6 +71,21 @@ describe("readGlobalConfig", () => {
 		}
 	});
 
+	it("reads the settle switch, and defaults it on", () => {
+		const off = withSettings({ settleNotify: false });
+		try {
+			assert.equal(readGlobalConfig(off.cwd, off.agentDir).settleNotify, false);
+		} finally {
+			off.done();
+		}
+		const on = withSettings({});
+		try {
+			assert.equal(readGlobalConfig(on.cwd, on.agentDir).settleNotify, undefined);
+		} finally {
+			on.done();
+		}
+	});
+
 	it("takes a tool list and the codemode aliases", () => {
 		const s = withSettings({ codemode: "on", tools: ["read", "grep"] });
 		try {
@@ -179,7 +194,7 @@ describe("every launch path applies the policy", () => {
 		const source = readFileSync(join(root, "src/tools/subagent-alias.ts"), "utf8");
 		assert.match(
 			source,
-			/applyRunOverrides\(withGlobalConfig\(found, readGlobalConfig\(ctx\.cwd\)\), overrides\)/,
+			/applyRunOverrides\(\s*withGlobalConfig\(\s*found,\s*readGlobalConfig\(ctx\.cwd, undefined, \{ trusted: ctx\.isProjectTrusted\?\.\(\) === true \}\),\s*\),\s*overrides,?\s*\)/,
 		);
 	});
 });

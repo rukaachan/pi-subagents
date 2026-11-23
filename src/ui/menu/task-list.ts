@@ -3,14 +3,14 @@
  */
 
 import { copyToClipboard, type ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import { ledger } from "../../app/ledger.ts";
 import { pickFromList } from "../picker.ts";
 import { inModal } from "../../app/modal-depth.ts";
 import { taskRowItems } from "./items.ts";
-import { chainStrip, spawnSummary } from "../view/rows.ts";
+import { chainStrip } from "../view/rows.ts";
 import { taskStatusIcon } from "../view/format.ts";
-import { shortKey } from "../view/format.ts";
+import { shortText } from "../view/format.ts";
 import { taskDetail } from "../view/detail.ts";
+import { openSessionView } from "../view/session-view.ts";
 import { footerProgress } from "../../telemetry/progress.ts";
 import { findJournalRun } from "../../telemetry/journal.ts";
 import { RECENT_LIMIT } from "../../domain/activity-step.ts";
@@ -18,6 +18,7 @@ import { activityLine, activityRows } from "../../telemetry/activity.ts";
 import { ROUTE } from "./constants.ts";
 import type { TaskRecord } from "../../app/task-record.ts";
 import { TaskStore } from "../../app/task-store.ts";
+import { scopeTasks } from "../../app/task-scope.ts";
 import type { ActivityStep } from "../../domain/activity-step.ts";
 import type { LiveRunInfo } from "../view/detail.ts";
 
@@ -110,37 +111,58 @@ export async function showTaskDetail(
 	if (isChain && rec.status !== "running") {
 		ctx.ui.notify("Chains restart as a new Task with chain[] — steps cannot resume alone.", "info");
 	}
-	const acts =
-		rec.status === "running" || isChain || isParallelGroup
-			? ["Copy task_id", "← Back to runs"]
-			: ["Resume with follow-up", "Copy task_id", "← Back to runs"];
 	const who = isChain ? chainStrip(rec) : rec.subagentName;
-	const next = await pickFromList(ctx, {
-		title: `${taskStatusIcon(rec.status)} ${who} · ${shortKey(rec.taskId)}`,
-		subtitle: "enter to choose · esc to go back",
-		body: recentSteps(rec),
-		items: acts.map((a) => ({ value: a, label: a })),
-	});
-	if (next === "Copy task_id") await copyId(ctx, rec.taskId);
-	else if (next === "Resume with follow-up") {
+	// Chains and parallel groups have no session of their own: only their
+	// steps do, and those are separate rows in the list.
+	const single = !isChain && !isParallelGroup;
+	for (;;) {
+		const rest =
+			rec.status === "running" || !single
+				? ["Copy task_id", "← Back to runs"]
+				: ["Resume with follow-up", "Copy task_id", "← Back to runs"];
+		const canView = single && (rec.status === "running" || rec.history.length > 0);
+		const acts = canView ? ["Open session", ...rest] : rest;
+		const next = await pickFromList(ctx, {
+			title: `${taskStatusIcon(rec.status)} ${who} · ${shortText(rec.description, 40)}`,
+			subtitle: "enter to choose · esc to go back",
+			body: recentSteps(rec),
+			items: acts.map((a) => ({ value: a, label: a })),
+		});
+		if (next === "Open session") {
+			await openSessionView(ctx, rec);
+			continue;
+		}
+		if (next === "Copy task_id") {
+			await copyId(ctx, rec.taskId);
+			continue;
+		}
+		if (next !== "Resume with follow-up") return;
 		const follow = await inModal(() => ctx.ui.input(`Follow-up for ${rec.subagentName}`, ""));
 		if (!follow) return;
 		const { resumeTask } = await import("../../app/background.ts");
 		const r = await resumeTask(store, rec.taskId, rec.subagentName, follow, ctx);
 		if ("error" in r) ctx.ui.notify(r.error, "error");
 		else ctx.ui.notify(`Resumed as ${r.taskId}.`, "info");
+		return;
 	}
 }
 
 export async function showTaskList(ctx: ExtensionCommandContext, store: TaskStore): Promise<void> {
+	const scope = { cwd: ctx.cwd, sessionId: ctx.sessionManager.getSessionId() };
 	for (;;) {
-		const tasks = sortTaskRows(store.list());
+		const tasks = sortTaskRows(scopeTasks(store.list(), scope));
+		const live = tasks.filter((task) => task.status === "running").length;
+		const failed = tasks.filter((task) => task.status === "error").length;
 		if (tasks.length === 0) {
 			ctx.ui.notify("No runs yet this session.", "info");
 			return;
 		}
+		const count = `Tasks · ${tasks.length} this session`;
+		const head = [count, live > 0 ? `● ${live}` : "", failed > 0 ? `✗ ${failed}` : ""]
+			.filter(Boolean)
+			.join(" · ");
 		const pick = await pickFromList(ctx, {
-			title: spawnSummary(ledger.bySubagent()),
+			title: head,
 			subtitle: "● fg ● alias ○ bg · live first",
 			items: [...taskRowItems(tasks), { value: ROUTE.cancel, label: "← Back" }],
 		});

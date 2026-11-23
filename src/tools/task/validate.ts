@@ -3,6 +3,7 @@
  */
 
 import { parseBudget } from "../../domain/subagent/budget.ts";
+import { parseReturn } from "../../domain/subagent/contract.ts";
 import {
 	applyRunOverrides,
 	overrideNote,
@@ -18,6 +19,7 @@ export interface TaskPlan {
 	overrides: RunOverrides;
 	chainNames: string[];
 	parallelNames: string[];
+	returnFields: string[];
 }
 
 export type PlanResult = { ok: true; plan: TaskPlan } | { ok: false; error: ToolResult };
@@ -66,6 +68,17 @@ export function planTask(params: TaskParams): PlanResult {
 			},
 		};
 	}
+	const contract = parseReturn(params.return);
+	if ("error" in contract) {
+		return {
+			ok: false,
+			error: {
+				content: [{ type: "text", text: contract.error }],
+				details: { bad_return: params.return },
+				isError: true,
+			},
+		};
+	}
 	const overrides: RunOverrides = {
 		model: params.model,
 		complexity: tier,
@@ -103,6 +116,21 @@ export function planTask(params: TaskParams): PlanResult {
 			},
 		};
 	}
+	if (contract.fields.length > 0 && (chainNames.length > 0 || parallelNames.length > 0)) {
+		return {
+			ok: false,
+			error: {
+				content: [
+					{
+						type: "text",
+						text: "return is single-task: name the fields on one subagent (or a resume), not on chain[] or parallel[].",
+					},
+				],
+				details: { return: contract.fields, chain: chainNames, parallel: parallelNames },
+				isError: true,
+			},
+		};
+	}
 	if (!chainNames.length && !params.prompt) {
 		return {
 			ok: false,
@@ -118,7 +146,10 @@ export function planTask(params: TaskParams): PlanResult {
 			},
 		};
 	}
-	return { ok: true, plan: { overrides, chainNames, parallelNames } };
+	return {
+		ok: true,
+		plan: { overrides, chainNames, parallelNames, returnFields: contract.fields },
+	};
 }
 
 export { applyRunOverrides, overrideNote };

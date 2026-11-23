@@ -5,6 +5,7 @@ model: inherit
 tools: read, grep, find, ls, codemode
 codemode: only
 autonomy: low
+promptPrefix: "Answer from sources on disk: quote the proving line and label each claim known, inferred, or unknown."
 budget: { maxTurns: 0, maxInputTokens: 0, timeoutSec: 5400, maxReportChars: 6000 }
 ---
 

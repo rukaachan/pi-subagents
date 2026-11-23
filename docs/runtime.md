@@ -24,7 +24,8 @@ Every run keeps a row — foreground, background, alias — with
 a kind badge: `[fg]`, `[bg]`, `[alias]`. The Tasks picker title
 shows live counts, e.g. `Tasks — spawned 5 · live: explorer×1`.
 Foreground rows are resumable and pollable like background ones.
-Counts live past the 20-row prune and persist across restarts.
+Counts live past the 20-row prune and survive a reload, or a restart
+that continues the same session.
 
 ## Footer progress
 
@@ -39,6 +40,132 @@ would lie. Running `TaskOutput` polls carry the same snapshot
 outside the TUI.
 
 - Collapsed view cuts text; expand (`Ctrl+O`) shows full.
+
+## Wake on settle
+
+A background leg does not end silently. When it settles, `announceSettle`
+sends one steer message with `customType: "pi-subagents:settled"` and
+`triggerTurn: true`: task id, subagent, status, elapsed, turns, tokens,
+cost, model, and the report when `TaskOutput` has not already delivered
+it. The parent gets a new turn and can finish without polling. The rule
+in `DELEGATION_RULE` says it in one line: when only waiting on delegated
+results, end the turn.
+
+The notice is sent once per run. `fullDelivered` is set only when the
+sink accepted; if delivery throws, the flag goes back so a later poll can
+still return the full text. A notice never throws into the run, is
+skipped when the parent session changed, and is off with
+`settleNotify: false`. Foreground runs and chains return inline, so they
+never wake.
+
+## Retry, steer, stop
+
+A transient provider failure (408, 429, 5xx, timeout, reset) retries the
+same task twice: attempts 1, 2, 3, waits of 1 s and 4 s, one `retry`
+journal event per retry. Anything else fails at once. `TaskControl`
+retries an errored background task with a new id and the saved prompt.
+
+Steering reaches the child before its next request. If the child session
+does not exist yet, the text waits in `steer-queue` (max 4 messages, 2000
+chars) and lands when the session starts. `stop` aborts the run and
+journals `{event: "stop", family: "coordination"}`; it is never labeled
+`spec`. The board keys `s`, `x`, `r` call the same functions as the tool.
+
+## Team board state
+
+The team board is persisted with the rows, in the same per-session
+`s-<hash>.json`: a `team` field with `teamId`, `enabled`, `nextId`,
+tasks, and member names. A team change calls the same store touch as a
+row change, so one debounced writer flushes both. `/reload` restores
+the board before the first prompt; a new Pi session starts empty.
+
+Reading is validated row by row (`src/infra/state-team.ts`): a bad
+task id, revision, status, or timestamp drops that task, duplicate ids
+drop, text is capped, and `nextId` is raised above the highest surviving
+task so a new id can never collide. The last-attempt fields
+(`lastOwner`, `lastError`, `returnedAt`) are validated too; a bad value
+drops only that field. Deleted tasks stay as tombstones, so
+a blocker reference still resolves; a task that still blocks a live task
+cannot be deleted until that dependency is cleared. Caps: 128 live
+tasks, 32 idle members (a live owner is never evicted), 2,000-character
+descriptions, and 20 scopes or blockers per task.
+
+A member name is tied to the run that created it, so a retried
+background leg rejoins as the same member and can finish the task it
+claimed; a new run gets the next free name (`worker-2`).
+
+A run that ends in error or is stopped releases the tasks it still owns:
+they go back to pending with a new revision, and the settle notice names
+them. The release records `lastOwner`, the reason (capped at 300
+characters), and `returnedAt`, so the row shows `last worker: boom`.
+A successful run that leaves a task in_progress keeps the claim, and the
+notice says so. A restart releases every in_progress task with
+`Pi restarted`, because no run survives it.
+
+A claim, a reassign, or an in-progress scope edit checks the board for
+another in-progress task whose scopes overlap. The update is refused
+with the blocking task id, scope, and owner. Pending and completed tasks
+reserve nothing; a task with no scopes locks nothing. This is a board
+reservation, not a filesystem sandbox: `bash` still writes anywhere.
+
+`Team { action: "resolve" }` is the read-only escape. It is lead-only,
+takes `task_id`, and returns each blocker's revision, status, owner, and
+reserved scope. `team-store.ts` computes the hits with `scopeConflicts`
+and the tool adds `isLive` from `team-mail.ts`; the result suggests a
+release when the owner is cold, or a narrower scope when it is live. It
+never mutates, and it works while team mode is off.
+
+`updateTeamTask` retries once when an intent-only action (claim,
+release, complete, reopen, reassign, delete) arrives with a stale
+revision; `edit` and `blocked_by` rewrites never retry because they
+carry a whole new value. The result carries `retriedFrom`, and the tool
+says `retried from rev N`.
+
+The board does not start anyone. Restoring a pending task is history,
+not a queue: no agent wakes because a task exists. The lead delegates
+with `Task`, and the settle card still owns the wake.
+
+`Team { action: "start", prompt, roster? }` is lead-only and always
+launches. It handles the request before the active gate, validates the
+prompt, then calls `startTeamLaunch` in `src/app/team-launch.ts`. That
+function validates the roster and cap, turns team mode on if it was off,
+creates one board task per leg (subject, full description, no write
+scopes), builds one child prompt naming the task id, and calls
+`startLaunch(store, "team", names, prompt, ctx, { promptFor })`. The
+existing queue owns the live cap. If task creation fails partway, the
+created tasks are deleted and a board that was off is turned back off. A
+stopped run leaves queued tasks pending; delete them from the TEAM tab. A
+child tool has no `launch` callback and returns a clear error. The
+enable-only path is the UI switch (`/subagents team on`, `t`), which calls
+the store directly without starting workers.
+
+## Team tools and messages
+
+`Team` and `TeamMessage` use one flat `Type.Object` each, with
+`StringEnum` actions from `@earendil-works/pi-ai`. The Team action list
+now begins `start`, `status`, `list`, `get`, `resolve`, ... and ends
+`delete`; only `action` is required. `prompt` (required) and `roster`
+(optional) are the fields for `start`. The flat shape avoids a top-level
+`anyOf`; the handler checks the required field for the chosen action.
+This is the provider-safe path, not a per-provider fallback.
+
+`src/app/team-mail.ts` keeps a map of member name to run id and steer
+function, bound after the child session starts and removed in the run's
+`finally`. `send` steers a live child or calls the lead inbox set in
+`extensions/index.ts`. A known cold member gets a session queue
+(`MAX_COLD_MESSAGES = 8`, `MAX_COLD_CHARS = 8_000`), flushed by
+`bindTeamMember`; a full queue is refused, never silently dropped. The
+queue is in memory only, so `/reload` drops it.
+
+`wait` reads the shared task store and resolves on its next change,
+capped at 120s. It tracks active wait edges in a `Set`; a new edge that
+would close a cycle is refused before it subscribes, naming the chain.
+Settle, timeout, or error deletes that exact edge. A known cold member
+whose run row is settled still returns its report; a cold row still
+marked running fails with `no live process`. A chain member is bound
+without a run id and `wait` says why. The journal records
+`team_message` with from/to/chars/queued, never the text. Messages are
+capped at 2,000 characters.
 
 ## Compaction
 
@@ -118,8 +245,8 @@ What "stop" means here:
 - **No wind-down, no waiting.** A stop request books the stop, calls
   `abort()`, and calls `dispose()`. Measured on a live background run
   (`tools/stop-probe.mts`): **3 ms** from request to "nothing live".
-- **The row is removed, not finished.** The board and
-  `~/.pi/agent/pi-subagents-state.json` stop claiming a run that no
+- **The row is removed, not finished.** The board and the project
+  state file stop claiming a run that no
   longer exists. A removed id is remembered (last 50), so
   `TaskOutput` answers `Task "…" was stopped (Esc, reload, or quit) and
 its row was removed.` instead of pretending it expired.
@@ -153,7 +280,16 @@ not saved.`
 - Child session: in-memory, no extensions, no skills, filtered tools, then disposed.
 - Resume keeps the same subagent; a switch is a new task.
 - Last 20 done tasks kept; older ids say expired.
-- State file: `~/.pi/agent/pi-subagents-state.json` (best-effort, atomic).
+- State file: `~/.pi/agent/pi-subagents-state/s-<hash>.json`, one per
+  Pi session (best-effort, atomic), so two sessions in one repo never
+  overwrite each other. A matching row from the old per-project file is
+  imported once; rows without a session id stay hidden. Set
+  `PI_SUBAGENTS_STATE=<path>` to pin a file (used by the e2e tests).
+- Resume by id falls back to a scan of the session files and the old
+  per-project file for this folder, so a restart keeps resume. A row
+  found there that was still `running` is frozen to `error` first.
+- Delivered reports are capped at 40,000 characters. The state file
+  keeps up to 60,000; anything larger is cut on save.
 - On block: the subagent reports back instead of prompting.
 
 ## When the provider answers 400

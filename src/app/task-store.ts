@@ -3,6 +3,7 @@
  */
 import { MAX_DONE_TASKS, MAX_LIVE_TASKS } from "./task-record.ts";
 import type { TaskRecord } from "./task-record.ts";
+import { freezeRestored } from "../domain/task.ts";
 
 export class TaskStore {
 	private tasks = new Map<string, TaskRecord>();
@@ -11,28 +12,41 @@ export class TaskStore {
 	/** Optional change hook for disk persistence. Never throws back. */
 	onChange: (() => void) | null = null;
 
+	private listeners = new Set<() => void>();
+
+	/** Observe store changes. Returns the unsubscribe. Never throws back. */
+	subscribe(fn: () => void): () => void {
+		this.listeners.add(fn);
+		return () => {
+			this.listeners.delete(fn);
+		};
+	}
+
 	private changed(): void {
 		try {
 			this.onChange?.();
 		} catch {
 			/* the hook never throws back */
 		}
+		for (const fn of this.listeners) {
+			try {
+				fn();
+			} catch {
+				/* a listener never throws back */
+			}
+		}
+	}
+
+	clear(): void {
+		this.tasks.clear();
+		this.order = [];
+		this.changed();
 	}
 
 	restore(records: TaskRecord[]): void {
 		for (const rec of records) {
 			if (!rec || typeof rec.taskId !== "string") continue;
-			if (rec.status === "running") {
-				rec.status = "error";
-				rec.error = "Interrupted by Pi restart. History was not saved.";
-				rec.fullDelivered = false;
-				for (const step of rec.steps ?? []) {
-					if (step.status === "running") {
-						step.status = "error";
-						step.error = "Interrupted by Pi restart.";
-					}
-				}
-			}
+			freezeRestored(rec);
 			this.tasks.set(rec.taskId, rec);
 			this.order.push(rec.taskId);
 		}
@@ -49,8 +63,8 @@ export class TaskStore {
 		return n;
 	}
 
-	canStart(): boolean {
-		return this.liveCount() < MAX_LIVE_TASKS;
+	canStart(cap = MAX_LIVE_TASKS): boolean {
+		return this.liveCount() < cap;
 	}
 
 	add(rec: TaskRecord): void {

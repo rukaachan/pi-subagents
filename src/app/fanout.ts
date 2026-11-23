@@ -11,7 +11,7 @@ import { codemodeContentionNote, codemodeLegs } from "../domain/subagent/codemod
 import { effectiveCodemodeWorkers } from "../infra/worker-pool.ts";
 import { withTemps } from "../domain/temp.ts";
 import { useFooterUI } from "../telemetry/progress.ts";
-import { MAX_LIVE_TASKS } from "./task-record.ts";
+import { MAX_LIVE_TASKS, newRunId } from "./task-record.ts";
 import { type TaskStore } from "./task-store.ts";
 import { applyRunOverrides, type RunOverrides } from "../domain/tiers.ts";
 import { readGlobalConfig, withGlobalConfig } from "./global-config.ts";
@@ -56,28 +56,31 @@ export async function runParallelTask(
 	if (firstMissing !== undefined) {
 		return unknownSubagentResult(firstMissing, subagents, errors);
 	}
-	const admission = fanoutAdmission(names.length, MAX_LIVE_TASKS);
+	const global = readGlobalConfig(ctx.cwd, undefined, {
+		trusted: ctx.isProjectTrusted?.() === true,
+	});
+	const cap = global.liveCap ?? MAX_LIVE_TASKS;
+	const admission = fanoutAdmission(names.length, cap);
 	if (!admission.ok) {
 		return {
 			content: [{ type: "text" as const, text: admission.reason }],
-			details: { legs: names.length, live_cap: MAX_LIVE_TASKS },
+			details: { legs: names.length, live_cap: cap },
 			isError: true,
 		};
 	}
-	const global = readGlobalConfig(ctx.cwd);
 	const legs = names.map((n) => {
 		const base = subagents.find((s) => s.name === n) as SubagentConfig;
 		return applyRunOverrides(withGlobalConfig(base, global), overrides);
 	});
-	if (!store.canStart()) {
+	if (!store.canStart(cap)) {
 		return {
 			content: [
 				{
 					type: "text" as const,
-					text: `Too many live tasks (max ${MAX_LIVE_TASKS}). Poll or wait for one to finish first.`,
+					text: `Too many live tasks (max ${cap}). Poll or wait for one to finish first.`,
 				},
 			],
-			details: { live_cap: MAX_LIVE_TASKS },
+			details: { live_cap: cap },
 			isError: true,
 		};
 	}
@@ -96,11 +99,12 @@ export async function runParallelTask(
 	useFooterUI(ctx.ui);
 	const ids: string[] = [];
 	const notStarted: string[] = [];
+	const runId = newRunId("parallel");
 	for (let i = 0; i < legs.length; i++) {
 		const leg = legs[i];
 		if (!leg) continue;
 		const prompt = perLeg[i] ?? "";
-		if (!store.canStart()) {
+		if (!store.canStart(cap)) {
 			// Admission guarantees room; a full board here means a
 			// concurrent launch took the last slot. Stop visibly and
 			// name the legs that did not start; never fake an id.
@@ -109,6 +113,7 @@ export async function runParallelTask(
 		}
 		const id = await launchBackground(store, leg, label, prompt, ctx.cwd, ctx, {
 			kind: "parallel",
+			runId,
 		});
 		ids.push(id);
 	}
@@ -129,6 +134,12 @@ export async function runParallelTask(
 				text: `Started ${ids.length} parallel legs (${names.join(" + ")}). Poll each with TaskOutput:\n${lines.join("\n")}${stopped}${contention}`,
 			},
 		],
-		details: { parallel: names, task_ids: ids, status: "running", fanout_of: label },
+		details: {
+			parallel: names,
+			task_ids: ids,
+			status: "running",
+			fanout_of: label,
+			run_id: runId,
+		},
 	};
 }

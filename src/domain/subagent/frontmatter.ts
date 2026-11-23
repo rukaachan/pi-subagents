@@ -4,9 +4,11 @@
 
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import { parseBudget } from "./budget.ts";
+import { parsePaths } from "./paths.ts";
 import {
 	KNOWN_TOOLS,
 	MAX_DESCRIPTION_CHARS,
+	MAX_PROMPT_PREFIX_CHARS,
 	SUBAGENT_NAME_PATTERN,
 	THINKING_LEVELS,
 	resolveToolPolicy,
@@ -37,6 +39,19 @@ export function validateSubagent(
 		warnings.push(`description over ${MAX_DESCRIPTION_CHARS} chars.`);
 	}
 
+	let promptPrefix: string | undefined;
+	const rawPrefix = frontmatter.promptPrefix;
+	if (rawPrefix !== undefined && rawPrefix !== null && rawPrefix !== "") {
+		if (typeof rawPrefix !== "string") {
+			return `invalid promptPrefix "${showValue(rawPrefix)}". Use one line of text.`;
+		}
+		const oneLine = rawPrefix.replace(/\s+/g, " ").trim();
+		if (oneLine.length > MAX_PROMPT_PREFIX_CHARS) {
+			return `promptPrefix is ${oneLine.length} characters; keep it at most ${MAX_PROMPT_PREFIX_CHARS}.`;
+		}
+		if (oneLine) promptPrefix = oneLine;
+	}
+
 	const model =
 		typeof frontmatter.model === "string" && frontmatter.model ? frontmatter.model : "inherit";
 
@@ -63,6 +78,9 @@ export function validateSubagent(
 		const dupes = known.filter((t, i) => known.indexOf(t) !== i);
 		if (dupes.length > 0) warnings.push(`duplicate tools: ${[...new Set(dupes)].join(", ")}.`);
 	}
+
+	const parsedPaths = parsePaths(frontmatter.paths);
+	if (!parsedPaths.ok) return parsedPaths.error;
 
 	const autonomyRaw = frontmatter.autonomy;
 	let autonomy: SubagentAutonomy = "inherit";
@@ -94,12 +112,14 @@ export function validateSubagent(
 		model,
 		thinkingLevel,
 		tools,
+		paths: parsedPaths.paths.length > 0 ? parsedPaths.paths : undefined,
 		autonomy,
 		codemode:
 			codemode.mode === true || codemode.mode === false || codemode.mode === "only"
 				? codemode.mode
 				: undefined,
 		budget,
+		promptPrefix,
 		systemPrompt,
 		source,
 		filePath,

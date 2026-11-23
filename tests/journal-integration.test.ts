@@ -10,12 +10,12 @@ import { foldJournal } from "../src/telemetry/journal.ts";
 import { loadSubagentFromContent } from "../src/infra/subagent-files.ts";
 import { runSubagent } from "../src/app/run.ts";
 
-const gate = process.env.PI_IT_JOURNAL === "1";
+const gate = process.env.PI_IT_JOURNAL === "1" && Boolean(process.env.PI_IT_MODEL);
 
 describe("journal integration (real session)", () => {
 	it(
 		"records run_start → turns/tools → run_end with cap note",
-		{ skip: gate ? false : "set PI_IT_JOURNAL=1 to run (needs LLM proxy)" },
+		{ skip: gate ? false : "set PI_IT_JOURNAL=1 and PI_IT_MODEL=provider/model to run" },
 		async () => {
 			const dir = mkdtempSync(join(tmpdir(), "pi-journal-"));
 			const journalPath = join(dir, "journal.ndjson");
@@ -25,7 +25,7 @@ describe("journal integration (real session)", () => {
 					"---",
 					"name: journaled",
 					"description: probe",
-					"model: opencode-zen-responses/deepseek-v4.1-flash-free",
+					`model: ${process.env.PI_IT_MODEL ?? ""}`,
 					"thinkingLevel: off",
 					"autonomy: high",
 					"tools: read, bash, codemode",
@@ -39,7 +39,10 @@ describe("journal integration (real session)", () => {
 				const pi = await import("@earendil-works/pi-coding-agent");
 				const runtime = await pi.ModelRuntime.create();
 				const registry = new pi.ModelRegistry(runtime);
-				const model = registry.find("opencode-zen-responses", "deepseek-v4.1-flash-free");
+				const model = registry.find(
+					(process.env.PI_IT_MODEL ?? "").split("/")[0] ?? "",
+					(process.env.PI_IT_MODEL ?? "").split("/")[1] ?? "",
+				);
 				if (!model) throw new Error("no model");
 				const ctx = { ui: {}, model, thinkingLevel: "off", modelRegistry: registry } as never;
 				const result = await runSubagent(

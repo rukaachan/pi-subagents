@@ -63,7 +63,10 @@ async function main(): Promise<void> {
 	const cfg = loadSubagentFromContent(readFileSync(file, "utf8"), file, "user");
 	if (typeof cfg === "string") throw new Error(`fixture did not parse: ${cfg}`);
 
-	type AnyRegistry = { find(provider: string, id: string): unknown };
+	type AnyRegistry = {
+		find(provider: string, id: string): unknown;
+		getAvailable(): unknown[];
+	};
 	const runtime = await (
 		pi as unknown as { ModelRuntime: { create(): Promise<unknown> } }
 	).ModelRuntime.create();
@@ -71,20 +74,14 @@ async function main(): Promise<void> {
 		pi as unknown as { ModelRegistry: new (r: unknown) => AnyRegistry }
 	).ModelRegistry(runtime);
 
-	const candidates = [
-		["opencode-zen-responses", "glm-5.3-flash-free"],
-		["opencode-zen-responses", "deepseek-v4.1-flash-free"],
-		["opencode-zen", "glm-5.3-flash-free"],
-	];
-	let model: unknown;
-	for (const [provider, id] of candidates) {
-		const found = modelRegistry.find(provider, id);
-		if (found) {
-			model = found;
-			break;
-		}
+	const [wantProvider = "", wantId = ""] = (process.env.PI_IT_MODEL ?? "").split("/");
+	let model: unknown =
+		wantProvider && wantId ? modelRegistry.find(wantProvider, wantId) : undefined;
+	if (!model) {
+		const first = modelRegistry.getAvailable()[0];
+		if (first) model = first;
 	}
-	if (!model) throw new Error("no probe model resolved");
+	if (!model) throw new Error("no probe model: set PI_IT_MODEL=provider/model");
 	const ctx = { ui: {}, model, thinkingLevel: "off", modelRegistry } as never;
 
 	const legs: Leg[] = [];

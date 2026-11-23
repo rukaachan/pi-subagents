@@ -20,8 +20,12 @@ export function currentFieldValue(sub: SubagentConfig, field: EditableField): st
 			return sub.thinkingLevel ?? "";
 		case "tools":
 			return sub.tools?.join(", ") ?? "";
+		case "paths":
+			return sub.paths?.join(", ") ?? "";
 		case "autonomy":
 			return sub.autonomy;
+		case "promptPrefix":
+			return sub.promptPrefix ?? "";
 		case "codemode":
 			return sub.codemode === undefined
 				? "(default: only)"

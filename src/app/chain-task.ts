@@ -9,6 +9,7 @@ import { useFooterUI } from "../telemetry/progress.ts";
 import { MAX_LIVE_TASKS } from "./task-record.ts";
 import { runChain } from "./chain.ts";
 import { isRunStopped, stoppedToolText } from "../domain/run-stop.ts";
+import { capDelivery } from "../domain/run-result.ts";
 import { toUsage } from "../infra/host-usage.ts";
 import type { ChainSpec } from "./chain.ts";
 import { TaskStore } from "./task-store.ts";
@@ -64,19 +65,23 @@ export async function runChainTask(
 	if (firstMissing !== undefined) {
 		return unknownSubagentResult(firstMissing, subagents, []);
 	}
-	if (!store.canStart()) {
+	const global = readGlobalConfig(ctx.cwd, undefined, {
+		trusted: ctx.isProjectTrusted?.() === true,
+	});
+	const cap = global.liveCap ?? MAX_LIVE_TASKS;
+	if (!store.canStart(cap)) {
 		return {
 			content: [
 				{
 					type: "text" as const,
-					text: `Too many live tasks (max ${MAX_LIVE_TASKS}). Poll or wait for one to finish first.`,
+					text: `Too many live tasks (max ${cap}). Poll or wait for one to finish first.`,
 				},
 			],
-			details: { live_cap: MAX_LIVE_TASKS },
+			details: { live_cap: cap },
 			isError: true,
 		};
 	}
-	const ordered = chainConfigs(names, subagents, readGlobalConfig(ctx.cwd), overrides);
+	const ordered = chainConfigs(names, subagents, global, overrides);
 	const spec: ChainSpec = { steps: names, prompt: params.prompt };
 	useFooterUI(ctx.ui);
 	const started = runChain(
@@ -136,7 +141,9 @@ export async function runChainTask(
 		? rec.steps.map((s) => `${s.idx + 1}. ${s.subagentName} ✓`).join(" · ")
 		: names.join(" → ");
 	return {
-		content: [{ type: "text" as const, text: `${head}\n\n${result?.text ?? "(no report)"}` }],
+		content: [
+			{ type: "text" as const, text: `${head}\n\n${capDelivery(result?.text ?? "(no report)")}` },
+		],
 		details: {
 			task_id: started.taskId,
 			chain: names,

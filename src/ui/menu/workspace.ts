@@ -1,0 +1,199 @@
+/**
+ * pi-subagents: the /subagents mission control workspace.
+ */
+
+import { copyToClipboard, type ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import { inModal } from "../../app/modal-depth.ts";
+import { liveSession } from "../../app/live-sessions.ts";
+import { liveMember } from "../../app/team-mail.ts";
+import {
+	disableTeam,
+	enableTeam,
+	taskList,
+	teamEnabled,
+	teamSummary,
+} from "../../app/team-store.ts";
+import { retryTask, steerTask, stopTaskById } from "../../app/task-actions.ts";
+import { startFinish } from "../../app/finish.ts";
+import { scopeTasks, type TaskScope } from "../../app/task-scope.ts";
+import type { TaskStore } from "../../app/task-store.ts";
+import { buildBoard, type BoardRow } from "../view/board-model.ts";
+import { taskRow } from "../view/rows.ts";
+import { buildTeamRows, type TeamRow } from "../view/team-screen.ts";
+import { teamText } from "../view/team-text.ts";
+import {
+	workspaceHeight,
+	type WorkspaceAction,
+	type WorkspaceData,
+	type WorkspaceTab,
+} from "../view/workspace-screen.ts";
+import { createWorkspaceView } from "../view/workspace-view.ts";
+import { finishNotice } from "../view/finish-notice.ts";
+import { openSessionView } from "../view/session-view.ts";
+import { runTeamAction } from "./team-actions.ts";
+
+const RESERVED_ROWS = 8;
+
+function scopeOf(ctx: ExtensionCommandContext): TaskScope {
+	return { cwd: ctx.cwd, sessionId: ctx.sessionManager.getSessionId() };
+}
+
+function runsOf(store: TaskStore, scope: TaskScope): BoardRow[] {
+	return buildBoard(scopeTasks(store.list(), scope), { live: (id) => !!liveSession(id) });
+}
+
+function teamRows(): TeamRow[] {
+	return buildTeamRows(taskList({ limit: 100 }), (name) => Boolean(liveMember(name)));
+}
+
+function dataOf(store: TaskStore, scope: TaskScope): WorkspaceData {
+	return {
+		runs: runsOf(store, scope),
+		team: teamRows(),
+		teamEnabled: teamEnabled(),
+		summary: teamSummary(),
+	};
+}
+
+function mountWorkspace(
+	ctx: ExtensionCommandContext,
+	store: TaskStore,
+	scope: TaskScope,
+	tab: WorkspaceTab,
+): Promise<WorkspaceAction | undefined> {
+	return ctx.ui.custom<WorkspaceAction | undefined>((tui, theme, _kb, done) => {
+		let finished = false;
+		const finish = (action: WorkspaceAction | undefined) => {
+			if (finished) return;
+			finished = true;
+			done(action);
+		};
+		const view = createWorkspaceView({
+			tab,
+			runs: () => runsOf(store, scope),
+			team: teamRows,
+			teamEnabled,
+			summary: teamSummary,
+			height: () => {
+				const data = dataOf(store, scope);
+				return Math.max(
+					6,
+					Math.min(
+						tui.terminal.rows - RESERVED_ROWS,
+						Math.max(workspaceHeight("runs", data), workspaceHeight("team", data)),
+					),
+				);
+			},
+			theme,
+			render: () => tui.requestRender(),
+			onAction: finish,
+			poll: true,
+			subscribe: (fn) => store.subscribe(fn),
+		});
+		return {
+			render: view.render,
+			handleInput: view.handleInput,
+			invalidate: () => {},
+			dispose: () => view.dispose(),
+		};
+	});
+}
+
+async function runRunsAction(
+	ctx: ExtensionCommandContext,
+	store: TaskStore,
+	action: WorkspaceAction,
+): Promise<void> {
+	if (action.kind === "open") {
+		const rec = store.get(action.taskId);
+		if (rec) await openSessionView(ctx, rec);
+		return;
+	}
+	if (action.kind === "copy") {
+		try {
+			await copyToClipboard(action.taskId);
+			ctx.ui.notify(`Copied ${action.taskId}.`, "info");
+		} catch {
+			ctx.ui.notify(action.taskId, "info");
+		}
+		return;
+	}
+	if (action.kind === "steer") {
+		const text = await inModal(() => ctx.ui.input(`Steer ${action.taskId}`, ""));
+		if (!text) return;
+		const result = await steerTask(store, action.taskId, text);
+		ctx.ui.notify(result.message, result.ok ? "info" : "error");
+		return;
+	}
+	if (action.kind === "stop") {
+		const result = stopTaskById(store, action.taskId);
+		ctx.ui.notify(result.message, result.ok ? "info" : "error");
+		return;
+	}
+	if (action.kind !== "retry") return;
+	const result = retryTask(store, action.taskId, ctx);
+	ctx.ui.notify(result.message, result.ok ? "info" : "error");
+}
+
+function plainWorkspace(store: TaskStore, scope: TaskScope): string {
+	const runs = scopeTasks(store.list(), scope).toReversed();
+	const runText = runs.length === 0 ? "Runs: none this session." : runs.map(taskRow).join("\n");
+	return `${runText}\n\n${teamText()}`;
+}
+
+export async function openWorkspace(
+	ctx: ExtensionCommandContext,
+	store: TaskStore,
+	initialTab: WorkspaceTab = "runs",
+): Promise<void> {
+	const scope = scopeOf(ctx);
+	if (typeof ctx.ui.custom !== "function" || ctx.mode !== "tui") {
+		ctx.ui.notify(plainWorkspace(store, scope), "info");
+		return;
+	}
+	let tab = initialTab;
+	for (;;) {
+		const action = await inModal(() => mountWorkspace(ctx, store, scope, tab));
+		if (!action || action.kind === "close") return;
+		if (action.kind === "team-toggle") {
+			if (teamEnabled()) {
+				disableTeam();
+				ctx.ui.notify("Team mode off. Existing tasks stay.", "info");
+			} else {
+				enableTeam(ctx.sessionManager.getSessionId());
+				ctx.ui.notify("Team mode on. New Task legs join the board.", "info");
+			}
+			tab = "team";
+			continue;
+		}
+		if (action.kind.startsWith("team-")) {
+			await runTeamAction(action, ctx, store);
+			tab = "team";
+			continue;
+		}
+		if (action.kind === "finish") {
+			const prompt = await inModal(() => ctx.ui.input("Finish prompt", ""));
+			if (prompt) {
+				const result = startFinish(store, prompt, ctx);
+				if (!result.ok) {
+					ctx.ui.notify(result.error, result.usage ? "info" : "error");
+				} else {
+					ctx.ui.notify(
+						finishNotice(
+							result.start.run.legs,
+							result.start.started,
+							result.start.queued,
+							result.start.picks,
+							result.start.dropped,
+						),
+						"info",
+					);
+				}
+			}
+			tab = "runs";
+			continue;
+		}
+		await runRunsAction(ctx, store, action);
+		tab = "runs";
+	}
+}

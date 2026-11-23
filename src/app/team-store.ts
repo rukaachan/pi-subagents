@@ -1,0 +1,240 @@
+/**
+ * pi-subagents: the live team board for one Pi session.
+ */
+
+import type { PersistedTeam } from "../infra/state-team.ts";
+import type { TeamApi } from "../infra/team-tool-types.ts";
+import {
+	LEAD_NAME,
+	MAX_TEAM_MEMBERS,
+	createTeamTask,
+	liveTasks,
+	newTeam,
+	teamView,
+	type TeamBoard,
+	type TeamCaller,
+	type TeamMember,
+	type TeamFilters,
+	type TeamResult,
+	type TeamTask,
+	type TeamTaskView,
+	type TeamUpdate,
+} from "../domain/team.ts";
+import { scopeConflicts } from "../domain/team-scope.ts";
+import { updateTeamTask } from "../domain/team-update.ts";
+
+interface TeamState {
+	enabled: boolean;
+	board: TeamBoard;
+	members: TeamMember[];
+}
+
+let state: TeamState | null = null;
+let changeHook: (() => void) | null = null;
+
+function notify(): void {
+	try {
+		changeHook?.();
+	} catch {
+		/* the hook never throws back */
+	}
+}
+
+function fresh(teamId: string): TeamState {
+	return { enabled: false, board: newTeam(teamId), members: [] };
+}
+
+export function beginTeamSession(teamId: string): void {
+	state = fresh(teamId);
+}
+
+export function setTeamChangeHook(fn: (() => void) | null): void {
+	changeHook = fn;
+}
+
+function current(): TeamState {
+	state ??= fresh("local");
+	return state;
+}
+
+export function teamEnabled(): boolean {
+	return current().enabled;
+}
+
+/** The board stays writable after /subagents team off so a claimed task can finish. */
+export function teamActive(): boolean {
+	const team = current();
+	return team.enabled || liveTasks(team.board).length > 0;
+}
+
+export function currentTeamId(): string {
+	return current().board.teamId;
+}
+
+export function enableTeam(teamId?: string): void {
+	const next = current();
+	if (teamId && teamId !== next.board.teamId && next.board.tasks.length === 0) {
+		state = { ...fresh(teamId), enabled: true };
+	} else {
+		next.enabled = true;
+	}
+	notify();
+}
+
+export function disableTeam(): void {
+	current().enabled = false;
+	notify();
+}
+
+export function teamMembers(): TeamMember[] {
+	return [...current().members];
+}
+
+function baseName(starter: string): string {
+	const clean = starter
+		.toLowerCase()
+		.replace(/[^a-z0-9_-]+/g, "-")
+		.replace(/^-+|-+$/g, "");
+	if (!clean || clean === LEAD_NAME) return "member";
+	return clean.slice(0, 32);
+}
+
+/** Register one teammate and return its unique owner name. */
+export function joinTeam(starter: string, key?: string, now = Date.now()): string {
+	const team = current();
+	if (key) {
+		const known = team.members.find((member) => member.key === key);
+		if (known) return known.name;
+	}
+	const base = baseName(starter);
+	const used = new Set([
+		...team.members.map((member) => member.name),
+		...team.board.tasks.flatMap((task) => (task.owner ? [task.owner] : [])),
+	]);
+	let name = base;
+	for (let n = 2; used.has(name); n += 1) name = `${base}-${n}`;
+	if (team.members.length >= MAX_TEAM_MEMBERS) {
+		const owned = new Set(
+			liveTasks(team.board).flatMap((task) => (task.owner ? [task.owner] : [])),
+		);
+		const idle = team.members.findIndex((member) => !owned.has(member.name));
+		if (idle >= 0) team.members.splice(idle, 1);
+	}
+	team.members.push({ name, starter, joinedAt: now, ...(key ? { key } : {}) });
+	return name;
+}
+
+export function teamBoard(): TeamBoard {
+	return current().board;
+}
+
+/** Tell the persistence hook the board changed. */
+export function teamChanged(): void {
+	notify();
+}
+
+export function createTask(input: {
+	subject: string;
+	description: string;
+	blockedBy?: string[];
+	writeScopes?: string[];
+}): TeamResult {
+	const result = createTeamTask(current().board, input);
+	if (result.ok) notify();
+	return result;
+}
+
+export function updateTask(update: TeamUpdate, caller: TeamCaller): TeamResult {
+	const team = current();
+	const result = updateTeamTask(team.board, update, caller, team.members);
+	if (result.ok) notify();
+	return result;
+}
+
+export function taskList(filters: TeamFilters = {}): TeamTaskView[] {
+	const board = current().board;
+	const rows = liveTasks(board).map((task) => teamView(task, board));
+	const filtered = rows.filter((row) => {
+		const task: TeamTask = row.task;
+		if (filters.status && task.status !== filters.status) return false;
+		if (filters.owner !== undefined && task.owner !== filters.owner) return false;
+		if (filters.unowned !== undefined && (task.owner === undefined) !== filters.unowned)
+			return false;
+		if (filters.ready !== undefined && row.ready !== filters.ready) return false;
+		return true;
+	});
+	const limit = Math.max(1, Math.min(100, filters.limit ?? 100));
+	return filtered.slice(0, limit);
+}
+
+export function getTask(taskId: string): TeamTaskView | undefined {
+	const board = current().board;
+	const task = board.tasks.find((row) => row.id === taskId);
+	return task?.status === "deleted" ? undefined : task ? teamView(task, board) : undefined;
+}
+
+export function resolveTask(taskId: string) {
+	const board = current().board;
+	const task = board.tasks.find((row) => row.id === taskId);
+	if (!task || task.status === "deleted") return undefined;
+	const conflicts = scopeConflicts(task, board).flatMap((hit) => {
+		const blocker = board.tasks.find((row) => row.id === hit.id);
+		return blocker
+			? [
+					{
+						...hit,
+						scope: hit.reserved ?? hit.scope,
+						revision: blocker.revision,
+						status: blocker.status,
+					},
+				]
+			: [];
+	});
+	return { task: teamView(task, board), conflicts };
+}
+
+export function teamSummary(): { teamId: string; enabled: boolean; open: number; done: number } {
+	const board = current().board;
+	const rows = liveTasks(board);
+	return {
+		teamId: board.teamId,
+		enabled: current().enabled,
+		open: rows.filter((task) => task.status !== "completed").length,
+		done: rows.filter((task) => task.status === "completed").length,
+	};
+}
+
+export function teamSnapshot(): PersistedTeam | undefined {
+	if (!state) return undefined;
+	return {
+		teamId: state.board.teamId,
+		enabled: state.enabled,
+		nextId: state.board.nextId,
+		tasks: state.board.tasks.map((task) => ({
+			...task,
+			blockedBy: [...task.blockedBy],
+			writeScopes: [...task.writeScopes],
+		})),
+		members: state.members.map((member) => ({ ...member })),
+	};
+}
+
+export function restoreTeam(snapshot: PersistedTeam): void {
+	state = {
+		enabled: snapshot.enabled,
+		board: { teamId: snapshot.teamId, nextId: snapshot.nextId, tasks: snapshot.tasks },
+		members: snapshot.members,
+	};
+}
+
+export const teamApi: TeamApi = {
+	active: teamActive,
+	teamId: currentTeamId,
+	summary: teamSummary,
+	members: teamMembers,
+	create: createTask,
+	update: updateTask,
+	list: taskList,
+	get: getTask,
+	resolve: resolveTask,
+};

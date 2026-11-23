@@ -5,6 +5,7 @@ model: inherit
 tools: read, grep, find, ls, codemode
 codemode: only
 autonomy: low
+promptPrefix: "Judge the change, not your taste: cite file:line, rank by harm, and say what input breaks it."
 budget: { maxTurns: 0, maxInputTokens: 0, timeoutSec: 3600, maxReportChars: 6000 }
 ---
 

@@ -6,3 +6,9 @@ node_modules/
 # Local HTTP-400 probe scratch scripts (not published)
 probe-*.mts
 proxy-capture.mjs
+
+# Generated e2e failures
+artifacts/
+
+# Local planning notes
+plans/

@@ -48,8 +48,8 @@ async function main(): Promise<void> {
 			pi as unknown as { ModelRegistry: new (r: unknown) => AnyRegistry }
 		).ModelRegistry(runtime);
 		const found = modelRegistry.find(
-			"opencode-zen-responses",
-			"deepseek-v4.1-flash-free",
+			(process.env.PI_IT_MODEL ?? "").split("/")[0] ?? "",
+			(process.env.PI_IT_MODEL ?? "").split("/")[1] ?? "",
 		) as unknown as { contextWindow: number };
 		if (!found) throw new Error("no probe model resolved");
 

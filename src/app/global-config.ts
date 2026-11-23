@@ -9,21 +9,36 @@ import { parseCodemodeFlag } from "../domain/subagent/frontmatter.ts";
 import { parseBudget } from "../domain/subagent/budget.ts";
 import type { SubagentBudget } from "../domain/subagent/budget.ts";
 
+export const MIN_LIVE_CAP = 1;
+export const MAX_LIVE_CAP = 64;
+export const MAX_FINISH_HOOK_CHARS = 1000;
+
 export interface GlobalConfig {
 	codemode?: boolean | "only";
 	model?: string;
 	tools?: string[];
 	autonomy?: SubagentAutonomy;
 	budget?: SubagentBudget;
+	/** Live subagent legs; invalid values fall back to MAX_LIVE_TASKS. */
+	liveCap?: number;
+	/** Command run once per finished run; never read from an agent file. */
+	finishHook?: string;
 	/** Whether the `subagent` compatibility alias registers. Default true. */
 	alias?: boolean;
+	/** Wake the parent when a background leg settles. Default true. */
+	settleNotify?: boolean;
 }
 
 const AUTONOMY: readonly string[] = ["inherit", "off", "low", "medium", "high"];
 
-export function readGlobalConfig(cwd: string, agentDir: string = getAgentDir()): GlobalConfig {
+export function readGlobalConfig(
+	cwd: string,
+	agentDir: string = getAgentDir(),
+	opts: { trusted?: boolean } = {},
+): GlobalConfig {
 	try {
-		const settings = SettingsManager.create(cwd, agentDir).getSettings() as Record<string, unknown>;
+		const manager = SettingsManager.create(cwd, agentDir);
+		const settings = manager.getSettings() as Record<string, unknown>;
 		const block = settings["pi-subagents"];
 		if (!block || typeof block !== "object" || Array.isArray(block)) return {};
 		const raw = block as Record<string, unknown>;
@@ -45,12 +60,40 @@ export function readGlobalConfig(cwd: string, agentDir: string = getAgentDir()):
 		}
 		const budget = parseBudget(raw.budget);
 		if (budget && typeof budget !== "string") out.budget = budget;
+		const liveCap = parseLiveCap(raw.liveCap);
+		if (liveCap !== undefined) out.liveCap = liveCap;
+		const hookSource = opts.trusted
+			? raw
+			: ((manager.getGlobalSettings() as Record<string, unknown>)["pi-subagents"] as
+					| Record<string, unknown>
+					| undefined);
+		const finishHook = parseFinishHook(hookSource?.finishHook);
+		if (finishHook) out.finishHook = finishHook;
 		if (raw.alias === false || raw.alias === "off") out.alias = false;
 		else if (raw.alias === true || raw.alias === "on") out.alias = true;
+		if (raw.settleNotify === false || raw.settleNotify === "off") out.settleNotify = false;
+		else if (raw.settleNotify === true || raw.settleNotify === "on") out.settleNotify = true;
 		return out;
 	} catch {
 		return {};
 	}
+}
+
+export function parseLiveCap(value: unknown): number | undefined {
+	const n =
+		typeof value === "number"
+			? value
+			: typeof value === "string" && /^\d+$/.test(value.trim())
+				? Number(value)
+				: Number.NaN;
+	return Number.isInteger(n) && n >= MIN_LIVE_CAP && n <= MAX_LIVE_CAP ? n : undefined;
+}
+
+export function parseFinishHook(value: unknown): string | undefined {
+	if (typeof value !== "string") return undefined;
+	const command = value.trim();
+	if (!command || command.length > MAX_FINISH_HOOK_CHARS) return undefined;
+	return command;
 }
 
 /**
@@ -71,5 +114,6 @@ export function withGlobalConfig(sub: SubagentConfig, global: GlobalConfig): Sub
 	if (global.tools) next.tools = [...global.tools];
 	if (global.autonomy) next.autonomy = global.autonomy;
 	if (global.budget) next.budget = { ...sub.budget, ...global.budget };
+	if (global.finishHook) next.finishHook = global.finishHook;
 	return next;
 }

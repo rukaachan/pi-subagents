@@ -3,11 +3,13 @@
  */
 import { readFileSync, statSync } from "node:fs";
 import { defaultJournalPath } from "./journal-path.ts";
+import type { FailureFamily } from "../domain/failure.ts";
 
 export interface JournalRun {
 	id: string;
 	label: string;
 	kind: string;
+	runId?: string;
 	startedAt: number;
 	endedAt?: number;
 	elapsedSec?: number;
@@ -19,6 +21,7 @@ export interface JournalRun {
 	model?: string;
 	notes?: string[];
 	error?: string;
+	failure?: FailureFamily;
 	compactions?: number;
 	gapMaxSec?: number;
 	gapOver60?: number;
@@ -159,6 +162,7 @@ export function foldJournal(lines: string[]): JournalRun[] {
 					id,
 					label: String(ev.label ?? "?"),
 					kind: String(ev.kind ?? "?"),
+					...(typeof ev.run === "string" ? { runId: ev.run } : {}),
 					startedAt: ts,
 					lastEventAt: ts,
 					status: "running",
@@ -195,6 +199,15 @@ export function foldJournal(lines: string[]): JournalRun[] {
 					});
 					if (recent.length > 3) recent.splice(0, recent.length - 3);
 					run.recent = recent;
+					run.lastEventAt = ts;
+				}
+				break;
+			}
+			case "failure": {
+				const run = runs.get(id);
+				const family = ev.family;
+				if (run && (family === "spec" || family === "coordination" || family === "verification")) {
+					run.failure = family;
 					run.lastEventAt = ts;
 				}
 				break;

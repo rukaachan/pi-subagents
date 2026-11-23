@@ -2,7 +2,7 @@
  * pi-subagents: the subagent alias parameters.
  */
 
-import { Type, type Static } from "@earendil-works/pi-ai";
+import { Type, type Static } from "typebox";
 
 export const subagentAliasParameters = Type.Object({
 	agent: Type.String({ description: "Subagent name, e.g. explorer, worker, code-reviewer" }),

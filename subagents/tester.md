@@ -5,6 +5,7 @@ model: inherit
 tools: execute
 codemode: only
 autonomy: inherit
+promptPrefix: "Reproduce before reasoning: show the failing run, fix the cause, and prove it with one guard."
 budget: { maxTurns: 0, maxInputTokens: 0, timeoutSec: 5400, maxReportChars: 6000 }
 ---
 

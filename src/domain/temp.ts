@@ -6,6 +6,7 @@ import type { SubagentBudget } from "./subagent/budget.ts";
 import type { SubagentConfig } from "./subagent/config.ts";
 import type { SubagentDiscoveryResult } from "./subagent/discovery.ts";
 import { parseBudget } from "./subagent/budget.ts";
+import { parsePaths } from "./subagent/paths.ts";
 
 export const MAX_TEMP_PROMPT_LINES = 20;
 export const MAX_TEMP_PROMPT_LINE_CHARS = 120;
@@ -45,7 +46,11 @@ function parseTempCodemode(raw: unknown): boolean | "only" | undefined | "bad" {
 	return "bad";
 }
 
-export function registerTemp(raw: unknown, persistentNames: readonly string[]): TempRegistration {
+export function registerTemp(
+	raw: unknown,
+	persistentNames: readonly string[],
+	activeTools?: readonly string[],
+): TempRegistration {
 	if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
 		return {
 			ok: false,
@@ -128,6 +133,19 @@ export function registerTemp(raw: unknown, persistentNames: readonly string[]): 
 		}
 	}
 
+	if (d.tools !== undefined && activeTools) {
+		const outside = (d.tools as string[]).filter((t) => !activeTools.includes(t));
+		if (outside.length > 0) {
+			return {
+				ok: false,
+				error: `tools not active in this session: ${outside.join(", ")}. A temp can narrow tools, never widen them.`,
+			};
+		}
+	}
+
+	const parsedPaths = parsePaths(d.paths);
+	if (!parsedPaths.ok) return { ok: false, error: parsedPaths.error };
+
 	const parsedBudget = parseBudget(d.budget);
 	if (typeof parsedBudget === "string") return { ok: false, error: parsedBudget };
 	const budget: SubagentBudget | undefined = parsedBudget;
@@ -140,6 +158,7 @@ export function registerTemp(raw: unknown, persistentNames: readonly string[]): 
 		description,
 		model,
 		tools,
+		paths: parsedPaths.paths.length > 0 ? parsedPaths.paths : undefined,
 		autonomy: "inherit",
 		codemode,
 		budget,

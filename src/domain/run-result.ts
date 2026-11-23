@@ -14,11 +14,20 @@ export interface SubagentUsage {
 	turns: number;
 }
 
+/** One delivered report; the state file may hold a little more. */
+export const MAX_DELIVERY_CHARS = 40_000;
+
+export function capDelivery(text: string, max = MAX_DELIVERY_CHARS): string {
+	if (text.length <= max) return text;
+	return `${text.slice(0, max)}\n…(truncated ${text.length - max} chars)`;
+}
+
 export interface SubagentRunResult {
 	text: string;
 	usage: SubagentUsage;
 	model?: string;
 	notes: string[];
+	missing?: string[];
 }
 
 export function sumUsage(messages: AgentMessage[]): SubagentUsage {
@@ -66,6 +75,29 @@ function assistantTextOf(message: unknown): string {
 	} catch {
 		return "";
 	}
+}
+
+/** A provider error can still resolve as an assistant message; the run did not finish. */
+export function providerFailure(session: AgentSession): string | undefined {
+	const messages = (session.messages ?? []) as {
+		role?: string;
+		stopReason?: string;
+		errorMessage?: string;
+	}[];
+	for (let i = messages.length - 1; i >= 0; i -= 1) {
+		const message = messages[i];
+		if (message?.role !== "assistant") continue;
+		return message.stopReason === "error" ? (message.errorMessage ?? "provider error") : undefined;
+	}
+	return undefined;
+}
+
+const TRANSIENT_FAILURE =
+	/(?:^|\D)(408|429|500|502|503|504)(?:\D|$)|timeout|timed out|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|socket hang up|overloaded|rate limit|too many requests|fetch failed|network error/i;
+
+/** A provider or network failure that a fresh attempt can plausibly survive. */
+export function isTransientFailure(message: string): boolean {
+	return TRANSIENT_FAILURE.test(message);
 }
 
 export function activeModelId(session: AgentSession): string | undefined {

@@ -7,6 +7,7 @@ import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 export const SUBAGENT_DIR_NAME = "subagents";
 export const SUBAGENT_NAME_PATTERN = /^[a-z0-9-_]+$/;
 export const MAX_DESCRIPTION_CHARS = 500;
+export const MAX_PROMPT_PREFIX_CHARS = 400;
 
 export type SubagentSource = "user" | "project" | "temp";
 export type SubagentAutonomy = "inherit" | "off" | "low" | "medium" | "high";
@@ -60,9 +61,11 @@ export type SubagentFrontmatter = {
 	thinkingLevel?: unknown;
 	reasoningEffort?: unknown;
 	tools?: unknown;
+	paths?: unknown;
 	autonomy?: unknown;
 	codemode?: unknown;
 	budget?: unknown;
+	promptPrefix?: unknown;
 };
 
 export interface SubagentConfig {
@@ -71,10 +74,16 @@ export interface SubagentConfig {
 	model: string;
 	thinkingLevel?: ThinkingLevel;
 	tools?: string[];
+	// Folders this subagent may write into; undefined = no fence.
+	paths?: string[];
 	autonomy: SubagentAutonomy;
 	// How the model meets the tools.
 	codemode?: boolean | "only";
 	budget?: SubagentBudget;
+	// Fixed framing prepended to every task this subagent gets.
+	promptPrefix?: string;
+	// Set only from the settings block; never from an agent file.
+	finishHook?: string;
 	systemPrompt: string;
 	source: SubagentSource;
 	filePath: string;

@@ -49,14 +49,10 @@ export function taskRowItems(tasks: TaskRecord[]): {
 					? rec.legs.map((l) => l.subagentName).join("⇉")
 					: rec.subagentName;
 		const use = rec.result ? usageLine(rec.result.usage, rec.result.model) : "";
-		const bits = [
-			`${kindBadge(rec.kind)} ${rec.status}`,
-			shortText(rec.description, 40),
-			use,
-		].filter(Boolean);
+		const bits = [`${kindBadge(rec.kind)} ${rec.status} · ${key}`, use].filter(Boolean);
 		return {
 			value: rec.taskId,
-			label: `${icon} ${key} ${who}`,
+			label: `${icon} ${who} — ${shortText(rec.description, 40)}`,
 			description: bits.join(" — "),
 		};
 	});

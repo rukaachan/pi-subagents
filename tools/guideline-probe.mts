@@ -55,7 +55,10 @@ async function runMode(mode: "on" | "only"): Promise<Record<string, unknown>> {
 			(await (
 				pi as unknown as { ModelRuntime: { create(): Promise<unknown> } }
 			).ModelRuntime.create()) as never,
-		).find("opencode-zen-responses", "deepseek-v4.1-flash-free");
+		).find(
+			(process.env.PI_IT_MODEL ?? "").split("/")[0] ?? "",
+			(process.env.PI_IT_MODEL ?? "").split("/")[1] ?? "",
+		);
 		if (!model) throw new Error("probe model not found");
 
 		const { session } = await pi.createAgentSession({

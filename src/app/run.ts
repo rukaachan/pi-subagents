@@ -14,8 +14,19 @@ import { abandonedNote, installRunBudget } from "./guards/install.ts";
 import { annotateFailure, awaitWithHardStop, surfaceBudgetNotes } from "./guards/stop.ts";
 import { windDownSignal } from "./guards/wind.ts";
 import { runReport } from "../domain/run-report.ts";
-import { activeModelId, recordFailure, snapshotHistory, sumUsage } from "../domain/run-result.ts";
+import { checkReturn } from "../domain/subagent/contract.ts";
+import { journalWrite } from "../telemetry/journal.ts";
+import {
+	activeModelId,
+	providerFailure,
+	recordFailure,
+	snapshotHistory,
+	sumUsage,
+} from "../domain/run-result.ts";
 import { startSubagentSession } from "../infra/host-session.ts";
+import { teamChildExtras } from "./team-child.ts";
+import { bindTeamMember } from "./team-mail.ts";
+import { sweepMemberTasks } from "./team-sweep.ts";
 import { liveStop } from "./live-runs.ts";
 import { RunStopped, stoppedRowNote } from "../domain/run-stop.ts";
 
@@ -31,17 +42,37 @@ export async function runSubagent(
 	signal?: AbortSignal,
 	runKey?: string,
 	attach?: TaskRecord,
+	contract: readonly string[] = [],
 ): Promise<SubagentRunResult> {
 	ledger.begin(sub.name);
-	const child = await startSubagentSession(sub, cwd, ctx);
+	const teamKey = attach?.taskId;
+	const team = teamChildExtras(sub.name, teamKey);
+	const child = await startSubagentSession(sub, cwd, ctx, team);
+	const unbindMail = team
+		? bindTeamMember(
+				team.member,
+				sub.name,
+				(text) => {
+					void child.session.steer(text).catch(() => {});
+				},
+				teamKey,
+			)
+		: () => {};
 	const trackKey = attach?.taskId ?? runKey;
 	const stop = trackKey
-		? trackSession(child.session, trackKey, sub.name, { journalId: trackKey, kind: "foreground" })
+		? trackSession(child.session, trackKey, sub.name, {
+				journalId: trackKey,
+				kind: "foreground",
+				hook: sub.finishHook,
+				subagent: sub.name,
+				cwd,
+			})
 		: null;
 	// One stop request reaches this run like any other: the row goes, the
 	// ledger books a stop, and the journal says `interrupted`.
 	const live = liveStop(trackKey ?? `${sub.name}-foreground`, sub.name, child.session, (why) => {
 		ledger.finish(sub.name, "stopped");
+		sweepMemberTasks(teamKey, false, Date.now(), "stopped");
 		stop?.({ status: "interrupted", error: stoppedRowNote(why) });
 	});
 	const budgetStop = installRunBudget(child.session, effectiveBudget(sub.budget));
@@ -50,17 +81,21 @@ export async function runSubagent(
 	});
 	try {
 		if (signal?.aborted) throw new Error("aborted");
-		const onAbort = () => child.session.abort();
+		// The host abort must land as a stop: a disposed session can
+		// resolve with no text, which would look like an empty success.
+		const onAbort = () => live.stop("Esc");
 		signal?.addEventListener("abort", onAbort, { once: true });
 		try {
 			const outcome = await awaitWithHardStop(
 				child.session,
-				child.session.prompt(`Task: ${task}`),
+				child.prompt(`Task: ${task}`, contract),
 				budgetStop,
 			);
 			// A disposed session may resolve instead of rejecting; the stop
 			// is booked already, so this run must not report success too.
 			if (live.wasStopped()) throw new RunStopped(live.why());
+			const failure = providerFailure(child.session);
+			if (failure) throw new Error(failure);
 			if (outcome === "abandoned") child.notes.push(abandonedNote());
 		} finally {
 			signal?.removeEventListener("abort", onAbort);
@@ -68,15 +103,20 @@ export async function runSubagent(
 		const stopNote = surfaceBudgetNotes(child.notes, budgetStop);
 		// A stopped run keeps its own words; when it never spoke, the
 		// cut report stands in for the empty result.
-		const text = runReport(child.session, {
-			stopNote,
-			steps: trackKey ? footerProgress.recent(trackKey) : [],
-		});
+		const text = applyReportBudget(
+			runReport(child.session, {
+				stopNote,
+				steps: trackKey ? footerProgress.recent(trackKey) : [],
+			}),
+			sub.budget,
+		);
+		const checked = checkReturn(text, contract);
 		const result: SubagentRunResult = {
-			text: applyReportBudget(text, sub.budget),
+			text: checked.text,
 			usage: sumUsage(child.session.messages),
 			model: activeModelId(child.session),
 			notes: child.notes,
+			...(checked.missing.length > 0 ? { missing: checked.missing } : {}),
 		};
 		stop?.({
 			status: "done",
@@ -88,6 +128,15 @@ export async function runSubagent(
 			attach.history = snapshotHistory(child.session);
 			attach.result = result;
 			attach.status = "done";
+			if (checked.failure && !attach.failure) {
+				attach.failure = checked.failure;
+				journalWrite({
+					event: "failure",
+					id: attach.taskId,
+					family: checked.failure,
+					auto: true,
+				});
+			}
 		}
 		ledger.finish(sub.name, "done");
 		return result;
@@ -100,9 +149,11 @@ export async function runSubagent(
 				? why.message
 				: String(why);
 		ledger.finish(sub.name, "error");
+		sweepMemberTasks(teamKey, false, Date.now(), message);
 		stop?.({ status: "error", error: message });
 		throw why;
 	} finally {
+		unbindMail();
 		budgetStop.dispose();
 		live.unregister();
 		stop?.();

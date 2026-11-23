@@ -5,7 +5,7 @@
 import type { SubagentConfig } from "../../domain/subagent/config.ts";
 import type { TaskRecord } from "../../app/task-record.ts";
 import { formatElapsed } from "../../telemetry/progress.ts";
-import { kvTable, shortPath, sourceBadge, usageLine } from "./format.ts";
+import { kvTable, shortPath, shortText, sourceBadge, usageLine } from "./format.ts";
 import { chainStrip, parallelStrip } from "./rows.ts";
 
 export interface LiveRunInfo {
@@ -92,6 +92,7 @@ export function subagentDetail(
 		["tools", sub.tools ? sub.tools.join(", ") : "(all)"],
 		["autonomy", sub.autonomy],
 	];
+	if (sub.promptPrefix) rows.push(["prefix", shortText(sub.promptPrefix, 60)]);
 	if (spawns && spawns.total > 0) rows.push(["runs", spawnLine(spawns)]);
 	return kvTable(rows);
 }

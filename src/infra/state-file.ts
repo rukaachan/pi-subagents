@@ -2,13 +2,17 @@
  * pi-subagents: the state file on disk.
  */
 
+import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import type { SpawnCounts, TaskRecord } from "../domain/task.ts";
+import { decodeTasks } from "./state-validate.ts";
+import { decodeTeam, type PersistedTeam } from "./state-team.ts";
 
 export const STATE_VERSION = 1;
 export const STATE_FILE_NAME = "pi-subagents-state.json";
+export const PROJECT_STATE_DIR = "pi-subagents-state";
 /** Resume reads the tail, so 60 messages bound the row. */
 export const MAX_HISTORY_MESSAGES = 60;
 /**
@@ -28,12 +32,48 @@ export interface PersistedState {
 	savedAt: number;
 	tasks: TaskRecord[];
 	ledger: Record<string, SpawnCounts>;
+	team?: PersistedTeam;
 }
 
-/** Default state path: <agentDir>/pi-subagents-state.json. */
-export function defaultStatePath(agentDir?: string): string {
+/** One state file per project, so two repos never share a board. */
+export function projectStatePath(agentDir: string, cwd: string): string {
+	const key = createHash("sha1").update(cwd).digest("hex").slice(0, 12);
+	return path.join(agentDir, PROJECT_STATE_DIR, `${key}.json`);
+}
+
+/** One state file per Pi session, so two sessions never overwrite each other. */
+export function sessionStatePath(agentDir: string, cwd: string, sessionId: string): string {
+	const key = createHash("sha1").update(`${cwd}\0${sessionId}`).digest("hex").slice(0, 16);
+	return path.join(agentDir, PROJECT_STATE_DIR, `s-${key}.json`);
+}
+
+/** The legacy global path when `cwd` is omitted; otherwise the project path. */
+export function defaultStatePath(agentDir?: string, cwd?: string): string {
 	const dir = agentDir ?? path.join(os.homedir(), ".pi", "agent");
-	return path.join(dir, STATE_FILE_NAME);
+	return cwd === undefined ? path.join(dir, STATE_FILE_NAME) : projectStatePath(dir, cwd);
+}
+
+/** Messages are snapshots: one size measurement is enough for every save. */
+const messageBytes = new WeakMap<object, number>();
+
+function bytesOf(message: unknown): number {
+	if (message && typeof message === "object") {
+		const hit = messageBytes.get(message);
+		if (hit !== undefined) return hit;
+		let size = 0;
+		try {
+			size = JSON.stringify(message)?.length ?? 0;
+		} catch {
+			size = 0;
+		}
+		messageBytes.set(message, size);
+		return size;
+	}
+	try {
+		return JSON.stringify(message)?.length ?? 0;
+	} catch {
+		return 0;
+	}
 }
 
 export function capRecord(rec: TaskRecord): TaskRecord {
@@ -41,13 +81,7 @@ export function capRecord(rec: TaskRecord): TaskRecord {
 	if (Array.isArray(out.history)) {
 		let history = out.history;
 		if (history.length > MAX_HISTORY_MESSAGES) history = history.slice(-MAX_HISTORY_MESSAGES);
-		const sizes = history.map((message) => {
-			try {
-				return JSON.stringify(message)?.length ?? 0;
-			} catch {
-				return 0;
-			}
-		});
+		const sizes = history.map(bytesOf);
 		let total = sizes.reduce((sum, size) => sum + size, 0);
 		let start = 0;
 		while (start < history.length - 1 && total > MAX_HISTORY_CHARS) {
@@ -87,15 +121,48 @@ export function decodeState(raw: string): PersistedState | null {
 		if (!parsed || typeof parsed !== "object") return null;
 		if (parsed.version !== STATE_VERSION) return null;
 		if (!Array.isArray(parsed.tasks)) return null;
+		const team = decodeTeam(parsed.team);
 		return {
 			version: STATE_VERSION,
 			savedAt: typeof parsed.savedAt === "number" ? parsed.savedAt : 0,
-			tasks: parsed.tasks as TaskRecord[],
-			ledger: (parsed.ledger ?? {}) as Record<string, SpawnCounts>,
+			tasks: decodeTasks(parsed.tasks),
+			ledger: decodeLedger(parsed.ledger),
+			...(team ? { team } : {}),
 		};
 	} catch {
 		return null;
 	}
+}
+
+function decodeLedger(value: unknown): Record<string, SpawnCounts> {
+	if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+	const raw = value as Record<string, unknown>;
+	const out: Record<string, SpawnCounts> = {};
+	for (const [name, item] of Object.entries(raw)) {
+		if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+		const row = item as Record<string, unknown>;
+		const total = numberOrUndefined(row.total);
+		const running = numberOrUndefined(row.running);
+		const done = numberOrUndefined(row.done);
+		const error = numberOrUndefined(row.error);
+		if (total === undefined || running === undefined || done === undefined || error === undefined)
+			continue;
+		out[name] = {
+			total,
+			running,
+			done,
+			error,
+			stopped: numberOrUndefined(row.stopped) ?? 0,
+			foreground: numberOrUndefined(row.foreground) ?? 0,
+			background: numberOrUndefined(row.background) ?? 0,
+			alias: numberOrUndefined(row.alias) ?? 0,
+		};
+	}
+	return out;
+}
+
+function numberOrUndefined(value: unknown): number | undefined {
+	return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 /** Read + decode. Missing file = null. Never throws. */

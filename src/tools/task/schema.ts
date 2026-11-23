@@ -2,7 +2,7 @@
  * pi-subagents: the Task parameter schema.
  */
 
-import { Type, type Static } from "@earendil-works/pi-ai";
+import { Type, type Static } from "typebox";
 import { taskArgs } from "../../infra/host-shim.ts";
 
 export const taskParameters = Type.Object({
@@ -46,6 +46,12 @@ export const taskParameters = Type.Object({
 		Type.Boolean({ description: "True: return task_id now, poll with TaskOutput" }),
 	),
 	resume: Type.Optional(Type.String({ description: "task_id of a done task to continue" })),
+	return: Type.Optional(
+		Type.Array(Type.String(), {
+			description:
+				"Fields the report must end with, one per line (max 8, each ≤40 chars). Single task, background, or resume; not chain/parallel.",
+		}),
+	),
 	budget: Type.Optional(
 		Type.Object(
 			{
@@ -94,6 +100,12 @@ export const taskParameters = Type.Object({
 				tools: Type.Optional(
 					Type.Array(Type.String(), {
 						description: "Tool ids; omit = all tools, clamped by system autonomy.",
+					}),
+				),
+				paths: Type.Optional(
+					Type.Array(Type.String(), {
+						description:
+							"Folders the temp may write into; omit = no fence. Writes outside are refused.",
 					}),
 				),
 				codemode: Type.Optional(

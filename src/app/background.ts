@@ -4,26 +4,34 @@
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { SubagentConfig } from "../domain/subagent/config.ts";
-import { footerProgress } from "../telemetry/progress.ts";
-import { trackSession } from "../telemetry/track.ts";
-import { abandonedNote, installRunBudget } from "./guards/install.ts";
-import { activeModelId, snapshotHistory, sumUsage } from "../domain/run-result.ts";
-import { annotateFailure, awaitWithHardStop, surfaceBudgetNotes } from "./guards/stop.ts";
-import { runReport } from "../domain/run-report.ts";
-import { startSubagentSession } from "../infra/host-session.ts";
-import { windDownSignal } from "./guards/wind.ts";
-import { applyReportBudget, effectiveBudget } from "../domain/subagent/budget.ts";
+import { isTransientFailure } from "../domain/run-result.ts";
+import { isRunStopped } from "../domain/run-stop.ts";
+import { journalWrite } from "../telemetry/journal.ts";
+import { cut } from "../telemetry/progress.ts";
 import { newTaskId } from "./task-record.ts";
 import { liveStop } from "./live-runs.ts";
+import type { StoppableSession } from "./live-runs.ts";
 import { removedIds } from "./removed-ids.ts";
-import { isRunStopped, RunStopped, stoppedRowNote } from "../domain/run-stop.ts";
 import { ledger, markKind } from "./ledger.ts";
+import { announceSettle } from "./settle-notice.ts";
+import { sweepMemberTasks } from "./team-sweep.ts";
+import { runBackgroundAttempt, type AttemptResult } from "./background-attempt.ts";
 import type { RunKind, TaskRecord } from "./task-record.ts";
 import type { TaskStore } from "./task-store.ts";
 
 export { resumeTask } from "./background-resume.ts";
 
-export async function launchBackground(
+const MAX_ATTEMPTS = 3;
+const RETRY_DELAYS_MS = [1000, 4000] as const;
+
+function sleep(ms: number): Promise<void> {
+	return new Promise((resolve) => {
+		const timer = setTimeout(resolve, ms);
+		timer.unref?.();
+	});
+}
+
+export function launchBackground(
 	store: TaskStore,
 	sub: SubagentConfig,
 	description: string,
@@ -33,9 +41,12 @@ export async function launchBackground(
 	opts?: {
 		kind?: Extract<RunKind, "background" | "parallel">;
 		dispatch?: { rule: string; matched: string };
+		contract?: readonly string[];
+		runId?: string;
 	},
-): Promise<string> {
+): string {
 	const kind = opts?.kind ?? "background";
+	const parentSessionId = ctx.sessionManager.getSessionId();
 	const taskId = newTaskId();
 	const rec: TaskRecord = {
 		taskId,
@@ -46,100 +57,87 @@ export async function launchBackground(
 		fullDelivered: false,
 		subagent: sub,
 		cwd,
+		sessionId: parentSessionId,
 		history: [],
 		kind,
+		prompt,
+		...(opts?.runId ? { runId: opts.runId } : {}),
 		dispatch: opts?.dispatch,
 	};
 	store.add(rec);
 	ledger.begin(sub.name);
 	markKind(sub.name, kind);
 
-	const early = liveStop(taskId, sub.name, { abort() {}, dispose() {} }, () => {
-		store.remove(taskId);
-		removedIds.add(taskId);
-	});
+	// One live handle for the whole retry loop: the holder follows the current child.
+	const holder: StoppableSession = { abort() {}, dispose() {} };
+	let stopCurrent: ((why: string) => void) | null = null;
+	const live = liveStop(
+		taskId,
+		sub.name,
+		{
+			abort: () => holder.abort(),
+			dispose: () => holder.dispose(),
+		},
+		(why) => {
+			store.remove(taskId);
+			removedIds.add(taskId);
+			ledger.finish(sub.name, "stopped");
+			sweepMemberTasks(taskId, false, Date.now(), "stopped");
+			stopCurrent?.(why);
+		},
+	);
 
 	void (async () => {
+		let lastError = "run failed";
 		try {
-			const child = await startSubagentSession(sub, cwd, ctx);
-			const stop = trackSession(
-				child.session,
-				taskId,
-				`${sub.name} ${taskId.replace(/[^a-z0-9]/gi, "").slice(-4)}`,
-				{ journalId: taskId, kind },
-			);
-			// A stop request kills this run instead of finishing it: the row
-			// leaves the board, the ledger books a stop, and the journal says
-			// `interrupted`. Booked before the abort so the trail survives.
-			const live = liveStop(taskId, sub.name, child.session, (why) => {
-				store.remove(taskId);
-				removedIds.add(taskId);
-				ledger.finish(sub.name, "stopped");
-				stop({ status: "interrupted", error: stoppedRowNote(why) });
-			});
-			if (early.wasStopped()) {
-				live.stop(early.why());
-				live.unregister();
-				return;
-			}
-			// After trackSession: a throw there must not leave a timer
-			// armed on a live session that the finally never sees.
-			const budgetStop = installRunBudget(child.session, effectiveBudget(sub.budget));
-			budgetStop.windDown((secsLeft) => {
-				void windDownSignal(child.session, child.notes, secsLeft);
-			});
-			try {
-				const outcome = await awaitWithHardStop(
-					child.session,
-					child.session.prompt(`Task: ${prompt}`),
-					budgetStop,
-				);
-				// A disposed session may resolve instead of rejecting: the
-				// stop is already booked, so the success path must not book
-				// a second time.
-				if (live.wasStopped()) throw new RunStopped(live.why());
-				if (outcome === "abandoned") child.notes.push(abandonedNote());
-				rec.history = snapshotHistory(child.session);
-				const stopNote = surfaceBudgetNotes(child.notes, budgetStop);
-				// A stopped run must not answer "(no output)": keep what it
-				// said and the steps it took, so the caller can resume.
-				const text = runReport(child.session, { stopNote, steps: footerProgress.recent(taskId) });
-				rec.result = {
-					text: applyReportBudget(text, sub.budget),
-					usage: sumUsage(child.session.messages),
-					model: activeModelId(child.session),
-					notes: child.notes,
-				};
-				rec.status = "done";
+			for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+				rec.attempt = attempt;
+				let outcome: AttemptResult;
+				try {
+					outcome = await runBackgroundAttempt({
+						rec,
+						sub,
+						prompt,
+						cwd,
+						ctx,
+						kind,
+						contract: opts?.contract,
+						live,
+						holder,
+						setStopHandle: (fn) => {
+							stopCurrent = fn;
+						},
+					});
+				} catch (err) {
+					if (isRunStopped(err)) return;
+					const message = err instanceof Error ? err.message : String(err);
+					outcome = { ok: false, error: message, transient: isTransientFailure(message) };
+				}
+				if (outcome.ok) {
+					delete rec.error;
+					ledger.finish(sub.name, "done");
+					announceSettle(rec, parentSessionId);
+					store.touch();
+					return;
+				}
+				if (outcome.stopped || live.wasStopped()) return;
+				lastError = outcome.error ?? "run failed";
+				if (!isTransientFailure(lastError) || attempt === MAX_ATTEMPTS) break;
+				journalWrite({ event: "retry", id: taskId, attempt, error: cut(lastError, 200) });
+				rec.error = lastError;
 				store.touch();
-				ledger.finish(sub.name, "done");
-				stop({
-					status: "done",
-					reportChars: rec.result.text.length,
-					model: rec.result.model,
-					notes: rec.result.notes,
-				});
-			} catch (err) {
-				if (live.wasStopped()) throw new RunStopped(live.why());
-				const why = annotateFailure(err, surfaceBudgetNotes(child.notes, budgetStop));
-				rec.history = snapshotHistory(child.session);
-				store.touch();
-				stop({ status: "error", error: why instanceof Error ? why.message : String(why) });
-				throw why;
-			} finally {
-				budgetStop.dispose();
-				live.unregister();
-				stop();
-				child.session.dispose();
+				await sleep(RETRY_DELAYS_MS[attempt - 1] ?? 4000);
+				if (live.wasStopped()) return;
 			}
-		} catch (err) {
-			if (isRunStopped(err)) return;
-			const message = err instanceof Error ? err.message : String(err);
-			ledger.finish(sub.name, "error");
 			rec.status = "error";
-			rec.error = message;
+			rec.error = lastError;
+			rec.endedAt = Date.now();
 			rec.fullDelivered = false;
+			ledger.finish(sub.name, "error");
+			announceSettle(rec, parentSessionId);
 			store.touch();
+		} finally {
+			live.unregister();
 		}
 	})();
 

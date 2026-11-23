@@ -23,6 +23,7 @@ import { subagentArgs } from "../infra/host-shim.ts";
 import { useFooterUI } from "../telemetry/progress.ts";
 import { newRunKey } from "../telemetry/track.ts";
 import { resultShell, toUsage, usageFooter } from "../ui/tool-results.ts";
+import { capDelivery } from "../domain/run-result.ts";
 import { Text } from "@earendil-works/pi-tui";
 import { shortText } from "../ui/view/format.ts";
 import { DELEGATION_RULE } from "./task/meta.ts";
@@ -127,11 +128,23 @@ export const subagentAliasTool = defineTool({
 		if (!found) {
 			return unknownSubagentResult(params.agent, subagents, errors);
 		}
-		const sub = applyRunOverrides(withGlobalConfig(found, readGlobalConfig(ctx.cwd)), overrides);
+		const sub = applyRunOverrides(
+			withGlobalConfig(
+				found,
+				readGlobalConfig(ctx.cwd, undefined, { trusted: ctx.isProjectTrusted?.() === true }),
+			),
+			overrides,
+		);
 		useFooterUI(ctx.ui);
 		try {
 			const runKey = newRunKey();
-			const rec = newRecord(sub, params.description ?? params.agent, ctx.cwd, "alias");
+			const rec = newRecord(
+				sub,
+				params.description ?? params.agent,
+				ctx.cwd,
+				"alias",
+				ctx.sessionManager.getSessionId(),
+			);
 			store.add(rec);
 			markKind(sub.name, "alias");
 			const result = await runSubagent(
@@ -146,7 +159,7 @@ export const subagentAliasTool = defineTool({
 			store.touch();
 			const noteText = result.notes.length > 0 ? `\n\n[notes: ${result.notes.join(" ")}]` : "";
 			return {
-				content: [{ type: "text", text: `${result.text}${noteText}` }],
+				content: [{ type: "text", text: capDelivery(`${result.text}${noteText}`) }],
 				details: {
 					subagent_type: sub.name,
 					source: sub.source,

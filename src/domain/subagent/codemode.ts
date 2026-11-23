@@ -3,13 +3,14 @@
  */
 import { clampToolsForAutonomy, TOOL_GROUPS } from "./config.ts";
 import type { SubagentConfig } from "./config.ts";
+import { MAX_LIVE_TASKS } from "../task.ts";
 
 // Codemode workers alive per pi process.
 /** The host's own limit: two codemode workers per pi process. */
 export const HOST_CODEMODE_WORKERS = 2;
 
-/** Wide enough for the live task cap; the operator's env value wins. */
-export const CODEMODE_WORKERS_DEFAULT = 8;
+/** One worker per live leg; the operator's env value wins. */
+export const CODEMODE_WORKERS_DEFAULT = MAX_LIVE_TASKS;
 
 export type CodemodeMode = "on" | "only";
 

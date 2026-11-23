@@ -7,7 +7,7 @@ import { join } from "node:path";
 export const JOURNAL_MAX_BYTES = 2_000_000;
 
 export type JournalEvent =
-	| { event: "run_start"; id: string; label: string; kind: string; cwd?: string }
+	| { event: "run_start"; id: string; label: string; kind: string; cwd?: string; run?: string }
 	| { event: "turn"; id: string; turns: number; tool?: string }
 	| {
 			event: "tool";
@@ -17,6 +17,11 @@ export type JournalEvent =
 			detail?: string;
 			nested?: string;
 	  }
+	| { event: "failure"; id: string; family: string; auto?: boolean }
+	| { event: "retry"; id: string; attempt: number; error?: string }
+	| { event: "steer"; id: string; text: string }
+	| { event: "team_message"; from: string; to: string; chars: number; queued?: boolean }
+	| { event: "stop"; id: string; family: string; why?: string }
 	| {
 			event: "compact";
 			id: string;
@@ -38,6 +43,7 @@ export type JournalEvent =
 			notes?: string[];
 			gapMaxSec?: number;
 			gapOver60?: number;
+			run?: string;
 	  };
 
 export function defaultJournalPath(): string {

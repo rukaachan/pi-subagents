@@ -2,8 +2,14 @@
  * pi-subagents: run state on disk, wired to the live store.
  */
 
+import { dirname, resolve } from "node:path";
 import type { InMemoryLedger } from "./ledger.ts";
 import type { TaskStore } from "./task-store.ts";
+import type { TaskRecord } from "../domain/task.ts";
+import { freezeRestored } from "../domain/task.ts";
+import { restoreTeam, teamSnapshot } from "./team-store.ts";
+import { releaseOrphanedTasks } from "./team-sweep.ts";
+import { findStateTask } from "../infra/state-find.ts";
 import {
 	capRecord,
 	defaultStatePath,
@@ -15,7 +21,7 @@ import {
 	type PersistedState,
 } from "../infra/state-file.ts";
 
-export { defaultStatePath } from "../infra/state-file.ts";
+export { defaultStatePath, projectStatePath, sessionStatePath } from "../infra/state-file.ts";
 export {
 	decodeState,
 	encodeState,
@@ -25,12 +31,25 @@ export {
 } from "../infra/state-file.ts";
 export type { PersistedState } from "../infra/state-file.ts";
 
+/** A row from an older session's file, frozen so it can be resumed. */
+export function archivedTask(cwd: string, taskId: string): TaskRecord | undefined {
+	const pinned = process.env.PI_SUBAGENTS_STATE?.trim();
+	const rec = pinned
+		? loadState(resolve(cwd, pinned))?.tasks.find((row) => row.taskId === taskId && row.cwd === cwd)
+		: findStateTask(dirname(defaultStatePath()), cwd, taskId);
+	if (!rec) return undefined;
+	freezeRestored(rec);
+	return rec;
+}
+
 export function serializeState(store: TaskStore, ledger: InMemoryLedger): PersistedState {
+	const team = teamSnapshot();
 	return {
 		version: STATE_VERSION,
 		savedAt: Date.now(),
 		tasks: store.snapshot().map(capRecord),
 		ledger: ledger.bySubagent(),
+		...(team ? { team } : {}),
 	};
 }
 
@@ -39,6 +58,10 @@ export function restoreInto(store: TaskStore, ledger: InMemoryLedger, statePath:
 	if (!state) return 0;
 	// Rows that were live cannot finish: count them as errors so totals add up.
 	const interrupted = state.tasks.filter((t) => t.status === "running");
+	if (state.team) {
+		restoreTeam(state.team);
+		releaseOrphanedTasks();
+	}
 	store.restore(state.tasks);
 	ledger.restore(state.ledger);
 	ledger.clearRunning();

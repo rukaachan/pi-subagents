@@ -31,7 +31,7 @@ export function taskRow(rec: TaskRecord): string {
 				? parallelStrip(rec)
 				: rec.subagentName;
 	const marked = rec.subagent.source === "temp" ? `◌ ${who}` : who;
-	return `${icon} ${short} · ${marked} ${kindBadge(rec.kind)} ${rec.status.toUpperCase()} — ${desc}${use}`;
+	return `${icon} ${marked} ${kindBadge(rec.kind)} — ${desc} · ${rec.status.toUpperCase()}${use} · ${short}`;
 }
 
 export function chainStrip(rec: TaskRecord): string {
