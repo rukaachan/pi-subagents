@@ -81,8 +81,7 @@ export async function sleepUnlessStopped(
 		if (stopped()) return false;
 		const left = end - Date.now();
 		await new Promise<void>((resolve) => {
-			const timer = setTimeout(resolve, Math.min(sliceMs, left));
-			timer.unref?.();
+			setTimeout(resolve, Math.min(sliceMs, left));
 		});
 	}
 	return !stopped();
