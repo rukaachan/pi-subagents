@@ -15,6 +15,7 @@ import {
 	teamSummary,
 } from "../../app/team-store.ts";
 import { retryTask, steerTask, stopTaskById } from "../../app/task-actions.ts";
+import { linkedRun } from "../../app/team-run.ts";
 import { startFinish } from "../../app/finish.ts";
 import { scopeTasks, type TaskScope } from "../../app/task-scope.ts";
 import type { TaskStore } from "../../app/task-store.ts";
@@ -187,6 +188,17 @@ export async function openWorkspace(
 				enableTeam(ctx.sessionManager.getSessionId());
 				ctx.ui.notify("Team mode on. New Task legs join the board.", "info");
 			}
+			tab = "team";
+			continue;
+		}
+		if (action.kind === "team-open-run") {
+			const linked = linkedRun(store, action.taskId);
+			if (!linked.ok) {
+				ctx.ui.notify(linked.error, "info");
+				tab = "team";
+				continue;
+			}
+			await openSessionView(ctx, linked.rec);
 			tab = "team";
 			continue;
 		}

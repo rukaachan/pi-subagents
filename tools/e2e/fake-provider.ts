@@ -283,7 +283,12 @@ function answerFor(
 				return {
 					tool: {
 						name: "Team",
-						args: { action: "complete", task_id: "task-1", expected_revision: 2 },
+						args: {
+							action: "complete",
+							task_id: "task-1",
+							expected_revision: 2,
+							result: `${member} sent the finding`,
+						},
 					},
 				};
 			if (last.name === "Team" && last.args.action === "complete") return { text: "MAIL_SENT" };
@@ -302,7 +307,12 @@ function answerFor(
 				return {
 					tool: {
 						name: "Team",
-						args: { action: "complete", task_id: "task-2", expected_revision: 2 },
+						args: {
+							action: "complete",
+							task_id: "task-2",
+							expected_revision: 2,
+							result: `${member} received the finding`,
+						},
 					},
 				};
 			if (last.name === "Team" && last.args.action === "complete")
@@ -327,7 +337,12 @@ function answerFor(
 				return {
 					tool: {
 						name: "Team",
-						args: { action: "complete", task_id: "task-1", expected_revision: 2 },
+						args: {
+							action: "complete",
+							task_id: "task-1",
+							expected_revision: 2,
+							result: `${member} pinged the lead`,
+						},
 					},
 				};
 			if (last.name === "Team" && last.args.action === "complete") return { text: "PING_SENT" };
@@ -341,7 +356,12 @@ function answerFor(
 				return {
 					tool: {
 						name: "Team",
-						args: { action: "complete", task_id: assigned, expected_revision: 2 },
+						args: {
+							action: "complete",
+							task_id: assigned,
+							expected_revision: 2,
+							result: `${member} finished ${assigned}`,
+						},
 					},
 				};
 			}

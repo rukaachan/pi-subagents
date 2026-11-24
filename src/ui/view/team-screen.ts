@@ -88,8 +88,10 @@ export function teamDetailLines(
 		theme.bold(`${task.id} · ${shortText(task.subject, 40)}`),
 		theme.fg(COLOR[task.status], task.status.toUpperCase()),
 		theme.fg("dim", `rev ${task.revision} · ${owner}${row.live ? " · live" : ""}`),
-		theme.fg("dim", `scopes: ${scopeText(row.view)}`),
+		theme.fg("dim", task.runId ? `run ${task.runId}` : "no run linked"),
 	];
+	if (task.result) lines.push(theme.fg("text", `result: ${shortText(task.result, 120)}`));
+	lines.push(theme.fg("dim", `scopes: ${scopeText(row.view)}`));
 	if (row.view.blockedByOpen.length > 0) {
 		lines.push(theme.fg("warning", `blocked by ${row.view.blockedByOpen.join(", ")}`));
 	}
@@ -108,6 +110,7 @@ function teamHint(rows: readonly TeamRow[], cursor: number): string {
 	if (status === "in_progress") parts.push("x done", "r release");
 	if (status === "pending" || status === "in_progress") parts.push("a assign");
 	if (status && status !== "deleted") parts.push("e edit", "d delete");
+	if (rows[cursor]?.view.task.runId) parts.push("o open run");
 	parts.push("n new", "s start", "tab", "esc");
 	return parts.join(" · ");
 }

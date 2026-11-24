@@ -4,53 +4,11 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { visibleWidth } from "@earendil-works/pi-tui";
-import { createSessionView } from "../src/ui/view/session-screen.ts";
-import type { SessionViewDeps } from "../src/ui/view/session-screen.ts";
+import { chat, screen, tagTheme, user } from "./session-fixture.ts";
 
 const ESC = "\x1b";
 const UP = "\x1b[A";
 const DOWN = "\x1b[B";
-
-function plainTheme() {
-	return { fg: (_token: string, text: string) => text, bold: (text: string) => text };
-}
-
-function tagTheme() {
-	return { fg: (token: string, text: string) => `‹${token}›${text}`, bold: (text: string) => text };
-}
-
-function user(text: string) {
-	return { role: "user", content: text };
-}
-
-function chat(count: number) {
-	return Array.from({ length: count }, (_, i) => user(`line ${i + 1}`));
-}
-
-function screen(over: Partial<SessionViewDeps> = {}) {
-	let pings = 0;
-	let closes = 0;
-	const base: SessionViewDeps = {
-		title: "✓ worker · cur5e6",
-		stats: () => "DONE",
-		source: () => [user("Task: map the rust engine")],
-		height: () => 12,
-		theme: plainTheme() as never,
-		empty: "(no transcript saved)",
-		render: () => {
-			pings += 1;
-		},
-		onClose: () => {
-			closes += 1;
-		},
-	};
-	const view = createSessionView({ ...base, ...over });
-	return {
-		view,
-		pings: () => pings,
-		closes: () => closes,
-	};
-}
 
 describe("the session screen", () => {
 	it("fills the screen exactly and never overflows the width", () => {

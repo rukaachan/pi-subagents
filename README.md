@@ -115,12 +115,16 @@ hidden row. Long tool output keeps Pi's 10-line preview and expands with
 `ctrl+o`.
 
 The viewer has three tabs (`1 transcript`, `2 tools`, `3 errors`), `y`
-copies the visible tab, and `e` jumps to the next error. While any leg is
+copies the visible tab, `e` jumps to the next error, and `/` searches
+the transcript with a literal, case-insensitive phrase (`n`/`N` step,
+the header shows `3/12`). While any leg is
 live, `/subagents` opens mission control: queued, running, done and
 failed runs, grouped by run, with `enter` open, `s` steer, `x` stop, `r`
 retry, `c` copy, and `f` finish. `tab` switches to the TEAM tab, where
 `t` toggles team mode, `n` creates, `e` edits, `a` assigns, `c` claims,
-`r` releases, `x` completes, `d` deletes, and `s` starts a team.
+`r` releases, `x` completes, `d` deletes, `s` starts a team, and `o`
+opens the run linked to the selected task. A completed task keeps its
+result (2,000 characters) and the detail pane shows both.
 Pi's own footer shows `⇄` live progress; each settled leg posts one card
 with its report behind `ctrl+o`.
 

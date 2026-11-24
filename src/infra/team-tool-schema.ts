@@ -66,6 +66,9 @@ const PARAMETERS = Type.Object({
 			description: "Member to assign (lead-only reassign); empty unassigns.",
 		}),
 	),
+	result: Type.Optional(
+		Type.String({ description: "What the work returned (complete); trimmed and capped." }),
+	),
 	status: Type.Optional(
 		StringEnum(["pending", "in_progress", "completed"], {
 			description: "Exact status filter (list).",
@@ -106,6 +109,7 @@ type Params = {
 	blocked_by?: string[];
 	write_scopes?: string[];
 	owner?: string;
+	result?: string;
 	status?: "pending" | "in_progress" | "completed";
 	unowned?: boolean;
 	ready?: boolean;

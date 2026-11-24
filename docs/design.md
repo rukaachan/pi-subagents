@@ -43,7 +43,9 @@ pi-subagents/
 │   │   ├── run.ts, background.ts, chain.ts, chain-task.ts, fanout.ts
 │   │   ├── task-store.ts, task-record.ts, ledger.ts, persist.ts
 │   │   ├── task-actions.ts, settle-notice.ts, background-attempt.ts
-│   │   ├── team-store.ts, team-child.ts, team-policy.ts  # board + child join
+│   │   ├── team-store.ts, team-read.ts, team-journal.ts  # board, views, audit
+│   │   ├── team-run.ts     # resolve the run a board task points at
+│   │   ├── team-child.ts, team-policy.ts  # child join
 │   │   ├── team-sweep.ts, team-mail.ts  # settle sweep + messages/wait graph
 │   │   ├── team-launch.ts   # team start: one board task per worker
 │   │   ├── finish.ts       # smallest matched roster, max 4
@@ -53,7 +55,7 @@ pi-subagents/
 │   │   ├── command.ts      #   /subagents + list/new/tasks/trash/team/finish
 │   │   ├── delegate-command.ts #   /delegate
 │   │   ├── menu/workspace.ts, team-actions.ts # mission-control loop + board actions
-│   │   └── view/       #   workspace, team, board, tabs, settled card, session view
+│   │   └── view/       #   workspace, team, board, tabs, session view, search
 │   └── tools/          # the tool definitions the host registers
 │       └── task/       #   schema, pick, validate, execute
 ├── tests/              # one file per concern, all under 250 lines

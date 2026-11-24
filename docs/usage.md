@@ -177,6 +177,12 @@ for the message to finish. A finished run shows the saved history.
 The viewer has three tabs: `1 transcript`, `2 tools`, `3 errors`; `y`
 copies the visible tab, `e` jumps to the next error, and `esc` returns.
 
+Search the transcript with `/`: type a literal phrase (case does not
+matter, regex is not used) and press `enter`. The header shows `3/12`,
+`n` and `N` step through the hits, and a miss says `no match`. While the
+input is open `esc` cancels only the input; `esc` outside search still
+closes the viewer.
+
 `/subagents` opens mission control even when nothing runs. The RUNS tab
 shows queued, running, done and failed runs, grouped by run. Keys:
 `↑↓` move, `enter` open, `s` steer, `x` stop, `r` retry, `c` copy,
@@ -189,7 +195,9 @@ collapsed; the title still counts them, and `e` shows or hides them. The
 Team tab shows one row per board task and keeps every board action:
 `t` team on/off (also shown as `(t)` beside the counts),
 `n` new, `e` edit, `a` assign, `c` claim, `r` release, `x` complete,
-`d` delete, `s` start, `enter` detail. Pi's own footer shows `⇄` live
+`d` delete, `s` start, `enter` detail, `o` opens the run linked to the
+task. The detail pane shows `run <id>` and the task result; a task the
+board did not launch says `no run linked` and does not offer `o`. Pi's own footer shows `⇄` live
 progress, including legs that wait for a slot, and clears when the board
 is idle. The board takes only the lines it needs, and on a wide terminal
 it shows a selected-task or selected-run pane instead of leaving the
@@ -340,7 +348,11 @@ Workflow:
    queue. To wait for a named run: `TeamMessage { action: "wait", to: "worker-2" }`
    (120s cap). A finished member's last run still answers if its row remains.
 5. Teammate completes:
-   `Team { action: "complete", task_id, expected_revision }`.
+   `Team { action: "complete", task_id, expected_revision, result? }`.
+   The result is trimmed and capped at 2,000 characters; the board keeps
+   it and the detail pane shows it. A leg started by
+   `Team { action: "start" }` also links its run, so `o` opens that
+   transcript from the TEAM tab.
 6. Lead reads the board (`/subagents team` or
    `Team { action: "status" }`) and waits for the settle cards, or calls
    `TeamMessage { action: "wait", to }` for a named run.

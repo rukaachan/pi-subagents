@@ -59,12 +59,15 @@ export interface TeamApi {
 	/** False once the run is stopped; late board changes must not land. */
 	canWork?: () => boolean;
 	launch?: (input: TeamLaunchInput, ctx: ExtensionContext) => Promise<TeamLaunchResult>;
-	create: (input: {
-		subject: string;
-		description: string;
-		blockedBy?: string[];
-		writeScopes?: string[];
-	}) => TeamResult;
+	create: (
+		input: {
+			subject: string;
+			description: string;
+			blockedBy?: string[];
+			writeScopes?: string[];
+		},
+		actor?: string,
+	) => TeamResult;
 	update: (update: TeamUpdate, caller: TeamCaller) => TeamResult;
 	list: (filters: TeamFilters) => TeamTaskView[];
 	get: (taskId: string) => TeamTaskView | undefined;

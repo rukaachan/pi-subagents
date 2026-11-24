@@ -30,6 +30,15 @@ export type JournalEvent =
 	| { event: "steer"; id: string; text: string }
 	| { event: "team_message"; from: string; to: string; chars: number; queued?: boolean }
 	| { event: "gate"; tool: string; reason: string }
+	| {
+			event: "team_task";
+			action: string;
+			taskId: string;
+			revision: number;
+			actor: string;
+			ok: boolean;
+			error?: string;
+	  }
 	| { event: "stop"; id: string; family: string; why?: string }
 	| {
 			event: "compact";

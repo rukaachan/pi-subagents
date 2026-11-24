@@ -13,6 +13,8 @@ export const MAX_TEAM_DESCRIPTION = 2_000;
 export const MAX_TEAM_SCOPES = 20;
 export const MAX_TEAM_BLOCKERS = 20;
 export const MAX_TEAM_ERROR = 300;
+export const MAX_TEAM_RESULT = 2_000;
+export const MAX_TEAM_RUN_ID = 128;
 
 export type TeamTaskStatus = "pending" | "in_progress" | "completed" | "deleted";
 
@@ -28,6 +30,10 @@ export interface TeamTask {
 	lastOwner?: string;
 	lastError?: string;
 	returnedAt?: number;
+	/** The run this task's owner leg belongs to, when the board launched it. */
+	runId?: string;
+	/** What the owner reported when it completed the task. */
+	result?: string;
 	createdAt: number;
 	updatedAt: number;
 }
@@ -84,6 +90,8 @@ export interface TeamUpdate {
 	blockedBy?: string[];
 	writeScopes?: string[];
 	owner?: string;
+	/** Sent with complete; what the work returned. */
+	result?: string;
 }
 
 export type TeamOk = { ok: true; task: TeamTask; retriedFrom?: number };

@@ -179,6 +179,12 @@ without a run id and `wait` says why. The journal records
 `team_message` with from/to/chars/queued, never the text. Messages are
 capped at 2,000 characters.
 
+Every board write also journals one `team_task` line:
+`{ action, taskId, revision, actor, ok, error? }`. It never carries the
+subject, description, or result text. A refused compare-and-set records
+the revision the board is on, so a stale `expected_revision` is visible
+without reading the board.
+
 ## MCP in child sessions
 
 MCP is opt-in per subagent: `mcp: true` (or `on`) in the frontmatter, or the

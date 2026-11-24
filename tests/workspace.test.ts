@@ -109,6 +109,7 @@ describe("mission control", () => {
 
 		const keys: [string, WorkspaceAction["kind"]][] = [
 			["\r", "team-detail"],
+			["o", "team-open-run"],
 			["e", "team-edit"],
 			["a", "team-assign"],
 			["c", "team-claim"],
@@ -128,6 +129,40 @@ describe("mission control", () => {
 		const start = view(initial, "team");
 		start.v.handleInput("s");
 		assert.deepEqual(start.actions, [{ kind: "team-start" }]);
+	});
+
+	it("shows the linked run and one result line in the detail pane", () => {
+		const linked = buildTeamRows(
+			[
+				teamView({
+					runId: "task-run-0",
+					status: "completed",
+					result: "changed src/a.ts; tests pass",
+				}),
+			],
+			() => false,
+		);
+		const withRun = renderTeamScreen(linked, {
+			width: 120,
+			height: 12,
+			cursor: 0,
+			theme: plainTheme() as never,
+			enabled: true,
+		}).join("\n");
+		assert.match(withRun, /run task-run-0/);
+		assert.match(withRun, /result: changed src\/a\.ts; tests pass/);
+		assert.match(withRun, /o open run/);
+
+		const plain = buildTeamRows([teamView({ status: "completed" })], () => false);
+		const withoutRun = renderTeamScreen(plain, {
+			width: 120,
+			height: 12,
+			cursor: 0,
+			theme: plainTheme() as never,
+			enabled: true,
+		}).join("\n");
+		assert.match(withoutRun, /no run linked/);
+		assert.doesNotMatch(withoutRun, /o open run/);
 	});
 
 	it("shows the team board in the Team tab with revision and owner", () => {

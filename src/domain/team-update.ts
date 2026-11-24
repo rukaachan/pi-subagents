@@ -6,6 +6,7 @@ import {
 	LEAD_NAME,
 	MAX_TEAM_BLOCKERS,
 	MAX_TEAM_DESCRIPTION,
+	MAX_TEAM_RESULT,
 	MAX_TEAM_SUBJECT,
 	blockedByOpen,
 	normalizeScopes,
@@ -140,6 +141,11 @@ function applyUpdate(
 	}
 	if (update.action === "complete") {
 		if (task.status === "completed") return fail(`Task ${task.id} is already completed.`);
+		if (update.result !== undefined) {
+			const result = update.result.trim();
+			if (!result) return fail("A result cannot be empty when sent.");
+			task.result = result.slice(0, MAX_TEAM_RESULT);
+		}
 		task.status = "completed";
 		bump(task, now);
 		return { ok: true, task };

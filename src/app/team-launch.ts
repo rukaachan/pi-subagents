@@ -17,6 +17,7 @@ import {
 	createTask,
 	disableTeam,
 	enableTeam,
+	linkRun,
 	teamEnabled,
 	teamSummary,
 	updateTask,
@@ -103,6 +104,11 @@ export async function startTeamLaunch(
 	const prompts = created.map((task) => legPrompt(task.taskId, prompt));
 	const started = startLaunch(store, "team", roster, prompt, ctx, {
 		promptFor: (_name, index) => prompts[index] ?? prompt,
+		// A queued leg gets its run id later; link it then, not just at handoff.
+		onLeg: (index, runId) => {
+			const task = created[index];
+			if (task) linkRun(task.taskId, runId);
+		},
 	});
 	if (!started.ok) return undo(started.error);
 	const tasks: TeamLaunchLeg[] = created.map((task, index) => {

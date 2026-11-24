@@ -34,6 +34,22 @@ export function gutterWidth(entries: readonly TranscriptEntry[]): number {
 	return Math.min(LABEL_MAX, widest);
 }
 
+/** Absolute row where an entry starts, counting the wrapped rows before it. */
+export function entryLineStart(
+	cache: LineCache,
+	entries: readonly TranscriptEntry[],
+	index: number,
+	width: number,
+	gutter: number,
+): number {
+	let at = 0;
+	for (let i = 0; i < index; i += 1) {
+		const entry = entries[i];
+		if (entry) at += cache.linesFor(entry, width, gutter).length;
+	}
+	return at;
+}
+
 export function createLineCache(theme: Pick<Theme, "fg">): LineCache {
 	let cacheWidth = 0;
 	let cacheGutter = 0;

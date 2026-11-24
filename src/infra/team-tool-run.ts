@@ -7,43 +7,12 @@ import {
 	MAX_TEAM_TASKS,
 	type TeamCaller,
 	type TeamFilters,
-	type TeamTaskView,
 	type TeamUpdate,
 } from "../domain/team.ts";
 import { UPDATE_ACTIONS, type Params } from "./team-tool-schema.ts";
 import { shutDown } from "./team-tool-gate.ts";
 import type { TeamApi } from "./team-tool-types.ts";
-
-function taskLine(view: TeamTaskView): string {
-	const task = view.task;
-	const owner = task.owner ?? "unowned";
-	const flags = [
-		view.ready ? "ready" : "",
-		view.blockedByOpen.length ? `blocked by ${view.blockedByOpen.join(",")}` : "",
-		view.writeScopeWarnings.length ? view.writeScopeWarnings.join("; ") : "",
-		task.lastError ? `last ${task.lastOwner ?? "a run"}: ${task.lastError.slice(0, 40)}` : "",
-	].filter(Boolean);
-	return `${task.id} [${task.status}] rev ${task.revision} · ${task.subject} · ${owner}${flags.length ? ` · ${flags.join(" · ")}` : ""}`;
-}
-
-function taskJson(view: TeamTaskView): Record<string, unknown> {
-	return {
-		id: view.task.id,
-		revision: view.task.revision,
-		subject: view.task.subject,
-		description: view.task.description,
-		status: view.task.status,
-		...(view.task.owner ? { owner: view.task.owner } : {}),
-		blocked_by: view.task.blockedBy,
-		write_scopes: view.task.writeScopes,
-		...(view.task.lastOwner ? { last_owner: view.task.lastOwner } : {}),
-		...(view.task.lastError ? { last_error: view.task.lastError } : {}),
-		...(view.task.returnedAt ? { returned_at: view.task.returnedAt } : {}),
-		ready: view.ready,
-		blocked_by_open: view.blockedByOpen,
-		write_scope_warnings: view.writeScopeWarnings,
-	};
-}
+import { taskJson, taskLine } from "./team-tool-view.ts";
 
 function fail(message: string, taskId?: string) {
 	return {
@@ -186,12 +155,15 @@ export async function runTeam(
 		const shut = shutDown(api, caller);
 		if (shut) return fail(shut);
 		if (!params.subject) return fail("A task needs a subject.");
-		const result = api.create({
-			subject: params.subject,
-			description: params.description ?? "",
-			...(params.blocked_by ? { blockedBy: params.blocked_by } : {}),
-			...(params.write_scopes ? { writeScopes: params.write_scopes } : {}),
-		});
+		const result = api.create(
+			{
+				subject: params.subject,
+				description: params.description ?? "",
+				...(params.blocked_by ? { blockedBy: params.blocked_by } : {}),
+				...(params.write_scopes ? { writeScopes: params.write_scopes } : {}),
+			},
+			caller.name,
+		);
 		if (!result.ok) return fail(result.error);
 		const view = api.get(result.task.id);
 		if (!view) return fail(`Task ${result.task.id} disappeared.`, result.task.id);
@@ -229,6 +201,7 @@ export async function runTeam(
 		...(params.blocked_by !== undefined ? { blockedBy: params.blocked_by } : {}),
 		...(params.write_scopes !== undefined ? { writeScopes: params.write_scopes } : {}),
 		...(params.owner !== undefined ? { owner: params.owner } : {}),
+		...(params.result !== undefined ? { result: params.result } : {}),
 	};
 	const result = api.update(update, caller);
 	if (!result.ok) return fail(result.error, params.task_id);

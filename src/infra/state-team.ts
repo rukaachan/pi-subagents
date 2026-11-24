@@ -7,6 +7,8 @@ import {
 	MAX_TEAM_DESCRIPTION,
 	MAX_TEAM_ERROR,
 	MAX_TEAM_MEMBERS,
+	MAX_TEAM_RESULT,
+	MAX_TEAM_RUN_ID,
 	MAX_TEAM_SCOPES,
 	MAX_TEAM_SUBJECT,
 	MAX_TEAM_TASKS,
@@ -73,6 +75,8 @@ function decodeTask(value: unknown): TeamTask | undefined {
 	const owner = stringValue(row.owner, 64);
 	const lastOwner = stringValue(row.lastOwner, 64);
 	const lastError = stringValue(row.lastError, MAX_TEAM_ERROR);
+	const runId = stringValue(row.runId, MAX_TEAM_RUN_ID);
+	const result = typeof row.result === "string" ? row.result.slice(0, MAX_TEAM_RESULT) : undefined;
 	const returnedAt =
 		typeof row.returnedAt === "number" && Number.isFinite(row.returnedAt)
 			? row.returnedAt
@@ -88,6 +92,8 @@ function decodeTask(value: unknown): TeamTask | undefined {
 		...(lastOwner ? { lastOwner } : {}),
 		...(lastError ? { lastError } : {}),
 		...(returnedAt !== undefined ? { returnedAt } : {}),
+		...(runId ? { runId } : {}),
+		...(result ? { result } : {}),
 		blockedBy: stringList(row.blockedBy, MAX_TEAM_BLOCKERS, 64),
 		writeScopes: decodeScopes(row.writeScopes),
 		createdAt,

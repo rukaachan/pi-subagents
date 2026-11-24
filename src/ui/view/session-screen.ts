@@ -5,11 +5,12 @@
 import type { Theme } from "@earendil-works/pi-coding-agent";
 import { Key, matchesKey } from "@earendil-works/pi-tui";
 import type { TranscriptEntry } from "../../telemetry/transcript.ts";
-import { createLineCache, gutterWidth } from "./line-cache.ts";
-import { frameLines } from "./session-frame.ts";
+import { createLineCache, entryLineStart, gutterWidth } from "./line-cache.ts";
+import { paintSession } from "./session-paint.ts";
 import { createLiveTail } from "./session-live.ts";
 import { createStreamRow } from "./stream-row.ts";
 import { createTabState, TAB_KEYS } from "./session-tabs.ts";
+import { createFind } from "./session-find.ts";
 import { createTranscriptCursor } from "./transcript-cursor.ts";
 
 const MIN_BODY = 4;
@@ -85,7 +86,7 @@ export function createSessionView(deps: SessionViewDeps): SessionView {
 			follow = false;
 			scrollTo(line, widthNow());
 		},
-		lineOf: (index) => lineStart(index, widthNow()),
+		lineOf: (index) => entryLineStart(cache, entries, index, widthNow(), gutter),
 	});
 
 	refresh(deps.source());
@@ -110,6 +111,10 @@ export function createSessionView(deps: SessionViewDeps): SessionView {
 		render: deps.render,
 		closed: () => closed,
 	});
+
+	const find = createFind();
+
+	const linesNow = (width: number): string[] => build(width).concat(stream.linesAt(width));
 
 	const live = createLiveTail({
 		source: deps.source,
@@ -139,15 +144,6 @@ export function createSessionView(deps: SessionViewDeps): SessionView {
 		deps.onClose();
 	}
 
-	function lineStart(index: number, width: number): number {
-		let at = 0;
-		for (let i = 0; i < index; i += 1) {
-			const entry = entries[i];
-			if (entry) at += cache.linesFor(entry, width, gutter).length;
-		}
-		return at;
-	}
-
 	function scrollTo(next: number, width: number): void {
 		const limit = Math.max(0, build(width).length + stream.linesAt(width).length - bodyHeight());
 		top = Math.max(0, Math.min(next, limit));
@@ -159,35 +155,48 @@ export function createSessionView(deps: SessionViewDeps): SessionView {
 	return {
 		render(width: number): string[] {
 			lastWidth = width;
-			const rows = bodyHeight();
-			const base = build(width);
-			const streamLines = stream.linesAt(width);
-			const total = base.length + streamLines.length;
-			if (follow) top = Math.max(0, total - rows);
-			else top = Math.max(0, Math.min(top, total - rows));
-			const slice = (from: number, to: number): string[] => {
-				if (to <= base.length) return base.slice(from, to);
-				if (from >= base.length) return streamLines.slice(from - base.length, to - base.length);
-				return [...base.slice(from), ...streamLines.slice(0, to - base.length)];
-			};
-			const fresh = !follow && pendingNew > 0 ? ` · ↓${pendingNew} new` : "";
-			return frameLines({
+			const painted = paintSession({
 				width,
-				rows,
+				rows: bodyHeight(),
 				title: deps.title,
 				stats: deps.stats(),
-				total,
+				base: build(width),
+				stream: stream.linesAt(width),
+				follow,
 				top,
-				shown: slice(top, top + rows),
+				pendingNew,
 				empty: deps.empty,
-				fresh,
 				theme: deps.theme,
 				tabs: tabs.bar(),
 				note: tabs.note(),
+				find: find.view().label,
 			});
+			top = painted.top;
+			return painted.lines;
 		},
 		handleInput(data: string): void {
 			const width = widthNow();
+			if (find.editing) {
+				if (matchesKey(data, Key.escape)) find.cancel();
+				else if (matchesKey(data, Key.enter)) {
+					const line = find.commit(linesNow(width));
+					if (line !== undefined) return scrollTo(line, width);
+				} else if (matchesKey(data, Key.backspace)) find.backspace();
+				else if (data.length === 1 && data >= " ") find.type(data);
+				deps.render();
+				return;
+			}
+			if (data === "/") {
+				find.begin();
+				deps.render();
+				return;
+			}
+			if (data === "n" || data === "N") {
+				const line = find.step(data === "n" ? 1 : -1, linesNow(width));
+				if (line !== undefined) return scrollTo(line, width);
+				deps.render();
+				return;
+			}
 			if (matchesKey(data, Key.escape) || matchesKey(data, Key.ctrl("c"))) {
 				close();
 				return;

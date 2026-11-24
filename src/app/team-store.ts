@@ -7,7 +7,6 @@ import type { TeamApi } from "../infra/team-tool-types.ts";
 import {
 	LEAD_NAME,
 	MAX_TEAM_MEMBERS,
-	MAX_TEAM_TASKS,
 	createTeamTask,
 	liveTasks,
 	newTeam,
@@ -17,12 +16,12 @@ import {
 	type TeamMember,
 	type TeamFilters,
 	type TeamResult,
-	type TeamTask,
 	type TeamTaskView,
 	type TeamUpdate,
 } from "../domain/team.ts";
-import { scopeConflicts } from "../domain/team-scope.ts";
 import { updateTeamTask } from "../domain/team-update.ts";
+import { resolveTaskOn, summarizeBoard, taskListOn } from "./team-read.ts";
+import { journalTeamTask } from "./team-journal.ts";
 
 interface TeamState {
 	enabled: boolean;
@@ -139,13 +138,24 @@ export function teamChanged(): void {
 	notify();
 }
 
-export function createTask(input: {
-	subject: string;
-	description: string;
-	blockedBy?: string[];
-	writeScopes?: string[];
-}): TeamResult {
+export function createTask(
+	input: {
+		subject: string;
+		description: string;
+		blockedBy?: string[];
+		writeScopes?: string[];
+	},
+	actor = "lead",
+): TeamResult {
 	const result = createTeamTask(current().board, input);
+	journalTeamTask({
+		action: "create",
+		taskId: result.ok ? result.task.id : "",
+		revision: result.ok ? result.task.revision : 0,
+		actor,
+		ok: result.ok,
+		...(result.ok ? {} : { error: result.error }),
+	});
 	if (result.ok) notify();
 	return result;
 }
@@ -153,24 +163,20 @@ export function createTask(input: {
 export function updateTask(update: TeamUpdate, caller: TeamCaller): TeamResult {
 	const team = current();
 	const result = updateTeamTask(team.board, update, caller, team.members);
+	journalTeamTask({
+		action: update.action,
+		taskId: update.taskId,
+		revision: getTask(update.taskId)?.task.revision ?? update.expectedRevision,
+		actor: caller.name,
+		ok: result.ok,
+		...(result.ok ? {} : { error: result.error }),
+	});
 	if (result.ok) notify();
 	return result;
 }
 
 export function taskList(filters: TeamFilters = {}): TeamTaskView[] {
-	const board = current().board;
-	const rows = liveTasks(board).map((task) => teamView(task, board));
-	const filtered = rows.filter((row) => {
-		const task: TeamTask = row.task;
-		if (filters.status && task.status !== filters.status) return false;
-		if (filters.owner !== undefined && task.owner !== filters.owner) return false;
-		if (filters.unowned !== undefined && (task.owner === undefined) !== filters.unowned)
-			return false;
-		if (filters.ready !== undefined && row.ready !== filters.ready) return false;
-		return true;
-	});
-	const limit = Math.max(1, Math.min(MAX_TEAM_TASKS, filters.limit ?? MAX_TEAM_TASKS));
-	return filtered.slice(0, limit);
+	return taskListOn(current().board, filters);
 }
 
 export function getTask(taskId: string): TeamTaskView | undefined {
@@ -180,34 +186,22 @@ export function getTask(taskId: string): TeamTaskView | undefined {
 }
 
 export function resolveTask(taskId: string) {
-	const board = current().board;
-	const task = board.tasks.find((row) => row.id === taskId);
-	if (!task || task.status === "deleted") return undefined;
-	const conflicts = scopeConflicts(task, board).flatMap((hit) => {
-		const blocker = board.tasks.find((row) => row.id === hit.id);
-		return blocker
-			? [
-					{
-						...hit,
-						scope: hit.reserved ?? hit.scope,
-						revision: blocker.revision,
-						status: blocker.status,
-					},
-				]
-			: [];
-	});
-	return { task: teamView(task, board), conflicts };
+	return resolveTaskOn(current().board, taskId);
 }
 
 export function teamSummary(): { teamId: string; enabled: boolean; open: number; done: number } {
-	const board = current().board;
-	const rows = liveTasks(board);
-	return {
-		teamId: board.teamId,
-		enabled: current().enabled,
-		open: rows.filter((task) => task.status !== "completed").length,
-		done: rows.filter((task) => task.status === "completed").length,
-	};
+	const team = current();
+	return summarizeBoard(team.board, team.enabled);
+}
+
+/** Attach the run that owns a task, without touching its revision. */
+export function linkRun(taskId: string, runId: string): void {
+	const task = current().board.tasks.find((row) => row.id === taskId);
+	if (!task || task.status === "deleted") return;
+	const clean = runId.trim().slice(0, 128);
+	if (!clean || task.runId === clean) return;
+	task.runId = clean;
+	notify();
 }
 
 export function teamSnapshot(): PersistedTeam | undefined {

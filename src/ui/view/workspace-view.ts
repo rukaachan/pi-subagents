@@ -155,6 +155,7 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 		if (key === "s") return emit({ kind: "team-start" });
 		if (!taskId) return;
 		if (matchesKey(key, Key.enter)) return emit({ kind: "team-detail", taskId });
+		if (key === "o") return emit({ kind: "team-open-run", taskId });
 		if (key === "e") return emit({ kind: "team-edit", taskId });
 		if (key === "a") return emit({ kind: "team-assign", taskId });
 		if (key === "c") return emit({ kind: "team-claim", taskId });

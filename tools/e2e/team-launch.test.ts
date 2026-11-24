@@ -18,7 +18,14 @@ const sleep = (ms: number) =>
 interface SavedState {
 	team?: {
 		enabled?: boolean;
-		tasks?: Array<{ id: string; status: string; subject: string; writeScopes?: string[] }>;
+		tasks?: Array<{
+			id: string;
+			status: string;
+			subject: string;
+			writeScopes?: string[];
+			runId?: string;
+			result?: string;
+		}>;
 	};
 }
 
@@ -77,6 +84,8 @@ describe("e2e: team start", () => {
 				assert.equal(state.team?.tasks?.length, STARTERS.length);
 				for (const task of state.team?.tasks ?? []) {
 					assert.match(task.subject, /^\w[\w-]*: E2E_LAUNCH$/);
+					assert.match(String(task.runId), /^task-[a-z0-9]+-\d+$/, "the board links its leg run");
+					assert.match(String(task.result), /finished task-\d+/, "the board keeps the result");
 				}
 				assert.ok(
 					provider.requests.some((req) => JSON.stringify(req.body).includes("Board task task-")),

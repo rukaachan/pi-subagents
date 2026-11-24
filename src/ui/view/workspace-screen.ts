@@ -24,6 +24,7 @@ export type WorkspaceAction =
 	| { kind: "team-complete"; taskId: string }
 	| { kind: "team-delete"; taskId: string }
 	| { kind: "team-detail"; taskId: string }
+	| { kind: "team-open-run"; taskId: string }
 	| { kind: "team-start" }
 	| { kind: "finish" }
 	| { kind: "close" };

@@ -116,7 +116,11 @@ export function startLaunch(
 	names: string[],
 	prompt: string,
 	ctx: ExtensionContext,
-	options: { promptFor?: (name: string, index: number) => string } = {},
+	options: {
+		promptFor?: (name: string, index: number) => string;
+		/** Called when a leg gets its run id, including legs that waited in the queue. */
+		onLeg?: (index: number, taskId: string) => void;
+	} = {},
 ): LaunchStart {
 	const disk = withTemps(discoverSubagents(ctx.cwd));
 	const available = disk.subagents.map((sub) => sub.name);
@@ -171,7 +175,8 @@ export function startLaunch(
 				}
 				// Claim the slot before the row lands, so a queue count taken
 				// inside store.add never sees the leg twice.
-				const legPrompt = options.promptFor?.(leg.name, next - 1) ?? prompt;
+				const index = next - 1;
+				const legPrompt = options.promptFor?.(leg.name, index) ?? prompt;
 				leg.status = "running";
 				leg.startedAt = Date.now();
 				try {
@@ -184,6 +189,7 @@ export function startLaunch(
 						ctx,
 						{ kind: "parallel", runId },
 					);
+					options.onLeg?.(index, leg.taskId);
 				} catch (err) {
 					leg.status = "error";
 					leg.error = err instanceof Error ? err.message : String(err);
