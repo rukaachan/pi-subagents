@@ -327,9 +327,10 @@ What "stop" means here:
 - **No wind-down, no waiting.** A stop request books the stop, calls
   `abort()`, and calls `dispose()`. Measured on a live background run
   (`tools/stop-probe.mts`): **3 ms** from request to "nothing live".
-- **The row is removed, not finished.** The board and the project
+- **A stopped row is removed, not finished.** The board and the project
   state file stop claiming a run that no
-  longer exists. A removed id is remembered (last 50), so
+  longer exists. A stopped chain is the exception: it keeps its row as
+  `error` so the cut step and the `pending` steps after it stay visible. A removed id is remembered (last 50), so
   `TaskOutput` answers `Task "…" was stopped (Esc, reload, or quit) and
 its row was removed.` instead of pretending it expired.
 - **The ledger books a `stopped` run**, not a failure. `SpawnCounts`

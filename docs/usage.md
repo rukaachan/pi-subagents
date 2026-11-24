@@ -495,11 +495,14 @@ records `retry` with `delayMs` and `reason`. A third failure ends the task
 `TaskControl` acts on a live or errored task: `action: "steer"` with
 `text` reaches the child before its next request, `action: "stop"` stops
 it, and `action: "retry"` relaunches an errored background task with the
-same prompt and a new `task_id`.
+same prompt and a new `task_id`. Stopping a chain cuts the running step,
+keeps the chain row as `error`, and leaves every later step `pending`.
 
 Resume: pass `resume: task_id` plus a new `prompt` with the same
 `subagent_type`. The follow-up run keeps prior history. A done task
-resumes after a Pi restart: its row and history persist on disk. The
+resumes after a Pi restart: its row and history persist on disk. One
+resume makes one follow-up row; the original keeps its id. A stopped
+run has no row left, so start a new task instead of resuming it. The
 child gets a bounded, readable transcript of the old run (newest entries
 kept, older ones counted), never a raw history dump.
 
@@ -667,7 +670,8 @@ Task(subagent_type: "explorer", description: "ship login",
 The `subagent` alias accepts `chain` too.
 Each step gets the prior step's report as context (cut at 8000 chars).
 One chain = one `task_id`, one live slot, one row. Steps stop at the
-first error; later steps stay `pending`. Poll a live chain with
+first error; later steps stay `pending`. Stopping a live chain does the
+same: the cut step is `error` and the rest stay `pending`. Poll a live chain with
 `TaskOutput` to see the step strip: `explorer ✓ → worker … → reviewer ·`.
 Chains restart as a new Task — steps do not resume alone.
 

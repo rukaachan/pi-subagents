@@ -22,9 +22,10 @@ import { newTaskId } from "./task-record.ts";
 import type { ChainStep, TaskRecord } from "./task-record.ts";
 import { TaskStore } from "./task-store.ts";
 import type { SubagentRunResult } from "../domain/run-result.ts";
-import { liveStop, type LiveStop } from "./live-runs.ts";
+import { liveStop, type LiveStop, type StoppableSession } from "./live-runs.ts";
 import { removedIds } from "./removed-ids.ts";
 import { RunStopped } from "../domain/run-stop.ts";
+import { aggregateResult } from "./chain-result.ts";
 
 export interface ChainSpec {
 	steps: string[];
@@ -87,6 +88,16 @@ export function runChain(
 	ledger.begin(spec.steps[0] ?? "chain");
 	markKind(spec.steps[0] ?? "chain", "chain");
 
+	// The chain row needs its own handle: step handles are keyed by step id,
+	// so a stop aimed at the chain would otherwise find no live child.
+	const holder: StoppableSession = { abort() {}, dispose() {} };
+	let stopCurrent: ((why: string) => void) | null = null;
+	let chainStopWhy = "";
+	const chainLive = liveStop(taskId, `chain ${spec.steps.length}`, holder, (why) => {
+		chainStopWhy = why;
+		stopCurrent?.(why);
+	});
+
 	const done = (async () => {
 		let priorReport: string | undefined;
 		const seen: SubagentRunResult[] = [];
@@ -132,6 +143,11 @@ export function runChain(
 						stop({ status: "interrupted", error: `interrupted by ${why}` });
 					},
 				);
+				holder.abort = () => child.session.abort();
+				stopCurrent = (why) => {
+					gate.open = false;
+					stop({ status: "interrupted", error: `interrupted by ${why}` });
+				};
 				try {
 					const onAbort = () => live.stop("Esc");
 					attachSignal?.addEventListener("abort", onAbort, { once: true });
@@ -140,6 +156,7 @@ export function runChain(
 					} finally {
 						attachSignal?.removeEventListener("abort", onAbort);
 					}
+					if (chainStopWhy) throw new Error(`interrupted by ${chainStopWhy}`);
 					if (live.wasStopped()) throw new RunStopped(live.why());
 					const failure = providerFailure(child.session);
 					if (failure) throw new Error(failure);
@@ -165,11 +182,9 @@ export function runChain(
 					});
 				} catch (err) {
 					gate.open = false;
-					const why = live.wasStopped()
-						? "stopped"
-						: err instanceof Error
-							? err.message
-							: String(err);
+					const why =
+						chainStopWhy ||
+						(live.wasStopped() ? "stopped" : err instanceof Error ? err.message : String(err));
 					sweepMemberTasks(runId, false, Date.now(), why);
 					if (live.wasStopped()) {
 						live.unregister();
@@ -181,6 +196,8 @@ export function runChain(
 					gate.open = false;
 					unbindMail();
 					live.unregister();
+					stopCurrent = null;
+					holder.abort = () => {};
 					stop();
 					child.session.dispose();
 					if (live.wasStopped()) sweepMemberTasks(runId, false, Date.now(), "stopped");
@@ -210,6 +227,7 @@ export function runChain(
 			rec.endedAt = Date.now();
 			ledger.finish(rec.subagentName, "error");
 		} finally {
+			chainLive.unregister();
 			store.touch();
 		}
 	})();
@@ -217,27 +235,4 @@ export function runChain(
 	return { taskId, done };
 }
 
-export function aggregateResult(steps: SubagentRunResult[], rec: TaskRecord): SubagentRunResult {
-	const usage = steps.reduce<SubagentRunResult["usage"]>(
-		(acc, s) => ({
-			input: acc.input + s.usage.input,
-			output: acc.output + s.usage.output,
-			cacheRead: acc.cacheRead + s.usage.cacheRead,
-			cacheWrite: acc.cacheWrite + s.usage.cacheWrite,
-			cost: acc.cost + s.usage.cost,
-			turns: acc.turns + s.usage.turns,
-		}),
-		{ input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0, turns: 0 },
-	);
-	const notes = steps.flatMap((s) => s.notes);
-	const model = steps[steps.length - 1]?.model;
-	const sections = (rec.steps ?? [])
-		.filter((s) => s.status === "done" && s.report)
-		.map((s) => `### ${s.idx + 1}. ${s.subagentName}\n${s.report}`);
-	return {
-		text: sections.join("\n\n") || "(chain produced no report)",
-		usage,
-		model,
-		notes,
-	};
-}
+export { aggregateResult } from "./chain-result.ts";

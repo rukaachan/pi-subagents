@@ -548,6 +548,86 @@ function answerFor(
 	}
 	if (all.includes("E2E_STEER_TEXT") && toolResult(messages)) return { text: "STEER_APPLIED" };
 
+	if (hasToken(prompt, "E2E_PARTIAL")) {
+		if (!toolResult(messages))
+			return {
+				tool: {
+					name: "Task",
+					args: {
+						description: "e2e partial",
+						prompt: "E2E_PARTIAL_LEG",
+						parallel: ["e2e-a", "e2e-b"],
+					},
+				},
+			};
+		return { text: "PARTIAL_RAN" };
+	}
+	if (hasToken(prompt, "E2E_PARTIAL_LEG")) {
+		if (prompt.startsWith("E2E_A:")) return { finish: "content_filter" };
+		return { text: "PARTIAL_OK", delayMs: 300 };
+	}
+
+	if (hasToken(prompt, "E2E_RESUME")) {
+		const calls = toolCalls(messages);
+		const resumed = calls.find(
+			(call) => call.name === "Task" && typeof call.args.resume === "string",
+		);
+		if (resumed) return { text: "RESUME_DONE" };
+		const task = calls.find((call) => call.name === "Task");
+		if (!task)
+			return {
+				tool: {
+					name: "Task",
+					args: {
+						description: "e2e resume",
+						subagent_type: "e2e-a",
+						prompt: "E2E_RESUME_CHILD",
+						run_in_background: true,
+					},
+				},
+			};
+		return {
+			tool: {
+				name: "Task",
+				args: {
+					description: "e2e resume follow",
+					subagent_type: "e2e-a",
+					prompt: "E2E_RESUME_CHILD",
+					resume: taskId(all),
+				},
+			},
+			delayMs: 1200,
+		};
+	}
+	if (hasToken(prompt, "E2E_RESUME_CHILD")) return { text: "RESUME_CHILD_DONE", delayMs: 300 };
+
+	if (hasToken(prompt, "E2E_CHAIN_STOP")) {
+		const calls = toolCalls(messages);
+		const task = calls.find((call) => call.name === "Task" && Array.isArray(call.args.chain));
+		if (!task)
+			return {
+				tool: {
+					name: "Task",
+					args: {
+						description: "e2e chain stop",
+						prompt: "E2E_CHAIN_STOP_STEP",
+						chain: ["e2e-a", "e2e-b"],
+						run_in_background: true,
+					},
+				},
+			};
+		const stopped = calls.find(
+			(call) => call.name === "TaskControl" && call.args.action === "stop",
+		);
+		if (!stopped)
+			return {
+				tool: { name: "TaskControl", args: { action: "stop", task_id: taskId(all) } },
+				delayMs: 2000,
+			};
+		return { text: "CHAIN_STOPPED" };
+	}
+	if (hasToken(prompt, "E2E_CHAIN_STOP_STEP")) return { text: "STEP1", delayMs: 4000 };
+
 	if (toolResult(messages)) {
 		const call = lastToolCall(messages);
 		if (call?.name === "TaskOutput") return { text: "LABELED" };
