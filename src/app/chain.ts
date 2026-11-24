@@ -13,6 +13,7 @@ import {
 	sumUsage,
 } from "../domain/run-result.ts";
 import { startSubagentSession } from "../infra/host-session.ts";
+import { withGateJournal } from "./child-gate-journal.ts";
 import { teamChildExtras } from "./team-child.ts";
 import { bindTeamMember } from "./team-mail.ts";
 import { sweepMemberTasks } from "./team-sweep.ts";
@@ -101,7 +102,7 @@ export function runChain(
 				const runId = `${taskId}-${step.idx}`;
 				const gate = { open: true };
 				const team = teamChildExtras(sub.name, runId, gate);
-				const child = await startSubagentSession(sub, cwd, ctx, team);
+				const child = await startSubagentSession(sub, cwd, ctx, withGateJournal(team));
 				const unbindMail = team
 					? bindTeamMember(
 							team.member,

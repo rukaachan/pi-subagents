@@ -22,6 +22,8 @@ export const EDITABLE_FIELDS = [
 	"promptPrefix",
 	"codemode",
 	"mcp",
+	"gates",
+	"context",
 ] as const;
 export type EditableField = (typeof EDITABLE_FIELDS)[number];
 
@@ -35,6 +37,8 @@ export const FIELD_CHOICES: Record<EditableField, string[]> = {
 	promptPrefix: [],
 	codemode: ["(default: only)", "off", "on", "only"],
 	mcp: ["(default: off)", "on", "off"],
+	gates: ["(default: off)", "on", "off"],
+	context: ["(default: off)", "on", "off"],
 };
 
 export const BUDGET_EDIT_FIELDS = [
@@ -103,7 +107,7 @@ export function validateField(field: EditableField, value: string): string | nul
 		if (["off", "on", "only", "false", "true"].includes(v)) return null;
 		return "Use off, on, only, or (default: only).";
 	}
-	if (field === "mcp") {
+	if (field === "mcp" || field === "gates" || field === "context") {
 		if (v === "" || v === "(default: off)" || ["off", "on", "false", "true"].includes(v))
 			return null;
 		return "Use on, off, or (default: off).";
@@ -128,9 +132,9 @@ export function editSubagentField(
 		v === "all tools" ||
 		v === "(default: only)" ||
 		v === "(default: off)";
-	if (field === "mcp") {
-		if (v === "on" || v === "true") frontmatter.mcp = true;
-		else delete frontmatter.mcp;
+	if (field === "mcp" || field === "gates" || field === "context") {
+		if (v === "on" || v === "true") frontmatter[field] = true;
+		else delete frontmatter[field];
 	} else if (
 		clearWord &&
 		(field === "thinkingLevel" ||

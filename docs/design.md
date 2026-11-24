@@ -34,6 +34,8 @@ pi-subagents/
 │   │   ├── team-tool.ts, team-tool-types.ts, team-tool-run.ts
 │   │   ├── team-tool-schema.ts, team-render.ts
 │   │   ├── team-message-tool.ts, team-message-schema.ts
+│   │   ├── child-gate.ts    # block a child's destructive tool calls
+│   │   ├── child-context.ts  # one-line cost of loaded AGENTS.md
 │   │   └── host-session.ts, host-shim.ts, host-usage.ts
 │   ├── telemetry/      # sinks: journal, progress, activity, per-run tracking
 │   ├── app/            # orchestration: drivers, store, ledger, guards

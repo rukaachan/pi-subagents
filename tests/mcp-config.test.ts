@@ -66,6 +66,48 @@ describe("mcp frontmatter", () => {
 	});
 });
 
+describe("child trust state and editor", () => {
+	it("decodes gates and context on a saved row", () => {
+		const parsed = decodeState(
+			JSON.stringify({
+				version: STATE_VERSION,
+				savedAt: 1,
+				tasks: [rec({ taskId: "task-gates", subagent: { ...sub(), gates: true, context: true } })],
+			}),
+		);
+		assert.equal(parsed?.tasks[0]?.subagent.gates, true);
+		assert.equal(parsed?.tasks[0]?.subagent.context, true);
+	});
+
+	it("offers both fields in the editor and validates them", () => {
+		for (const field of ["gates", "context"] as const) {
+			assert.ok(EDITABLE_FIELDS.includes(field));
+			assert.ok(FIELD_CHOICES[field].includes("on"));
+			assert.equal(validateField(field, "on"), null);
+			assert.equal(validateField(field, "maybe"), "Use on, off, or (default: off).");
+		}
+	});
+
+	it("writes gates on disk and reads it back", () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-subagents-gates-"));
+		try {
+			const file = path.join(dir, "gate-agent.md");
+			fs.writeFileSync(file, FRONT("name: a\nautonomy: high"));
+			assert.equal(editSubagentField(file, "gates", "on"), null);
+			const cfg = loadSubagentFromContent(fs.readFileSync(file, "utf8"), file, "user");
+			assert.ok(typeof cfg !== "string");
+			assert.equal(cfg.gates, true);
+			assert.equal(currentFieldValue(cfg, "gates"), "on");
+			assert.equal(editSubagentField(file, "gates", "off"), null);
+			const off = loadSubagentFromContent(fs.readFileSync(file, "utf8"), file, "user");
+			assert.ok(typeof off !== "string");
+			assert.equal(off.gates, undefined);
+		} finally {
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
+});
+
 describe("mcp state and editor", () => {
 	it("decodes mcp on a saved row", () => {
 		const parsed = decodeState(

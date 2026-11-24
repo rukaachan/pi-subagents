@@ -124,6 +124,8 @@ function subagent(value: unknown, fallbackName: string): SubagentConfig | undefi
 		...(tools && tools.length > 0 ? { tools } : {}),
 		...(paths && paths.length > 0 ? { paths } : {}),
 		...(raw.mcp === true ? { mcp: true } : {}),
+		...(raw.gates === true ? { gates: true } : {}),
+		...(raw.context === true ? { context: true } : {}),
 		...(budget
 			? {
 					budget: {

@@ -24,6 +24,7 @@ import {
 	sumUsage,
 } from "../domain/run-result.ts";
 import { startSubagentSession } from "../infra/host-session.ts";
+import { withGateJournal } from "./child-gate-journal.ts";
 import { teamChildExtras } from "./team-child.ts";
 import { bindTeamMember } from "./team-mail.ts";
 import { sweepMemberTasks } from "./team-sweep.ts";
@@ -48,7 +49,7 @@ export async function runSubagent(
 	const teamKey = attach?.taskId;
 	const gate = { open: true };
 	const team = teamChildExtras(sub.name, teamKey, gate);
-	const child = await startSubagentSession(sub, cwd, ctx, team);
+	const child = await startSubagentSession(sub, cwd, ctx, withGateJournal(team));
 	const unbindMail = team
 		? bindTeamMember(
 				team.member,

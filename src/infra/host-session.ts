@@ -18,6 +18,9 @@ import {
 	createWriteToolDefinition,
 	getAgentDir,
 } from "@earendil-works/pi-coding-agent";
+import { createChildGateExtension } from "./child-gate.ts";
+import type { GateBlock } from "./child-gate.ts";
+import { contextNote } from "./child-context.ts";
 import { guardPaths } from "./tool-guard.ts";
 import { clampToolsForAutonomy } from "../domain/subagent/config.ts";
 import type { SubagentConfig } from "../domain/subagent/config.ts";
@@ -38,6 +41,8 @@ export interface ChildExtras {
 	activate?: string[];
 	/** Prepended once to the first task prompt. */
 	promptPrefix?: string;
+	/** Receives gate blocks; may be undefined, and then nothing is recorded. */
+	onGateBlock?: (block: GateBlock) => void;
 }
 
 /** Keep an explicit tool list, or add one tool to Pi's default selection. */
@@ -100,6 +105,7 @@ export async function startSubagentSession(
 	let sessionTools = tools;
 	let codemodeFactories: unknown[] | undefined;
 	let mcpFactories: unknown[] | undefined;
+	let gateFactories: unknown[] | undefined;
 	const settingsManager = SettingsManager.create(cwd, getAgentDir());
 	// A subagent with no tools line gets the host's own default
 	// selection, so granting codemode does not narrow it.
@@ -134,7 +140,13 @@ export async function startSubagentSession(
 		}
 	}
 
-	const factories = [...(codemodeFactories ?? []), ...(mcpFactories ?? [])];
+	if (sub.gates) gateFactories = [createChildGateExtension({ record: extras?.onGateBlock })];
+
+	const factories = [
+		...(codemodeFactories ?? []),
+		...(mcpFactories ?? []),
+		...(gateFactories ?? []),
+	];
 	const loader = new DefaultResourceLoader({
 		cwd,
 		agentDir: getAgentDir(),
@@ -142,7 +154,7 @@ export async function startSubagentSession(
 		noExtensions: true,
 		noSkills: true,
 		noPromptTemplates: true,
-		noContextFiles: true,
+		noContextFiles: !sub.context,
 		systemPrompt: plan ? withScriptRoute(sub.systemPrompt) : sub.systemPrompt,
 		...(factories.length > 0
 			? {
@@ -153,6 +165,9 @@ export async function startSubagentSession(
 			: {}),
 	});
 	await loader.reload();
+	if (sub.context) {
+		notes.push(contextNote(loader.getAgentsFiles().agentsFiles, cwd));
+	}
 
 	const fenced = sub.paths && sub.paths.length > 0;
 	const builtTools = [
@@ -185,11 +200,11 @@ export async function startSubagentSession(
 		resourceLoader: loader,
 		sessionManager: SessionManager.inMemory(),
 	});
-	if (mcpFactories) {
+	if (mcpFactories || gateFactories) {
 		try {
 			await session.bindExtensions({});
 		} catch (err) {
-			notes.push(`MCP failed to bind: ${err instanceof Error ? err.message : String(err)}`);
+			notes.push(`extras failed to bind: ${err instanceof Error ? err.message : String(err)}`);
 		}
 	}
 	return {

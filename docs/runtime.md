@@ -202,13 +202,46 @@ Costs and limits:
   their arguments.
 - Startup problems and connection errors go to `mcp.log` in the agent
   directory. A failed call rejects the script with the server's message.
-- Host permission gates still do not run in child sessions. `mcp: true` is
-  only for servers you already trust in the parent.
+- Pi's host confirm hooks still do not run in child sessions. `mcp: true` is
+  only for servers you already trust; `gates: on` adds the package deny list
+  described below.
 
 The fake-provider e2e starts a real stdio MCP server
 (`tests/fixtures/mcp-echo-server.mjs`), a real child session, and the real
 codemode sandbox. It answers `MCP_PROVEN` only when the echoed `mcp-ok`
 comes back through the tool result; otherwise it reports `MCP_MISSING`.
+
+## Gates and context in child sessions
+
+Both are opt-in per subagent and default off, so existing agents keep their
+behavior.
+
+`gates: on` adds one package-owned extension through the same
+`extensionFactories` seam as MCP, bound by the same
+`session.bindExtensions({})` call. A child binds no UI, so the gate **blocks
+and never prompts**: `ctx.hasUI` is false and a confirm would hang the leg.
+
+- Shell calls are checked against a fixed deny list: recursive `rm`, `sudo`,
+  `mkfs`, `dd of=/dev/…`, `shutdown`/`reboot`, `chmod`/`chown … 777`,
+  `git push --force`, `git reset --hard`, `git clean -fdx`, and writes to
+  `/dev/sd*`.
+- Every other tool is checked through `pi.getAllTools()`: a tool that declares
+  `annotations.destructiveHint` is blocked, which covers destructive MCP tools.
+- A call made from inside a codemode script reaches the same `tool_call`
+  handler, so the dominant script path is covered. `tools/e2e/gate.test.ts`
+  proves both the direct call and the nested one with the fake provider.
+- A block writes `{ event: "gate", tool, reason }` to the journal and returns
+  `gates: <what>. Narrow the task or turn gates off.`
+- Below `medium` the field is refused: a read-only child has nothing to gate.
+  It is allowed with `paths`.
+
+`context: on` clears `noContextFiles` for that child, so Pi loads AGENTS.md
+from the agent directory, the cwd, and its parents. After `loader.reload()`
+the run reads `loader.getAgentsFiles()` and pushes one note — for example
+`context: 1 file, 48 chars (AGENTS.md)` — so the text cost is visible before
+the first turn. `tools/e2e/context.test.ts` writes a unique token into the
+agent directory's AGENTS.md and asserts the token reaches the opting-in
+child's system prompt and never the other child's.
 
 ## Compaction
 

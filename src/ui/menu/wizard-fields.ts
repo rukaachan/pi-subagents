@@ -36,6 +36,10 @@ export function currentFieldValue(sub: SubagentConfig, field: EditableField): st
 						: "only";
 		case "mcp":
 			return sub.mcp ? "on" : "(default: off)";
+		case "gates":
+			return sub.gates ? "on" : "(default: off)";
+		case "context":
+			return sub.context ? "on" : "(default: off)";
 	}
 }
 

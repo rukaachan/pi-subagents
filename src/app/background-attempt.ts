@@ -19,6 +19,7 @@ import { runReport } from "../domain/run-report.ts";
 import { checkReturn } from "../domain/subagent/contract.ts";
 import { journalWrite } from "../telemetry/journal.ts";
 import { startSubagentSession } from "../infra/host-session.ts";
+import { withGateJournal } from "./child-gate-journal.ts";
 import { teamChildExtras } from "./team-child.ts";
 import { sweepMemberTasks } from "./team-sweep.ts";
 import { bindTeamMember } from "./team-mail.ts";
@@ -56,7 +57,7 @@ export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptRe
 	const { rec, sub, prompt, cwd, ctx, kind, contract, live, holder, setStopHandle } = deps;
 	const gate = { open: true };
 	const team = teamChildExtras(sub.name, rec.taskId, gate);
-	const child = await startSubagentSession(sub, cwd, ctx, team);
+	const child = await startSubagentSession(sub, cwd, ctx, withGateJournal(team));
 	const unbindMail = team
 		? bindTeamMember(
 				team.member,

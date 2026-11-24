@@ -29,6 +29,7 @@ export type JournalEvent =
 	| { event: "state_error"; message: string }
 	| { event: "steer"; id: string; text: string }
 	| { event: "team_message"; from: string; to: string; chars: number; queued?: boolean }
+	| { event: "gate"; tool: string; reason: string }
 	| { event: "stop"; id: string; family: string; why?: string }
 	| {
 			event: "compact";

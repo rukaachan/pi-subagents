@@ -25,6 +25,23 @@ export interface FakeProvider {
 export interface FakeProviderOptions {
 	/** Delay every answer, to keep legs in the live queue. */
 	delayMs?: number;
+	/** The command a gate scenario asks the child to run. */
+	commandFor?: () => string;
+}
+
+/** The system text a provider received, wherever this API puts it. */
+export function systemText(body: unknown): string {
+	const b = body as { instructions?: unknown; system?: unknown } | undefined;
+	const parts: string[] = [];
+	if (typeof b?.instructions === "string") parts.push(b.instructions);
+	if (typeof b?.system === "string") parts.push(b.system);
+	else if (Array.isArray(b?.system)) parts.push(textOf(b.system));
+	const messages = messagesOf(body);
+	for (const message of messages) {
+		if (message.role === "system" || message.role === "developer")
+			parts.push(textOf(message.content));
+	}
+	return parts.join("\n");
 }
 
 const sleep = (ms: number) =>
@@ -151,9 +168,88 @@ interface Answer {
 	delayMs?: number;
 }
 
-function answerFor(messages: Record<string, unknown>[], state: { retry: number }): Answer {
+function answerFor(
+	messages: Record<string, unknown>[],
+	state: { retry: number },
+	opts: FakeProviderOptions,
+): Answer {
 	const prompt = lastUser(messages);
 	const all = messages.map((m) => textOf(m.content)).join("\n");
+
+	if (hasToken(prompt, "E2E_CTX")) {
+		const calls = toolCalls(messages);
+		const tasks = calls.filter((call) => call.name === "Task");
+		if (tasks.length === 0)
+			return {
+				tool: {
+					name: "Task",
+					args: {
+						description: "e2e context on",
+						subagent_type: "e2e-context",
+						prompt: "E2E_CTX_CHILD_ON",
+						run_in_background: false,
+					},
+				},
+			};
+		if (tasks.length === 1)
+			return {
+				tool: {
+					name: "Task",
+					args: {
+						description: "e2e context off",
+						subagent_type: "e2e-nocontext",
+						prompt: "E2E_CTX_CHILD_OFF",
+						run_in_background: false,
+					},
+				},
+			};
+		return { text: "CTX_DONE" };
+	}
+	if (hasToken(prompt, "E2E_CTX_CHILD_ON")) return { text: "CTX_CHILD_ON_OK" };
+	if (hasToken(prompt, "E2E_CTX_CHILD_OFF")) return { text: "CTX_CHILD_OFF_OK" };
+
+	const gateCommand = opts.commandFor?.() ?? "true";
+	if (hasToken(prompt, "E2E_GATE_ON_DIRECT") || hasToken(prompt, "E2E_GATE_OFF_DIRECT")) {
+		const on = hasToken(prompt, "E2E_GATE_ON_DIRECT");
+		if (toolResult(messages) && lastToolCall(messages)?.name === "Task")
+			return { text: "GATE_PARENT_DONE" };
+		return {
+			tool: {
+				name: "Task",
+				args: {
+					description: "e2e gate",
+					subagent_type: on ? "e2e-gate" : "e2e-nogate",
+					prompt: "E2E_GATE_DIRECT",
+				},
+			},
+		};
+	}
+	if (hasToken(prompt, "E2E_GATE_ON_NESTED")) {
+		if (toolResult(messages) && lastToolCall(messages)?.name === "Task")
+			return { text: "GATE_PARENT_DONE" };
+		return {
+			tool: {
+				name: "Task",
+				args: { description: "e2e gate", subagent_type: "e2e-gate", prompt: "E2E_GATE_NESTED" },
+			},
+		};
+	}
+	if (hasToken(prompt, "E2E_GATE_DIRECT") || hasToken(prompt, "E2E_GATE_NESTED")) {
+		if (hasToken(prompt, "E2E_GATE_NESTED")) {
+			if (!toolResult(messages))
+				return {
+					tool: {
+						name: "codemode",
+						args: {
+							code: `const r = await tools.bash({ command: ${JSON.stringify(gateCommand)} }); return r;`,
+						},
+					},
+				};
+			return { text: `NESTED_REPORT ${lastToolText(messages)}` };
+		}
+		if (!toolResult(messages)) return { tool: { name: "bash", args: { command: gateCommand } } };
+		return { text: `DIRECT_REPORT ${lastToolText(messages)}` };
+	}
 
 	// The wake turn starts from the settle notice, so it wins over the tool result.
 	const latest = messages.at(-1);
@@ -643,7 +739,7 @@ export function startFakeProvider(opts: FakeProviderOptions = {}): Promise<FakeP
 			body,
 			prompt: lastUser(messages),
 		});
-		const answer = answerFor(messages, state);
+		const answer = answerFor(messages, state, opts);
 		const allText = messages.map((message) => textOf(message.content)).join("\n");
 		if (
 			allText.includes('[team] You are "') &&

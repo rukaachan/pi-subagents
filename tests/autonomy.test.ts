@@ -5,6 +5,7 @@ import {
 	clampToolsForAutonomy,
 	type SubagentConfig,
 } from "../src/domain/subagent/config.ts";
+import { loadSubagentFromContent } from "../src/infra/subagent-files.ts";
 
 function sub(over: Partial<SubagentConfig>): SubagentConfig {
 	return {
@@ -21,6 +22,9 @@ function sub(over: Partial<SubagentConfig>): SubagentConfig {
 }
 
 const READ_ONLY = TOOL_GROUPS["read-only"] ?? [];
+
+const load = (fm: string) =>
+	loadSubagentFromContent(`---\n${fm}\n---\n\nbody text\n`, "/x.md", "user");
 
 describe("autonomy clamp is a policy", () => {
 	it("off and low keep only the read-only group", () => {
@@ -95,5 +99,51 @@ describe("autonomy clamp is a policy", () => {
 	it("off strips codemode from an explicit list", () => {
 		const r = clampToolsForAutonomy(sub({ autonomy: "off", tools: ["read", "codemode", "bash"] }));
 		assert.deepEqual(r.tools, ["read"]);
+	});
+});
+
+describe("child trust fields", () => {
+	it("parses gates and context as opt-in booleans", () => {
+		const on = load("name: a\nautonomy: high\ngates: on\ncontext: true");
+		assert.ok(typeof on !== "string");
+		assert.equal(on.gates, true);
+		assert.equal(on.context, true);
+	});
+
+	it("treats off and false as absent", () => {
+		const off = load("name: a\nautonomy: high\ngates: off\ncontext: false");
+		assert.ok(typeof off !== "string");
+		assert.equal(off.gates, undefined);
+		assert.equal(off.context, undefined);
+	});
+
+	it("rejects a non-boolean and names the field", () => {
+		for (const field of ["gates", "context"]) {
+			const cfg = load(`name: a\n${field}: maybe`);
+			assert.equal(typeof cfg, "string", field);
+			assert.match(cfg as string, new RegExp(`invalid ${field}`), field);
+		}
+	});
+
+	it("refuses gates on a read-only child but allows context", () => {
+		for (const autonomy of ["off", "low"]) {
+			const gates = load(`name: a\nautonomy: ${autonomy}\ngates: on`);
+			assert.equal(typeof gates, "string", autonomy);
+			assert.match(gates as string, /nothing to gate/, autonomy);
+			const context = load(`name: a\nautonomy: ${autonomy}\ncontext: on`);
+			assert.ok(typeof context !== "string", autonomy);
+			assert.equal(context.context, true, autonomy);
+		}
+	});
+
+	it("allows gates with a path fence and with MCP", () => {
+		const fenced = load("name: a\nautonomy: high\ngates: on\npaths: src");
+		assert.ok(typeof fenced !== "string");
+		assert.equal(fenced.gates, true);
+		assert.deepEqual(fenced.paths, ["src"]);
+		const mcp = load("name: a\nautonomy: high\ngates: on\ncodemode: only\nmcp: true");
+		assert.ok(typeof mcp !== "string");
+		assert.equal(mcp.gates, true);
+		assert.equal(mcp.mcp, true);
 	});
 });

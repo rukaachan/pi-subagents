@@ -65,6 +65,8 @@ export type SubagentFrontmatter = {
 	autonomy?: unknown;
 	codemode?: unknown;
 	mcp?: unknown;
+	gates?: unknown;
+	context?: unknown;
 	budget?: unknown;
 	promptPrefix?: unknown;
 };
@@ -82,6 +84,10 @@ export interface SubagentConfig {
 	codemode?: boolean | "only";
 	// Open the configured MCP servers in this child; opt-in, medium+ only.
 	mcp?: boolean;
+	// Package-owned tool gate; opt-in, medium+ only.
+	gates?: boolean;
+	// Load AGENTS.md and the project context files into this child; opt-in.
+	context?: boolean;
 	budget?: SubagentBudget;
 	// Fixed framing prepended to every task this subagent gets.
 	promptPrefix?: string;

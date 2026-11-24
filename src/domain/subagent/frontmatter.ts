@@ -127,6 +127,15 @@ export function validateSubagent(
 		return "mcp__ tools require mcp: true.";
 	}
 
+	const gates = parseOnOff(frontmatter.gates, "gates");
+	if (gates.error) return gates.error;
+	if (gates.on && (autonomy === "off" || autonomy === "low")) {
+		return "gates needs autonomy medium or higher; read-only children have nothing to gate.";
+	}
+
+	const context = parseOnOff(frontmatter.context, "context");
+	if (context.error) return context.error;
+
 	const budget = parseBudget(frontmatter.budget);
 	if (typeof budget === "string") return budget;
 
@@ -143,6 +152,8 @@ export function validateSubagent(
 				? codemode.mode
 				: undefined,
 		...(mcp ? { mcp: true } : {}),
+		...(gates.on ? { gates: true } : {}),
+		...(context.on ? { context: true } : {}),
 		budget,
 		promptPrefix,
 		systemPrompt,
@@ -155,6 +166,22 @@ export function validateSubagent(
 export interface CodemodeFlag {
 	mode: boolean | "only" | undefined;
 	error?: string;
+}
+
+export interface OnOffFlag {
+	on: boolean;
+	error?: string;
+}
+
+/** Parse an opt-in boolean field written as on/off/true/false. */
+export function parseOnOff(raw: unknown, field: string): OnOffFlag {
+	if (raw === undefined || raw === null || raw === "") return { on: false };
+	if (raw === true || raw === "on") return { on: true };
+	if (raw === false || raw === "off") return { on: false };
+	return {
+		on: false,
+		error: `invalid ${field} ${showValue(raw)}. Use on, off, true, false, or drop the field.`,
+	};
 }
 
 export function parseCodemodeFlag(raw: unknown): CodemodeFlag {

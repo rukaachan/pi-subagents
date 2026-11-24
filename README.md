@@ -139,11 +139,14 @@ field, built-in default.
 
 **File.** `/subagents list` → pick → **Edit** changes `description`,
 `model`, `thinkingLevel`, `tools`, `paths`, `autonomy`, `promptPrefix`,
-`codemode`, `mcp`, and each budget cap without touching the rest.
+`codemode`, `mcp`, `gates`, `context`, and each budget cap without
+touching the rest.
 
 ```yaml
 codemode: off      # off | on | only (true/false also work)
 mcp: true          # opt-in MCP; medium+ only, codemode on/only, no paths
+gates: on          # block a fixed destructive-call list inside this child
+context: on        # load AGENTS.md into this child; the run notes the cost
 budget: { timeoutSec: 600, maxReportChars: 4000 }
 promptPrefix: "Map first. Cite file:line."
 paths: [src, docs]  # optional: workspace-relative; outside, absolute, and symlink escapes refused; bash is off
@@ -159,6 +162,12 @@ this child; scripts call them as `tools.mcp__<server>__<tool>`. Each live
 leg opens its own connections. OAuth servers need a parent `/mcp` sign-in
 first. MCP is refused with `autonomy` `off`/`low`, with `codemode: off`,
 and with `paths`; MCP tools are not path-fenced.
+
+`gates: on` is the package's own deny list inside the child (`rm -rf`,
+`sudo`, `git push --force`, destructive MCP tools, and more). It blocks and
+journals; a child has no UI, so it never prompts. `context: on` loads
+AGENTS.md for that child only and adds one note such as
+`context: 1 file, 48 chars (AGENTS.md)`.
 
 **Run.** `Task` and `subagent` take per-run switches; the file is not
 modified. They apply to single runs, fan-out, chains, and resumes.
@@ -196,7 +205,7 @@ only when the folder is trusted. No agent file can set it. `"alias": false`
 stops the `subagent` compatibility tool from registering; that one is read
 at load, so `/reload` after changing it.
 
-Defaults: `codemode: only`, `mcp: off`, inherited model, file tools,
+Defaults: `codemode: only`, `mcp: off`, `gates: off`, `context: off`, inherited model, file tools,
 `inherit` autonomy, `timeoutSec: 3600`. Safety limits: 12 live tasks by default
 (`liveCap` 1–64), 900 s stall watchdog, 300 s wind-down, 10 s hard-stop
 grace.
