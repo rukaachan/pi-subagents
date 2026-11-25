@@ -40,15 +40,22 @@ export function agentTeamSnapshot(): PersistedAgentTeam | undefined {
 			...task,
 			blockedBy: [...task.blockedBy],
 			writeScopes: [...task.writeScopes],
+			...(task.attempts ? { attempts: task.attempts.map((attempt) => ({ ...attempt })) } : {}),
 		})),
 		members: state.members.map((member) => ({ ...member })),
+		ledger: state.board.ledger.map((entry) => ({ ...entry })),
 	};
 }
 
 export function restoreAgentTeam(snapshot: PersistedAgentTeam): void {
 	writeAgentTeamState({
 		enabled: snapshot.enabled,
-		board: { agentTeamId: snapshot.agentTeamId, nextId: snapshot.nextId, tasks: snapshot.tasks },
+		board: {
+			agentTeamId: snapshot.agentTeamId,
+			nextId: snapshot.nextId,
+			tasks: snapshot.tasks,
+			ledger: snapshot.ledger,
+		},
 		members: snapshot.members,
 	});
 }

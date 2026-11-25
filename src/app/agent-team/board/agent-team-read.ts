@@ -4,6 +4,7 @@
 
 import {
 	MAX_AGENT_TEAM_TASKS,
+	ledgerCounts,
 	liveTasks,
 	agentTeamView,
 	type AgentTeamBoard,
@@ -53,7 +54,14 @@ export function taskListOn(
 export function summarizeBoard(
 	board: AgentTeamBoard,
 	enabled: boolean,
-): { agentTeamId: string; enabled: boolean; open: number; review: number; done: number } {
+): {
+	agentTeamId: string;
+	enabled: boolean;
+	open: number;
+	review: number;
+	done: number;
+	facts: number;
+} {
 	const rows: AgentTeamTask[] = liveTasks(board);
 	return {
 		agentTeamId: board.agentTeamId,
@@ -61,5 +69,6 @@ export function summarizeBoard(
 		open: rows.filter((task) => task.status !== "completed").length,
 		review: rows.filter((task) => task.status === "in_review").length,
 		done: rows.filter((task) => task.status === "completed").length,
+		facts: ledgerCounts(board).facts,
 	};
 }

@@ -19,7 +19,9 @@ function boardSummary(api: AgentTeamApi): { head: string; details: Record<string
 	const summary = api.summary();
 	const members = api.members();
 	const rows = api.list({ limit: MAX_AGENT_TEAM_TASKS });
-	const head = `AgentTeam ${summary.agentTeamId} · ${summary.enabled ? "on" : "off"} · ${summary.open} open · ${summary.review} review · ${summary.done} done · ${members.length} members`;
+	const ledger = api.ledger?.() ?? [];
+	const facts = summary.facts > 0 ? ` · ${summary.facts} facts` : "";
+	const head = `AgentTeam ${summary.agentTeamId} · ${summary.enabled ? "on" : "off"} · ${summary.open} open · ${summary.review} review · ${summary.done} done · ${members.length} members${facts}`;
 	return {
 		head,
 		details: {
@@ -28,7 +30,15 @@ function boardSummary(api: AgentTeamApi): { head: string; details: Record<string
 			open: summary.open,
 			review: summary.review,
 			done: summary.done,
+			facts: summary.facts,
 			members: members.map((member) => ({ name: member.name, starter: member.starter })),
+			ledger: ledger.slice(-20).map((entry) => ({
+				kind: entry.kind,
+				text: entry.text,
+				task_id: entry.taskId,
+				by: entry.by,
+				at: entry.at,
+			})),
 			tasks: rows.map(taskJson),
 		},
 	};
@@ -91,10 +101,17 @@ export async function runAgentTeam(
 		const roster = members.length
 			? [`Members: ${members.map((member) => member.name).join(", ")}`]
 			: [];
+		const facts = (api.ledger?.() ?? [])
+			.filter((entry) => entry.kind === "fact")
+			.slice(-5)
+			.map((entry) => `fact ${entry.taskId}: ${entry.text.slice(0, 120)}`);
 		return ok(
-			[board.head, ...roster, ...api.list({ limit: MAX_AGENT_TEAM_TASKS }).map(taskLine)].join(
-				"\n",
-			),
+			[
+				board.head,
+				...roster,
+				...facts,
+				...api.list({ limit: MAX_AGENT_TEAM_TASKS }).map(taskLine),
+			].join("\n"),
 			{
 				...board.details,
 			},
@@ -182,6 +199,8 @@ export async function runAgentTeam(
 		...(params.verify_with !== undefined ? { verifyWith: params.verify_with } : {}),
 		...(params.verdict !== undefined ? { verdict: params.verdict } : {}),
 		...(params.note !== undefined ? { note: params.note } : {}),
+		...(params.fact !== undefined ? { fact: params.fact } : {}),
+		...(params.excluded !== undefined ? { excluded: params.excluded } : {}),
 		...(params.override !== undefined ? { override: params.override } : {}),
 	};
 	const result = api.update(update, caller);

@@ -6,6 +6,7 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type {
 	AgentTeamCaller,
 	AgentTeamFilters,
+	AgentTeamLedgerEntry,
 	AgentTeamMember,
 	AgentTeamResult,
 	AgentTeamTaskStatus,
@@ -58,8 +59,10 @@ export interface AgentTeamApi {
 		open: number;
 		review: number;
 		done: number;
+		facts: number;
 	};
 	members: () => AgentTeamMember[];
+	ledger?: () => AgentTeamLedgerEntry[];
 	resolve: (taskId: string) => AgentTeamResolution | undefined;
 	isLive?: (name: string) => boolean;
 	/** False once the run is stopped; late board changes must not land. */

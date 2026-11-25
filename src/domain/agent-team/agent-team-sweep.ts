@@ -3,6 +3,7 @@
  */
 
 import { MAX_AGENT_TEAM_ERROR, type AgentTeamBoard } from "./agent-team.ts";
+import { recordAgentTeamAttempt } from "./agent-team-memory.ts";
 
 /** Release in_progress tasks (all, or one owner's) back to pending. */
 export function releaseTasks(
@@ -16,11 +17,18 @@ export function releaseTasks(
 	);
 	const note = reason?.trim().slice(0, MAX_AGENT_TEAM_ERROR);
 	for (const task of lost) {
-		if (task.owner) task.lastOwner = task.owner;
+		const claimed = task.owner;
+		if (claimed) task.lastOwner = claimed;
 		if (note) task.lastError = note;
 		task.returnedAt = now;
 		task.status = "pending";
 		delete task.owner;
+		recordAgentTeamAttempt(task, {
+			at: now,
+			...(claimed ? { owner: claimed } : {}),
+			outcome: "released",
+			...(note ? { error: note } : {}),
+		});
 		task.revision += 1;
 		task.updatedAt = now;
 	}

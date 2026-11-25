@@ -117,6 +117,8 @@ describe("agent team verification", () => {
 		assert.equal(result.task.verdict, "pass");
 		assert.equal(result.task.verifiedBy, "verifier");
 		assert.equal(result.task.verifiedAt, 40);
+		assert.equal(result.task.attempts?.[0]?.outcome, "passed");
+		assert.equal(result.task.attempts?.[0]?.owner, "alice");
 	});
 
 	it("fails review back to pending with the note", () => {
@@ -142,6 +144,9 @@ describe("agent team verification", () => {
 		assert.equal(result.task.lastOwner, "alice");
 		assert.equal(result.task.lastError, "test still red");
 		assert.equal(result.task.verdict, "fail");
+		assert.equal(result.task.attempts?.[0]?.outcome, "failed");
+		assert.equal(result.task.attempts?.[0]?.owner, "alice");
+		assert.equal(result.task.attempts?.[0]?.error, "test still red");
 	});
 
 	it("requires a note for a failed verdict and a lead override", () => {

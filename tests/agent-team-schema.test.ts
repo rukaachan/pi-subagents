@@ -46,6 +46,8 @@ describe("team tool schemas", () => {
 			"in_review",
 			"completed",
 		]);
+		assert.equal(agentTeam.properties?.fact?.type, "string");
+		assert.equal(agentTeam.properties?.excluded?.type, "string");
 		assert.equal(agentTeam.properties?.prompt?.type, "string");
 		assert.equal(agentTeam.properties?.roster?.type, "array");
 		assert.equal(agentTeam.properties?.limit?.maximum, MAX_AGENT_TEAM_TASKS);

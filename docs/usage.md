@@ -377,12 +377,22 @@ task.
 Set `acceptance` on a task to gate completion. `complete` then moves it to
 `in_review`; a fresh read-only verifier checks the result, the changed files,
 and the commands. The verifier defaults to `code-reviewer`; set `verify_with`
-to `tester` or another name. A `pass` makes the task `completed`; a `fail`
-returns it to `pending` with the reason in `last_error`, so dependents stay
-blocked. A verifier error leaves the task in review. Only the verifier or the
-lead can verify; a lead override needs a note and is journaled. If team mode
-is off, no verifier starts: the task stays in review and the lead can record
-its verdict with `v`.
+to `tester` or another name. It is told to attack the result: try to break it,
+name the first failing step, and pass only when the acceptance text is met by
+evidence it checked. A `pass` makes the task `completed`; a `fail` returns it
+to `pending` with the reason in `last_error`, so dependents stay blocked. A
+verifier error leaves the task in review. Only the verifier or the lead can
+verify; a lead override needs a note and is journaled. If team mode is off, no
+verifier starts: the task stays in review and the lead can record its verdict
+with `v`.
+
+A verify can keep one checked `fact` on a pass, or one `excluded` dead end on
+a fail (500 characters each). Facts and dead ends form a team ledger: new work
+legs get the newest facts and dead ends in their prompt, so the team reuses
+what was proven and avoids repeating a known dead end. The ledger is capped at
+50 facts and 20 dead ends; the oldest row of that kind drops out. The board
+keeps the newest five attempts per task: release, verify fail, and verify pass,
+each with the owner and the error. Duplicate facts are ignored.
 
 Ask for a second opinion without giving up ownership:
 `AgentTeam { action: "advise", question, task_id? }`. It starts one bounded,
@@ -417,8 +427,10 @@ reviews the diff.
 If a leg fails or is stopped, its claimed tasks go back to pending with
 a new revision, and the settle card names them. The task remembers
 `last_owner`, `last_error`, and `returned_at`, so the next claim shows
-`last worker: boom` and knows what failed. A restart releases every
-in_progress task with `Pi restarted`.
+`last worker: boom` and knows what failed. It also keeps the newest five
+attempts (release, verify fail, verify pass) with the owner and error, so a
+task that keeps coming back shows its history instead of one line. A restart
+releases every in_progress task with `Pi restarted`.
 
 Task changes never start an agent. A ready task wakes nobody; the lead
 delegates, and a finished leg still wakes the lead with its report. Use
@@ -437,8 +449,9 @@ The board lives in the same per-session state file as runs, so
 `/subagents agent-teams off` keeps the board and lets a claimed task finish; it
 only stops new legs from joining. A new Pi session starts empty. Limits: 128 live tasks,
 128 rows per list, 2,000 characters per description, 500 per acceptance,
-300 per note, 64 per verifier name, 1,000 per advice question, 20 blockers
-and 20 scopes per task, and 32 members. Idle members are evicted; a 33rd join is
+500 per fact or dead end, 50 facts and 20 dead ends per team, 300 per note,
+64 per verifier name, 1,000 per advice question, 20 blockers and 20 scopes
+per task, five attempts per task, and 32 members. Idle members are evicted; a 33rd join is
 refused when all 32 own live tasks, and a start takes at most 32 legs.
 
 While agent team mode is on, the lead's system prompt gets a short policy
@@ -446,9 +459,9 @@ section: plan, create tasks, split write scopes, delegate, then wait.
 Only the lead spawns; an agent teammate cannot delegate further.
 
 In the AGENT TEAM tab, a task waiting for a verdict shows `?` and the header
-counts `N review`. `v` records a pass or fail (a lead override is journaled),
-and `i` asks the advisor. The detail pane shows the acceptance text, the
-verifier run, and the verdict.
+counts `N review` and `N facts`. `v` records a pass or fail (a lead override
+is journaled), and `i` asks the advisor. The detail pane shows the acceptance
+text, the verifier run, the verdict, and the two newest attempts.
 
 `AgentTeamMessage` sends to a live member first. A known finished member gets
 a bounded session queue (8 messages or 8,000 characters): the send result

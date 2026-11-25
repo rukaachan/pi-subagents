@@ -184,10 +184,14 @@ with `Task`, and the settle card still owns the wake.
 
 When a task has `acceptance`, `complete` moves it to `in_review` instead of
 `completed`. The app calls `startAgentTeamVerification`, which launches a
-fresh `code-reviewer` (or `verify_with`) run as a read-only verifier. A pass
-completes the task; a fail returns it to pending with the note in
-`last_error`; a verifier error leaves it in review. `advise` launches one
-read-only `advisor` run (fallback `planner`) with a board snapshot and a
+fresh `code-reviewer` (or `verify_with`) run as a read-only verifier. The
+prompt tells it to attack the result, not agree with it. A pass completes the
+task; a fail returns it to pending with the note in `last_error`; a verifier
+error leaves it in review. A pass may carry one `fact`; a fail may carry one
+`excluded` dead end. Both land on the team ledger, and `taskPrompt` prepends
+the newest facts and dead ends to later worker prompts. The board also keeps
+the newest five attempts per task with the owner and error. `advise` launches
+one read-only `advisor` run (fallback `planner`) with a board snapshot and a
 120-second wait; it cannot mutate the board.
 
 `AgentTeam { action: "start", prompt, roster? }` is lead-only and always

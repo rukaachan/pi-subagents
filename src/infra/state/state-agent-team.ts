@@ -14,6 +14,7 @@ import {
 	MAX_AGENT_TEAM_SUBJECT,
 	MAX_AGENT_TEAM_TASKS,
 	MAX_AGENT_TEAM_VERIFY_WITH,
+	type AgentTeamLedgerEntry,
 	type AgentTeamMember,
 	type AgentTeamOrigin,
 	type AgentTeamRole,
@@ -23,6 +24,7 @@ import {
 } from "../../domain/agent-team/index.ts";
 import { canonicalWorkspacePath } from "../../domain/policy/index.ts";
 import { MAX_COLD_CHARS, MAX_COLD_MESSAGES } from "../../domain/agent-team/index.ts";
+import { decodeAttempts, decodeLedger, stringValue } from "./state-agent-team-rows.ts";
 
 export interface PersistedAgentTeam {
 	agentTeamId: string;
@@ -30,6 +32,7 @@ export interface PersistedAgentTeam {
 	nextId: number;
 	tasks: AgentTeamTask[];
 	members: AgentTeamMember[];
+	ledger: AgentTeamLedgerEntry[];
 	coldMail?: Record<string, string[]>;
 }
 
@@ -52,10 +55,6 @@ const ORIGINS = new Set<AgentTeamOrigin>([
 ]);
 const VERDICTS = new Set<VerificationVerdict>(["pass", "fail"]);
 const MAX_PERSISTED_TASKS = MAX_AGENT_TEAM_TASKS * 2;
-
-function stringValue(value: unknown, max: number): string | undefined {
-	return typeof value === "string" && value.trim() ? value.trim().slice(0, max) : undefined;
-}
 
 function stringList(value: unknown, max: number, each: number): string[] {
 	if (!Array.isArray(value)) return [];
@@ -116,6 +115,7 @@ function decodeTask(value: unknown): AgentTeamTask | undefined {
 			? row.verifiedAt
 			: undefined;
 	const verifyRunId = stringValue(row.verifyRunId, MAX_AGENT_TEAM_RUN_ID);
+	const attempts = decodeAttempts(row.attempts);
 	const origin =
 		typeof row.origin === "string" && ORIGINS.has(row.origin as AgentTeamOrigin)
 			? (row.origin as AgentTeamOrigin)
@@ -141,6 +141,7 @@ function decodeTask(value: unknown): AgentTeamTask | undefined {
 		...(verifiedBy ? { verifiedBy } : {}),
 		...(verifiedAt !== undefined ? { verifiedAt } : {}),
 		...(verifyRunId ? { verifyRunId } : {}),
+		...(attempts.length > 0 ? { attempts } : {}),
 		origin,
 		blockedBy: stringList(row.blockedBy, MAX_AGENT_TEAM_BLOCKERS, 64),
 		writeScopes: decodeScopes(row.writeScopes),
@@ -236,6 +237,7 @@ export function decodeAgentTeam(value: unknown): PersistedAgentTeam | undefined 
 		nextId,
 		tasks,
 		members,
+		ledger: decodeLedger(row.ledger),
 		...(coldMail ? { coldMail } : {}),
 	};
 }

@@ -19,6 +19,10 @@ export const MAX_AGENT_TEAM_ACCEPTANCE = 500;
 export const MAX_AGENT_TEAM_NOTE = 300;
 export const MAX_AGENT_TEAM_VERIFY_WITH = 64;
 export const MAX_AGENT_TEAM_QUESTION = 1_000;
+export const MAX_AGENT_TEAM_ATTEMPTS = 5;
+export const MAX_AGENT_TEAM_FACT = 500;
+export const MAX_AGENT_TEAM_FACTS = 50;
+export const MAX_AGENT_TEAM_EXCLUDED = 20;
 
 export type AgentTeamTaskStatus = "pending" | "in_progress" | "in_review" | "completed" | "deleted";
 export type AgentTeamRole = "worker" | "verifier" | "advisor";
@@ -31,6 +35,24 @@ export type AgentTeamOrigin =
 	| "finish"
 	| "start";
 export type VerificationVerdict = "pass" | "fail";
+export type AgentTeamLedgerKind = "fact" | "excluded";
+
+/** One bounded note about a finished attempt. */
+export interface AgentTeamAttempt {
+	at: number;
+	owner?: string;
+	outcome: "released" | "failed" | "passed";
+	error?: string;
+}
+
+/** A verified fact, or a dead end the team must not repeat. */
+export interface AgentTeamLedgerEntry {
+	text: string;
+	kind: AgentTeamLedgerKind;
+	taskId: string;
+	by: string;
+	at: number;
+}
 
 export interface AgentTeamTask {
 	id: string;
@@ -57,6 +79,8 @@ export interface AgentTeamTask {
 	verifiedAt?: number;
 	verifyRunId?: string;
 	origin?: AgentTeamOrigin;
+	/** Oldest attempts drop out first; capped at MAX_AGENT_TEAM_ATTEMPTS. */
+	attempts?: AgentTeamAttempt[];
 	createdAt: number;
 	updatedAt: number;
 }
@@ -65,6 +89,7 @@ export interface AgentTeamBoard {
 	agentTeamId: string;
 	nextId: number;
 	tasks: AgentTeamTask[];
+	ledger: AgentTeamLedgerEntry[];
 }
 
 export interface AgentTeamMember {
@@ -122,6 +147,10 @@ export interface AgentTeamUpdate {
 	verifyWith?: string;
 	verdict?: VerificationVerdict;
 	note?: string;
+	/** Reusable checked fact recorded on a passing verify. */
+	fact?: string;
+	/** Dead end recorded on a failing verify. */
+	excluded?: string;
 	/** Lead-only bypass of the verifier role; a note is required. */
 	override?: boolean;
 }
@@ -131,7 +160,7 @@ export type AgentTeamFail = { ok: false; error: string };
 export type AgentTeamResult = AgentTeamOk | AgentTeamFail;
 
 export function newAgentTeam(agentTeamId: string): AgentTeamBoard {
-	return { agentTeamId, nextId: 1, tasks: [] };
+	return { agentTeamId, nextId: 1, tasks: [], ledger: [] };
 }
 
 export function liveTasks(board: AgentTeamBoard): AgentTeamTask[] {

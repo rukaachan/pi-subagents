@@ -9,6 +9,7 @@ import {
 	getTask,
 	joinAgentTeam,
 	setAgentTeamChangeHook,
+	updateTask,
 } from "../src/app/agent-team/board/index.ts";
 import { completeTask, ensureTask, taskPrompt } from "../src/app/agent-team/auto/index.ts";
 
@@ -78,6 +79,49 @@ describe("automatic board tasks", () => {
 	it("names the role in the prompt", () => {
 		assert.match(taskPrompt("task-1", "worker"), /Board task task-1/);
 		assert.match(taskPrompt("task-1", "verifier"), /verifier/);
+		assert.match(taskPrompt("task-1", "verifier"), /Try to break/);
+		assert.match(taskPrompt("task-1", "verifier"), /fact/);
 		assert.match(taskPrompt("task-1", "advisor"), /advisor/);
+	});
+
+	it("hands a worker the verified facts", () => {
+		start();
+		const manual = createTask({
+			subject: "manual",
+			description: "",
+			acceptance: "tests pass",
+		});
+		assert.ok(manual.ok);
+		const worker = { name: "worker", lead: false, role: "worker" as const };
+		const verifier = { name: "verifier", lead: false, role: "verifier" as const };
+		assert.ok(
+			updateTask({ taskId: manual.task.id, expectedRevision: 1, action: "claim" }, worker).ok,
+		);
+		assert.ok(
+			updateTask(
+				{
+					taskId: manual.task.id,
+					expectedRevision: 2,
+					action: "complete",
+					result: "done",
+				},
+				worker,
+			).ok,
+		);
+		assert.ok(
+			updateTask(
+				{
+					taskId: manual.task.id,
+					expectedRevision: 3,
+					action: "verify",
+					verdict: "pass",
+					fact: "parser reads UTF-8",
+				},
+				verifier,
+			).ok,
+		);
+		const prompt = taskPrompt(manual.task.id);
+		assert.match(prompt, /Verified facts/);
+		assert.match(prompt, /task-1: parser reads UTF-8/);
 	});
 });

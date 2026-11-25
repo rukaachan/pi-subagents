@@ -23,7 +23,7 @@ import {
 	type AgentTeamUpdate,
 } from "../agent-team/index.ts";
 import { scopeConflictError, scopeConflicts } from "../agent-team/index.ts";
-import { verifyAgentTeamTask } from "../agent-team/index.ts";
+import { recordAgentTeamAttempt, verifyAgentTeamTask } from "../agent-team/index.ts";
 function fail(error: string): AgentTeamResult {
 	return { ok: false, error };
 }
@@ -63,7 +63,7 @@ export function applyUpdate(
 			`Task ${task.id} changed (revision ${task.revision}, expected ${update.expectedRevision}). Read it again.`,
 		);
 	}
-	if (update.action === "verify") return verifyAgentTeamTask(task, update, caller, now);
+	if (update.action === "verify") return verifyAgentTeamTask(board, task, update, caller, now);
 	if (update.action === "reassign") {
 		if (!caller.lead) return fail("Only the lead can reassign tasks.");
 		if (task.status === "completed") return fail(`Task ${task.id} is completed; reopen it first.`);
@@ -110,11 +110,18 @@ export function applyUpdate(
 		const note = update.note?.trim();
 		if (note && note.length > MAX_AGENT_TEAM_NOTE)
 			return fail(`A release note is limited to ${MAX_AGENT_TEAM_NOTE} characters.`);
-		if (task.owner) task.lastOwner = task.owner;
+		const owner = task.owner;
+		if (owner) task.lastOwner = owner;
 		if (note) task.lastError = note;
 		task.returnedAt = now;
 		task.status = "pending";
 		delete task.owner;
+		recordAgentTeamAttempt(task, {
+			at: now,
+			...(owner ? { owner } : {}),
+			outcome: "released",
+			...(note ? { error: note } : {}),
+		});
 		bump(task, now);
 		return { ok: true, task };
 	}

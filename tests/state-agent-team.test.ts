@@ -120,6 +120,61 @@ describe("team state decoding", () => {
 		assert.equal(agentTeam.tasks[1]?.returnedAt, undefined);
 	});
 
+	it("keeps the five newest attempts and drops bad rows", () => {
+		const attempts = [
+			...Array.from({ length: 7 }, (_, index) => ({
+				at: index + 1,
+				owner: "worker",
+				outcome: index === 6 ? "passed" : "failed",
+				...(index === 6 ? {} : { error: "try " + index }),
+			})),
+			{ at: "later", outcome: "failed" },
+			{ at: 99, outcome: "unknown" },
+		];
+		const agentTeam = decodeAgentTeam({
+			...valid,
+			tasks: [{ ...valid.tasks[0], attempts }],
+		});
+		assert.ok(agentTeam);
+		const kept = agentTeam.tasks[0]?.attempts ?? [];
+		assert.equal(kept.length, 5);
+		assert.equal(kept[0]?.at, 3);
+		assert.equal(kept.at(-1)?.outcome, "passed");
+		assert.equal(kept.at(-1)?.error, undefined);
+	});
+
+	it("keeps a bounded ledger and drops duplicates or bad rows", () => {
+		const facts = Array.from({ length: 55 }, (_, index) => ({
+			text: "fact " + index,
+			kind: "fact",
+			taskId: "task-1",
+			by: "verifier",
+			at: index,
+		}));
+		const agentTeam = decodeAgentTeam({
+			...valid,
+			tasks: [{ ...valid.tasks[0], attempts: [] }],
+			ledger: [
+				...facts,
+				{ ...facts[54] },
+				{ text: "no task", kind: "fact", taskId: "nope", by: "verifier", at: 1 },
+				{ text: "bad kind", kind: "maybe", taskId: "task-1", by: "verifier", at: 1 },
+				{
+					text: "glob ignores dotfiles",
+					kind: "excluded",
+					taskId: "task-9",
+					by: "verifier",
+					at: 60,
+				},
+			],
+		});
+		assert.ok(agentTeam);
+		const kept = agentTeam.ledger.filter((entry) => entry.kind === "fact");
+		assert.equal(kept.length, 50);
+		assert.equal(kept[0]?.text, "fact 5");
+		assert.equal(agentTeam.ledger.at(-1)?.kind, "excluded");
+	});
+
 	it("keeps a member's run key and drops a bad one", () => {
 		const agentTeam = decodeAgentTeam({
 			...valid,

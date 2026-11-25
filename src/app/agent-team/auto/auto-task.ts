@@ -2,10 +2,23 @@
  * pi-subagents: put a launched leg on the board.
  */
 
-import type { AgentTeamOrigin, AgentTeamRole } from "../../../domain/agent-team/index.ts";
+import {
+	MAX_AGENT_TEAM_SUBJECT,
+	ledgerPrompt,
+	type AgentTeamOrigin,
+	type AgentTeamRole,
+} from "../../../domain/agent-team/index.ts";
 import type { SubagentConfig } from "../../../domain/subagent/index.ts";
-import { MAX_AGENT_TEAM_SUBJECT } from "../../../domain/agent-team/index.ts";
-import { agentTeamEnabled, createTask, getTask, linkRun, updateTask } from "../board/index.ts";
+import { VERIFIER_BRIEF } from "../../../domain/policy/index.ts";
+import {
+	agentTeamBoard,
+	agentTeamEnabled,
+	createTask,
+	getTask,
+	hasAgentTeamState,
+	linkRun,
+	updateTask,
+} from "../board/index.ts";
 
 export interface EnsureTaskInput {
 	sub: SubagentConfig;
@@ -84,12 +97,19 @@ export function ensureTask(input: EnsureTaskInput): EnsureTaskResult {
 
 export function taskPrompt(taskId: string, role: AgentTeamRole = "worker"): string {
 	if (role === "verifier") {
-		return `[agent-team] You are the verifier for board task ${taskId}. Read it, check its acceptance text against the result and the repository, then call AgentTeam { action: "verify", task_id: "${taskId}", expected_revision: <current>, verdict: "pass" | "fail", note: "..." }. Do not edit files or claim work.`;
+		return [
+			`[agent-team] You are the verifier for board task ${taskId}.`,
+			VERIFIER_BRIEF,
+			`Read it, check its acceptance text against the result and the repository, then call AgentTeam { action: "verify", task_id: "${taskId}", expected_revision: <current>, verdict: "pass" | "fail", note: "...", fact: "...", excluded: "..." }.`,
+			"Send fact on pass or excluded on fail, never both. Do not edit files or claim work.",
+		].join("\n");
 	}
 	if (role === "advisor") {
 		return `[agent-team] You are the advisor for this team. Answer the lead's question. Do not edit files, claim tasks, or verify work.`;
 	}
-	return `[agent-team] Board task ${taskId} is yours. Run AgentTeam { action: "get", task_id: "${taskId}" }, claim it with its current revision, do the work, then complete it.`;
+	const facts = hasAgentTeamState() && agentTeamEnabled() ? ledgerPrompt(agentTeamBoard()) : "";
+	const head = `[agent-team] Board task ${taskId} is yours. Run AgentTeam { action: "get", task_id: "${taskId}" }, claim it with its current revision, do the work, then complete it.`;
+	return facts ? `${head}\n${facts}` : head;
 }
 
 export function completeTask(taskId: string, result?: string): void {

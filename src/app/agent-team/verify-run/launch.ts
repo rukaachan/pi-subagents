@@ -6,6 +6,7 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { discoverSubagents } from "../../../infra/files/index.ts";
 import { withTemps } from "../../../domain/run/index.ts";
 import { MAX_AGENT_TEAM_RESULT } from "../../../domain/agent-team/index.ts";
+import { VERIFIER_BRIEF } from "../../../domain/policy/index.ts";
 import type { SubagentConfig } from "../../../domain/subagent/index.ts";
 import type { TaskStorePort } from "../../../domain/task/index.ts";
 import { launchBackground } from "../../run/index.ts";
@@ -13,7 +14,7 @@ import type { ChildDeps } from "../../run/index.ts";
 import { agentTeamEnabled, getTask, linkVerifyRun } from "../board/index.ts";
 import { journalWrite } from "../../../telemetry/journal/index.ts";
 
-function promptFor(
+export function verifierPrompt(
 	taskId: string,
 	task: { subject: string; acceptance?: string; result?: string; writeScopes: string[] },
 ): string {
@@ -26,8 +27,10 @@ function promptFor(
 		task.writeScopes.length > 0
 			? `Write scopes: ${task.writeScopes.join(", ")}`
 			: "Write scopes: none",
+		VERIFIER_BRIEF,
 		"Check the repository and run the smallest proof you need. Do not edit files or claim work.",
-		`Call AgentTeam { action: "verify", task_id: "${taskId}", expected_revision: <current>, verdict: "pass" | "fail", note: "short reason" }.`,
+		`Call AgentTeam { action: "verify", task_id: "${taskId}", expected_revision: <current>, verdict: "pass" | "fail", note: "short reason", fact: "one checked fact", excluded: "one dead end" }.`,
+		"Send fact on pass or excluded on fail, never both; leave the other out.",
 	].join("\n");
 }
 
@@ -74,7 +77,7 @@ export function startAgentTeamVerification(
 		store,
 		sub,
 		`verify ${taskId}`,
-		promptFor(taskId, view.task),
+		verifierPrompt(taskId, view.task),
 		ctx.cwd,
 		ctx,
 		deps,

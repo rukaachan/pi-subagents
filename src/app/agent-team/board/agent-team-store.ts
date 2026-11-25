@@ -219,6 +219,7 @@ export function agentTeamSummary(): {
 	open: number;
 	review: number;
 	done: number;
+	facts: number;
 } {
 	const agentTeam = current();
 	return summarizeBoard(agentTeam.board, agentTeam.enabled);
@@ -229,6 +230,7 @@ export const agentTeamApi: AgentTeamApi = {
 	agentTeamId: currentAgentTeamId,
 	summary: agentTeamSummary,
 	members: agentTeamMembers,
+	ledger: () => current().board.ledger,
 	create: createTask,
 	update: updateTask,
 	list: taskList,

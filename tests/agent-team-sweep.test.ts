@@ -48,6 +48,9 @@ describe("run sweep", () => {
 		assert.equal(task?.lastOwner, "worker");
 		assert.equal(task?.lastError, "boom");
 		assert.equal(task?.returnedAt, 99);
+		assert.equal(task?.attempts?.at(-1)?.outcome, "released");
+		assert.equal(task?.attempts?.at(-1)?.owner, "worker");
+		assert.equal(task?.attempts?.at(-1)?.error, "boom");
 	});
 
 	it("releases every claimed task after a restart", () => {
@@ -57,6 +60,7 @@ describe("run sweep", () => {
 		assert.equal(task?.status, "pending");
 		assert.equal(task?.lastOwner, "worker");
 		assert.equal(task?.lastError, "Pi restarted");
+		assert.equal(task?.attempts?.at(-1)?.outcome, "released");
 	});
 
 	it("ignores a key that never joined", () => {

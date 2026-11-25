@@ -166,6 +166,9 @@ The UI grew without adding a second source of truth: `TaskRecord` and
   complete/verify/advise/delete/start/finish. Every mutation re-reads the
   revision; no edit is retried silently. The toggle makes every work leg an
   auto-task; acceptance moves completion to `in_review` and starts a verifier.
+  The verifier attacks the result; a pass may add a fact and a fail may add a
+  dead end to the team ledger, which later `taskPrompt` calls inject. The
+  board also keeps five attempts per task for the detail pane.
 - `src/app/hybrid-policy.ts` is injected as
   `systemPromptOptions.sections.pi_subagents_hybrid` on every lead turn.
   It names the ladder; the model chooses. `AgentTeam { action: "start", prompt }`

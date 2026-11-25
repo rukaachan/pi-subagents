@@ -19,6 +19,7 @@ export interface AgentTeamScreenOptions {
 	cursor: number;
 	theme: Pick<Theme, "fg" | "bold">;
 	enabled: boolean;
+	facts?: number;
 }
 
 const GLYPH = {
@@ -114,6 +115,19 @@ export function agentTeamDetailLines(
 	if (task.lastOwner || task.lastError) {
 		lines.push(theme.fg("error", `last ${task.lastOwner ?? "run"}: ${task.lastError ?? ""}`));
 	}
+	for (const attempt of task.attempts?.slice(-2) ?? []) {
+		const who = attempt.owner ? ` · ${attempt.owner}` : "";
+		const label =
+			attempt.outcome === "passed"
+				? "passed"
+				: `${attempt.outcome}${attempt.error ? `: ${attempt.error}` : ""}`;
+		lines.push(
+			theme.fg(
+				attempt.outcome === "passed" ? "success" : "error",
+				shortText(`${label}${who}`, 100),
+			),
+		);
+	}
 	lines.push(theme.fg("muted", shortText(task.description || "(no description)", 120)));
 	return lines.map((line) => truncateToWidth(line, width, "…"));
 }
@@ -162,7 +176,8 @@ export function renderAgentTeamScreen(
 	).length;
 	const review = rows.filter((row) => row.view.task.status === "in_review").length;
 	const done = rows.filter((row) => row.view.task.status === "completed").length;
-	const title = `${theme.bold("Mission control")}  ${theme.fg("muted", `${open} open · ${review} review · ${done} done · team ${opts.enabled ? "on" : "off"} (t)`)}`;
+	const facts = opts.facts && opts.facts > 0 ? ` · ${opts.facts} facts` : "";
+	const title = `${theme.bold("Mission control")}  ${theme.fg("muted", `${open} open · ${review} review · ${done} done${facts} · team ${opts.enabled ? "on" : "off"} (t)`)}`;
 	const rule = theme.fg("borderMuted", "─".repeat(Math.max(1, width)));
 	const hint = theme.fg("dim", agentTeamHint(rows, cursor));
 	const box = hintFrame(hint, width, wide ? listWidth + 1 : undefined, theme);

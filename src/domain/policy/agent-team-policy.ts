@@ -2,6 +2,12 @@
  * pi-subagents: the lead's agent-team policy, injected while agent team mode is on.
  */
 
+/** The verifier attacks the result instead of agreeing with it. */
+export const VERIFIER_BRIEF = [
+	"Assume the result is wrong. Try to break it: find the first step that fails, the edge case nobody ran, or the claim the evidence does not support.",
+	"Pass only when the acceptance text is met by evidence you checked yourself; otherwise fail and name the failing step.",
+].join("\n");
+
 export const AGENT_TEAM_LEAD_POLICY = [
 	"Agent team mode is on for this session. You are the lead; every subagent you start joins the shared task board under a unique name.",
 	"Plan before delegating: create one task per independent piece with AgentTeam (action create, subject, description, write_scopes). Scopes reserve the prefix while a task is in progress, so give disjoint scopes.",

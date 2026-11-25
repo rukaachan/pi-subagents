@@ -35,7 +35,7 @@ export interface WorkspaceData {
 	runs: BoardRow[];
 	agentTeam: AgentTeamRow[];
 	agentTeamEnabled: boolean;
-	summary: { open: number; done: number; enabled: boolean };
+	summary: { open: number; done: number; enabled: boolean; facts?: number };
 }
 
 export interface WorkspaceRender extends WorkspaceData {
@@ -82,6 +82,7 @@ export function renderWorkspace(opts: WorkspaceRender): string[] {
 					cursor: opts.agentTeamCursor,
 					theme: opts.theme,
 					enabled: opts.agentTeamEnabled,
+					...(opts.summary.facts ? { facts: opts.summary.facts } : {}),
 				});
 	const tabs = tabsLine(opts.tab, opts.width, opts.theme);
 	return [base[0] ?? "", tabs, ...base.slice(1)];

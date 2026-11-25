@@ -18,7 +18,7 @@ export interface WorkspaceViewDeps {
 	runs: () => BoardRow[];
 	agentTeam: () => AgentTeamRow[];
 	agentTeamEnabled: () => boolean;
-	summary: () => { open: number; done: number; enabled: boolean };
+	summary: () => { open: number; done: number; enabled: boolean; facts?: number };
 	height: () => number;
 	activity?: (taskId: string) => readonly string[] | undefined;
 	hidden?: () => { failed: number; stopped: number; hidden: boolean };

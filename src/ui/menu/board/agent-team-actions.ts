@@ -188,6 +188,13 @@ function detailText(view: AgentTeamTaskView): string {
 		`owner: ${task.owner ?? "unowned"} · scopes: ${task.writeScopes.join(",") || "none"}`,
 		view.blockedByOpen.length ? `blocked by: ${view.blockedByOpen.join(",")}` : "",
 		task.lastError ? `last ${task.lastOwner ?? "run"}: ${task.lastError}` : "",
+		...(task.attempts
+			?.slice(-2)
+			.map((attempt) =>
+				attempt.outcome === "passed"
+					? `passed by ${attempt.owner ?? "run"}`
+					: `${attempt.outcome}${attempt.owner ? ` by ${attempt.owner}` : ""}${attempt.error ? `: ${attempt.error}` : ""}`,
+			) ?? []),
 		task.description || "(no description)",
 	]
 		.filter(Boolean)

@@ -9,6 +9,7 @@ import {
 } from "../src/app/agent-team/board/index.ts";
 import { joinAgentTeamChild, agentTeamChildExtras } from "../src/app/agent-team/child/index.ts";
 import { createAgentTeamTool } from "../src/infra/agent-team/tools/index.ts";
+import { verifierPrompt } from "../src/app/agent-team/verify-run/launch.ts";
 
 beforeEach(() => {
 	beginAgentTeamSession("s-child");
@@ -36,6 +37,24 @@ describe("team child", () => {
 		assert.deepEqual(extras.activate, ["AgentTeam", "AgentTeamMessage"]);
 		assert.equal(extras.member, "worker-2");
 		assert.match(extras.promptPrefix ?? "", /"worker-2"/);
+	});
+
+	it("tells every verifier to attack the result", () => {
+		enableAgentTeam();
+		const child = joinAgentTeamChild("code-reviewer", undefined, undefined, "verifier");
+		assert.ok(child);
+		assert.match(child.prompt, /Try to break/);
+		assert.match(child.prompt, /fact/);
+		assert.match(child.prompt, /excluded/);
+		const launched = verifierPrompt("task-1", {
+			subject: "one",
+			acceptance: "npm test passes",
+			result: "done",
+			writeScopes: [],
+		});
+		assert.match(launched, /Try to break/);
+		assert.match(launched, /Acceptance: npm test passes/);
+		assert.match(launched, /excluded/);
 	});
 
 	it("keeps one member name across retries of the same task", () => {

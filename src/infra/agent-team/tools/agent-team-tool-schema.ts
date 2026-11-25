@@ -82,6 +82,12 @@ const PARAMETERS = Type.Object({
 	note: Type.Optional(
 		Type.String({ description: "Verification reason (verify) or release reason." }),
 	),
+	fact: Type.Optional(
+		Type.String({ description: "One checked fact to keep on a passing verify (verify pass)." }),
+	),
+	excluded: Type.Optional(
+		Type.String({ description: "One dead end to keep on a failing verify (verify fail)." }),
+	),
 	override: Type.Optional(
 		Type.Boolean({ description: "Lead-only verification override; a note is required." }),
 	),
@@ -137,6 +143,8 @@ type Params = {
 	verify_with?: string;
 	verdict?: "pass" | "fail";
 	note?: string;
+	fact?: string;
+	excluded?: string;
 	override?: boolean;
 	question?: string;
 	status?: "pending" | "in_progress" | "in_review" | "completed";

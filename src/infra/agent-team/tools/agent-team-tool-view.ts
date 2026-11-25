@@ -39,6 +39,16 @@ export function taskJson(view: AgentTeamTaskView): Record<string, unknown> {
 		...(view.task.verifiedBy ? { verified_by: view.task.verifiedBy } : {}),
 		...(view.task.verifiedAt ? { verified_at: view.task.verifiedAt } : {}),
 		...(view.task.verifyRunId ? { verify_run_id: view.task.verifyRunId } : {}),
+		...(view.task.attempts
+			? {
+					attempts: view.task.attempts.map((attempt) => ({
+						at: attempt.at,
+						outcome: attempt.outcome,
+						...(attempt.owner ? { owner: attempt.owner } : {}),
+						...(attempt.error ? { error: attempt.error } : {}),
+					})),
+				}
+			: {}),
 		...(view.task.origin ? { origin: view.task.origin } : {}),
 		ready: view.ready,
 		blocked_by_open: view.blockedByOpen,
