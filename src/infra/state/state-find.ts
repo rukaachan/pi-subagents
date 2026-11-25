@@ -4,7 +4,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { TaskRecord } from "../domain/task/index.ts";
+import type { TaskRecord } from "../../domain/task/index.ts";
 import {
 	PROJECT_STATE_DIR,
 	STATE_FILE_NAME,

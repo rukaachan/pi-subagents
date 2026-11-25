@@ -8,8 +8,8 @@ import {
 	MAX_DESCRIPTION_CHARS,
 	MAX_PROMPT_PREFIX_CHARS,
 	TOOL_GROUPS,
-} from "../domain/subagent/index.ts";
-import type { SubagentConfig } from "../domain/subagent/index.ts";
+} from "../../domain/subagent/index.ts";
+import type { SubagentConfig } from "../../domain/subagent/index.ts";
 import { loadSubagentFromContent } from "./subagent-files.ts";
 
 export const EDITABLE_FIELDS = [

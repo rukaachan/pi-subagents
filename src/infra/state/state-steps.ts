@@ -2,7 +2,7 @@
  * pi-subagents: validate chain and parallel step lists from disk.
  */
 
-import type { ChainStep, ParallelLeg } from "../domain/task/index.ts";
+import type { ChainStep, ParallelLeg } from "../../domain/task/index.ts";
 
 type Obj = Record<string, unknown>;
 

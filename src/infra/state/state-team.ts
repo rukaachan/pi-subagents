@@ -15,9 +15,9 @@ import {
 	type TeamMember,
 	type TeamTask,
 	type TeamTaskStatus,
-} from "../domain/team/index.ts";
-import { canonicalWorkspacePath } from "../domain/policy/index.ts";
-import { MAX_COLD_CHARS, MAX_COLD_MESSAGES } from "../domain/team/index.ts";
+} from "../../domain/team/index.ts";
+import { canonicalWorkspacePath } from "../../domain/policy/index.ts";
+import { MAX_COLD_CHARS, MAX_COLD_MESSAGES } from "../../domain/team/index.ts";
 
 export interface PersistedTeam {
 	teamId: string;

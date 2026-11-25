@@ -5,7 +5,7 @@
 import { performance } from "node:perf_hooks";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { loadSubagentFromContent } from "../src/infra/subagent-files.ts";
+import { loadSubagentFromContent } from "../src/infra/files/index.ts";
 import { pickRoster } from "../src/domain/subagent/index.ts";
 import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 

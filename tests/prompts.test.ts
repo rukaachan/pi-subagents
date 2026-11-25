@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { loadSubagentFromContent } from "../src/infra/subagent-files.ts";
+import { loadSubagentFromContent } from "../src/infra/files/index.ts";
 
 const STARTER_DIR = path.join(import.meta.dirname, "..", "subagents");
 const READ_ONLY = ["read", "grep", "find", "ls"];

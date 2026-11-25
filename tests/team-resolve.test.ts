@@ -9,7 +9,7 @@ import {
 	teamApi,
 	updateTask,
 } from "../src/app/team-store.ts";
-import { createTeamTool } from "../src/infra/team-tool.ts";
+import { createTeamTool } from "../src/infra/team/tools/index.ts";
 
 function call(
 	tool: ReturnType<typeof createTeamTool>,

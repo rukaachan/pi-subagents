@@ -6,7 +6,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
-import { projectStatePath } from "../../src/infra/state-file.ts";
+import { projectStatePath } from "../../src/infra/state/index.ts";
 
 const repoRoot = resolvePath(fileURLToPath(new URL("../..", import.meta.url)));
 const fixtures = join(repoRoot, "tests", "fixtures", "e2e", "subagents");

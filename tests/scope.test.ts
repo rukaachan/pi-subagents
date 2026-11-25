@@ -11,8 +11,8 @@ import { createWriteToolDefinition } from "@earendil-works/pi-coding-agent";
 import type { ExtensionToolContext } from "@earendil-works/pi-coding-agent";
 import { parsePaths } from "../src/domain/subagent/index.ts";
 import { registerTemp } from "../src/domain/run/index.ts";
-import { loadSubagentFromContent } from "../src/infra/subagent-files.ts";
-import { guardPaths, isPathAllowed } from "../src/infra/tool-guard.ts";
+import { loadSubagentFromContent } from "../src/infra/files/index.ts";
+import { guardPaths, isPathAllowed } from "../src/infra/guard/index.ts";
 
 const def = (over: Record<string, unknown> = {}) => ({
 	name: "t-scope",

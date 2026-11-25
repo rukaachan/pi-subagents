@@ -8,7 +8,7 @@ import {
 	updateTask,
 } from "../src/app/team-store.ts";
 import { MAX_TEAM_RESULT } from "../src/domain/team/index.ts";
-import { decodeTeam } from "../src/infra/state-team.ts";
+import { decodeTeam } from "../src/infra/state/index.ts";
 
 const lead = { name: "lead", lead: true };
 const worker = { name: "worker", lead: false };

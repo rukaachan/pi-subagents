@@ -4,8 +4,8 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import type { ExtensionAPI, ToolCallEvent } from "@earendil-works/pi-coding-agent";
-import { createChildGateExtension, gateDetail } from "../src/infra/child-gate.ts";
-import type { GateBlock } from "../src/infra/child-gate.ts";
+import { createChildGateExtension, gateDetail } from "../src/infra/guard/index.ts";
+import type { GateBlock } from "../src/infra/guard/index.ts";
 import { withGateJournal } from "../src/app/child-gate-journal.ts";
 
 type ToolInfo = { name: string; annotations?: { destructiveHint?: boolean } };

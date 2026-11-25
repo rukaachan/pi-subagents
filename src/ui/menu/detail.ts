@@ -4,9 +4,9 @@
 
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import type { SubagentConfig } from "../../domain/subagent/index.ts";
-import type { EditableField } from "../../infra/files.ts";
+import type { EditableField } from "../../infra/files/index.ts";
 import { ledger } from "../../app/ledger.ts";
-import { discoverSubagents } from "../../infra/subagent-files.ts";
+import { discoverSubagents } from "../../infra/files/index.ts";
 import {
 	BUDGET_EDIT_FIELDS,
 	EDITABLE_FIELDS,
@@ -15,9 +15,9 @@ import {
 	editBudgetField,
 	editSubagentField,
 	trashDir,
-} from "../../infra/files.ts";
-import type { BudgetEditField } from "../../infra/files.ts";
-import { trashSubagentFile } from "../../infra/trash.ts";
+} from "../../infra/files/index.ts";
+import type { BudgetEditField } from "../../infra/files/index.ts";
+import { trashSubagentFile } from "../../infra/files/index.ts";
 import { currentFieldValue, pickModel, pickTools } from "./wizard-fields.ts";
 import { pickChoice, pickFromList } from "../picker.ts";
 import { subagentDetail } from "../view/detail.ts";

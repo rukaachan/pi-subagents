@@ -23,7 +23,7 @@ import {
 	snapshotHistory,
 	sumUsage,
 } from "../domain/run/index.ts";
-import { startSubagentSession } from "../infra/host-session.ts";
+import { startSubagentSession } from "../infra/host/index.ts";
 import { withGateJournal } from "./child-gate-journal.ts";
 import { teamChildExtras } from "./team-child.ts";
 import { bindTeamMember } from "./team-mail.ts";

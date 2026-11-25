@@ -18,7 +18,7 @@ import { annotateFailure, awaitWithHardStop, surfaceBudgetNotes } from "./guards
 import { runReport } from "../domain/run/index.ts";
 import { checkReturn } from "../domain/run/index.ts";
 import { journalWrite } from "../telemetry/journal.ts";
-import { startSubagentSession } from "../infra/host-session.ts";
+import { startSubagentSession } from "../infra/host/index.ts";
 import { withGateJournal } from "./child-gate-journal.ts";
 import { teamChildExtras } from "./team-child.ts";
 import { sweepMemberTasks } from "./team-sweep.ts";

@@ -3,7 +3,7 @@
  */
 
 import { Type, type Static } from "typebox";
-import { taskArgs } from "../../infra/host-shim.ts";
+import { taskArgs } from "../../infra/host/index.ts";
 
 export const taskParameters = Type.Object({
 	subagent_type: Type.Optional(

@@ -3,12 +3,12 @@
  */
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { discoverSubagents } from "../infra/subagent-files.ts";
+import { discoverSubagents } from "../infra/files/index.ts";
 import { showValue } from "../domain/subagent/index.ts";
 import type { SubagentConfig } from "../domain/subagent/index.ts";
 import { fanoutAdmission } from "../domain/policy/index.ts";
 import { codemodeContentionNote, codemodeLegs } from "../domain/task/index.ts";
-import { effectiveCodemodeWorkers } from "../infra/worker-pool.ts";
+import { effectiveCodemodeWorkers } from "../infra/host/index.ts";
 import { withTemps } from "../domain/run/index.ts";
 import { useFooterUI } from "../telemetry/progress.ts";
 import { MAX_LIVE_TASKS, newRunId } from "../domain/task/index.ts";

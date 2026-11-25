@@ -8,8 +8,8 @@ import {
 	loadState,
 	MAX_STATE_BYTES,
 	projectStatePath,
-} from "../src/infra/state-file.ts";
-import { findStateTask } from "../src/infra/state-find.ts";
+} from "../src/infra/state/index.ts";
+import { findStateTask } from "../src/infra/state/index.ts";
 import { rec, usage } from "./board-fixtures.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "pi-state-read-"));

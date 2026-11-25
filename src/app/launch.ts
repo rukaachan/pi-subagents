@@ -3,7 +3,7 @@
  */
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { discoverSubagents } from "../infra/subagent-files.ts";
+import { discoverSubagents } from "../infra/files/index.ts";
 import { withTemps } from "../domain/run/index.ts";
 import type { SubagentRunResult } from "../domain/run/index.ts";
 import type { LaunchKind } from "../domain/policy/index.ts";

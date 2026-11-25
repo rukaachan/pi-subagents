@@ -17,7 +17,7 @@ import {
 	updateTask,
 } from "../src/app/team-store.ts";
 import { beginSession, stopPersistence } from "../src/app/live-store.ts";
-import { createTeamTool } from "../src/infra/team-tool.ts";
+import { createTeamTool } from "../src/infra/team/tools/index.ts";
 
 function call(
 	tool: ReturnType<typeof createTeamTool>,

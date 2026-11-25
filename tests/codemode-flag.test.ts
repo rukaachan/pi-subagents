@@ -4,7 +4,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { clampToolsForAutonomy, type SubagentConfig } from "../src/domain/subagent/index.ts";
-import { loadSubagentFromContent } from "../src/infra/subagent-files.ts";
+import { loadSubagentFromContent } from "../src/infra/files/index.ts";
 import { parseCodemodeFlag } from "../src/domain/subagent/index.ts";
 import { planCodemode } from "../src/domain/task/index.ts";
 

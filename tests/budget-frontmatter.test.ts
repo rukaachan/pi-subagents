@@ -4,7 +4,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { clampToolsForAutonomy } from "../src/domain/subagent/index.ts";
-import { loadSubagentFromContent } from "../src/infra/subagent-files.ts";
+import { loadSubagentFromContent } from "../src/infra/files/index.ts";
 import { planCodemode } from "../src/domain/task/index.ts";
 
 const FRONT_WITH = (fm: string) => `---\n${fm}\n---\n\nbody\n`;

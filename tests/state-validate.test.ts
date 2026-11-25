@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { decodeState, STATE_VERSION } from "../src/infra/state-file.ts";
+import { decodeState, STATE_VERSION } from "../src/infra/state/index.ts";
 import { rec } from "./board-fixtures.ts";
 
 function done(over: Record<string, unknown> = {}) {

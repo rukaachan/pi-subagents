@@ -2,8 +2,8 @@
  * pi-subagents: the live team board for one Pi session.
  */
 
-import type { PersistedTeam } from "../infra/state-team.ts";
-import type { TeamApi } from "../infra/team-tool-types.ts";
+import type { PersistedTeam } from "../infra/state/index.ts";
+import type { TeamApi } from "../infra/team/tools/index.ts";
 import {
 	LEAD_NAME,
 	MAX_TEAM_MEMBERS,

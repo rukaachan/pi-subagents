@@ -6,13 +6,13 @@ import * as path from "node:path";
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { CONFIG_DIR_NAME } from "@earendil-works/pi-coding-agent";
 import { SUBAGENT_DIR_NAME } from "../../domain/subagent/index.ts";
-import { discoverSubagents } from "../../infra/subagent-files.ts";
+import { discoverSubagents } from "../../infra/files/index.ts";
 import {
 	FIELD_CHOICES,
 	templateFromStarter,
 	validateName,
 	writeSubagentFile,
-} from "../../infra/files.ts";
+} from "../../infra/files/index.ts";
 import { pickChoice, pickFromList } from "../picker.ts";
 import { pickModel, pickTools } from "./wizard-fields.ts";
 import { inModal } from "../../app/modal-depth.ts";

@@ -29,8 +29,8 @@ const task = argv.includes("--task") ? (argv[argv.indexOf("--task") + 1] as stri
 
 async function main(): Promise<void> {
 	const pi = await import("@earendil-works/pi-coding-agent");
-	const { loadSubagentFromContent } = await import("../src/infra/subagent-files.ts");
-	const { startSubagentSession } = await import("../src/infra/host-session.ts");
+	const { loadSubagentFromContent } = await import("../src/infra/files/subagent-files.ts");
+	const { startSubagentSession } = await import("../src/infra/host/host-session.ts");
 
 	const work = mkdtempSync(join(tmpdir(), "script-route-"));
 	try {

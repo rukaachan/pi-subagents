@@ -5,14 +5,14 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { CONFIG_DIR_NAME, getAgentDir, parseFrontmatter } from "@earendil-works/pi-coding-agent";
-import { SUBAGENT_DIR_NAME } from "../domain/subagent/index.ts";
+import { SUBAGENT_DIR_NAME } from "../../domain/subagent/index.ts";
 import type {
 	SubagentConfig,
 	SubagentFrontmatter,
 	SubagentSource,
-} from "../domain/subagent/index.ts";
-import { validateSubagent } from "../domain/subagent/index.ts";
-import type { SubagentDiscoveryResult } from "../domain/subagent/index.ts";
+} from "../../domain/subagent/index.ts";
+import { validateSubagent } from "../../domain/subagent/index.ts";
+import type { SubagentDiscoveryResult } from "../../domain/subagent/index.ts";
 
 export function loadSubagentFromContent(
 	content: string,

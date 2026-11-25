@@ -2,8 +2,8 @@
  * pi-subagents: the root session's Team tool.
  */
 
-import { createTeamMessageTool } from "../infra/team-message-tool.ts";
-import { createTeamTool } from "../infra/team-tool.ts";
+import { createTeamMessageTool } from "../infra/team/message/index.ts";
+import { createTeamTool } from "../infra/team/tools/index.ts";
 import { liveMember, teamMessageApi } from "../app/team-mail.ts";
 import { store } from "../app/live-store.ts";
 import { startTeamLaunch } from "../app/team-launch.ts";

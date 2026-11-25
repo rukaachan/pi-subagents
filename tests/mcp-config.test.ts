@@ -3,15 +3,15 @@ import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { loadSubagentFromContent } from "../src/infra/subagent-files.ts";
-import { decodeState, STATE_VERSION } from "../src/infra/state-file.ts";
+import { loadSubagentFromContent } from "../src/infra/files/index.ts";
+import { decodeState, STATE_VERSION } from "../src/infra/state/index.ts";
 import { currentFieldValue } from "../src/ui/menu/wizard-fields.ts";
 import {
 	EDITABLE_FIELDS,
 	FIELD_CHOICES,
 	editSubagentField,
 	validateField,
-} from "../src/infra/edit-subagent.ts";
+} from "../src/infra/files/index.ts";
 import { rec, sub } from "./board-fixtures.ts";
 
 const FRONT = (fm: string) => `---\n${fm}\n---\n\nbody text\n`;

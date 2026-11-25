@@ -13,7 +13,7 @@ import {
 	loadState,
 	MAX_HISTORY_CHARS,
 	STATE_FILE_NAME,
-} from "../src/infra/state-file.ts";
+} from "../src/infra/state/index.ts";
 
 function sub(): SubagentConfig {
 	return {

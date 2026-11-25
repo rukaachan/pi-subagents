@@ -9,8 +9,8 @@ import {
 	templateFromStarter,
 	validateField,
 	writeSubagentFile,
-} from "../src/infra/files.ts";
-import { trashSubagentFile } from "../src/infra/trash.ts";
+} from "../src/infra/files/index.ts";
+import { trashSubagentFile } from "../src/infra/files/index.ts";
 import {
 	kindBadge,
 	kvTable,

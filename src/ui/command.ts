@@ -3,7 +3,7 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { discoverSubagents } from "../infra/subagent-files.ts";
+import { discoverSubagents } from "../infra/files/index.ts";
 import { runCreateWizard } from "./menu/wizard.ts";
 import { runListMenu } from "./menu/root.ts";
 import { openWorkspace } from "./menu/workspace.ts";
@@ -135,7 +135,7 @@ export function registerSubagentsCommand(pi: ExtensionAPI, store: TaskStore): vo
 			if (query === "trash") {
 				const { userSubagentsDir } = discoverSubagents(ctx.cwd);
 				if (!ctx.hasUI) {
-					const { listTrash } = await import("../infra/trash.ts");
+					const { listTrash } = await import("../infra/files/trash.ts");
 					const items = listTrash();
 					ctx.ui.notify(
 						items.length === 0

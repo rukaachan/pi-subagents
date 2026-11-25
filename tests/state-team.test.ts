@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { decodeTeam } from "../src/infra/state-team.ts";
+import { decodeTeam } from "../src/infra/state/index.ts";
 
 const valid = {
 	teamId: "s-1",

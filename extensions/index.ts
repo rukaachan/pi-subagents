@@ -26,7 +26,7 @@ import { queuedLegCount, stopLaunchSchedulers } from "../src/app/launch.ts";
 import { watchEscapeKey } from "../src/app/esc-watch.ts";
 import { liveCount } from "../src/app/live-runs.ts";
 import { scopeTasks } from "../src/app/task-scope.ts";
-import { applyCodemodeWorkerDefault } from "../src/infra/worker-pool.ts";
+import { applyCodemodeWorkerDefault } from "../src/infra/host/index.ts";
 import { readGlobalConfig } from "../src/app/global-config.ts";
 import { CODEMODE_WORKERS_DEFAULT } from "../src/domain/task/index.ts";
 import { footerProgress } from "../src/telemetry/progress.ts";

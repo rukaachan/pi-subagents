@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { PARAMETERS as TEAM } from "../src/infra/team-tool-schema.ts";
-import { PARAMETERS as MESSAGE } from "../src/infra/team-message-schema.ts";
+import { PARAMETERS as TEAM } from "../src/infra/team/tools/index.ts";
+import { PARAMETERS as MESSAGE } from "../src/infra/team/message/index.ts";
 import { MAX_TEAM_TASKS } from "../src/domain/team/index.ts";
 
 interface Shape {

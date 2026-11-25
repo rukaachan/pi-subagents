@@ -10,7 +10,7 @@ import { freezeRestored } from "../domain/task/index.ts";
 import { restoreTeam, teamSnapshot } from "./team-store.ts";
 import { coldMailSnapshot, restoreColdMail } from "./team-mail.ts";
 import { releaseOrphanedTasks } from "./team-sweep.ts";
-import { findStateTask } from "../infra/state-find.ts";
+import { findStateTask } from "../infra/state/index.ts";
 import { journalWrite } from "../telemetry/journal.ts";
 import {
 	capRecord,
@@ -21,17 +21,17 @@ import {
 	saveStateAsync,
 	STATE_VERSION,
 	type PersistedState,
-} from "../infra/state-file.ts";
+} from "../infra/state/index.ts";
 
-export { defaultStatePath, projectStatePath, sessionStatePath } from "../infra/state-file.ts";
+export { defaultStatePath, projectStatePath, sessionStatePath } from "../infra/state/index.ts";
 export {
 	decodeState,
 	encodeState,
 	loadState,
 	saveState,
 	STATE_VERSION,
-} from "../infra/state-file.ts";
-export type { PersistedState } from "../infra/state-file.ts";
+} from "../infra/state/index.ts";
+export type { PersistedState } from "../infra/state/index.ts";
 
 /** A row from an older session's file, frozen so it can be resumed. */
 export function archivedTask(cwd: string, taskId: string): TaskRecord | undefined {

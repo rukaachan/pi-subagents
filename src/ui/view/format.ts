@@ -3,7 +3,7 @@
  */
 
 import * as os from "node:os";
-import type { TrashItem } from "../../infra/trash.ts";
+import type { TrashItem } from "../../infra/files/index.ts";
 import type { SubagentRunResult } from "../../domain/run/index.ts";
 import type { TaskRecord } from "../../domain/task/index.ts";
 

@@ -3,7 +3,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { defaultStatePath, sessionStatePath } from "../src/infra/state-file.ts";
+import { defaultStatePath, sessionStatePath } from "../src/infra/state/index.ts";
 import { TaskStore } from "../src/domain/task/index.ts";
 import { lastMessageAt } from "../src/domain/task/index.ts";
 import { rec } from "./board-fixtures.ts";

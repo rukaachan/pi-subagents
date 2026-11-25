@@ -8,7 +8,7 @@ import {
 	teamApi,
 } from "../src/app/team-store.ts";
 import { joinTeamChild, teamChildExtras } from "../src/app/team-child.ts";
-import { createTeamTool } from "../src/infra/team-tool.ts";
+import { createTeamTool } from "../src/infra/team/tools/index.ts";
 
 beforeEach(() => {
 	beginTeamSession("s-child");

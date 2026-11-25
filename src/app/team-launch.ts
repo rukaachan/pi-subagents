@@ -3,7 +3,7 @@
  */
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { discoverSubagents } from "../infra/subagent-files.ts";
+import { discoverSubagents } from "../infra/files/index.ts";
 import {
 	MAX_TEAM_DESCRIPTION,
 	MAX_TEAM_MEMBERS,
@@ -11,7 +11,11 @@ import {
 	MAX_TEAM_TASKS,
 } from "../domain/team/index.ts";
 import { withTemps } from "../domain/run/index.ts";
-import type { TeamLaunchInput, TeamLaunchLeg, TeamLaunchResult } from "../infra/team-tool-types.ts";
+import type {
+	TeamLaunchInput,
+	TeamLaunchLeg,
+	TeamLaunchResult,
+} from "../infra/team/tools/index.ts";
 import { startLaunch } from "./launch.ts";
 import {
 	createTask,

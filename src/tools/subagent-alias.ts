@@ -10,7 +10,7 @@ import { store } from "../app/live-store.ts";
 import { runSubagent } from "../app/run.ts";
 import { newRecord } from "../domain/task/index.ts";
 import { parseBudget } from "../domain/subagent/index.ts";
-import { discoverSubagents } from "../infra/subagent-files.ts";
+import { discoverSubagents } from "../infra/files/index.ts";
 import { withTemps } from "../domain/run/index.ts";
 import { readGlobalConfig, withGlobalConfig } from "../app/global-config.ts";
 import {
@@ -19,7 +19,7 @@ import {
 	parseCodemodeOverride,
 	parseComplexity,
 } from "../domain/run/index.ts";
-import { subagentArgs } from "../infra/host-shim.ts";
+import { subagentArgs } from "../infra/host/index.ts";
 import { useFooterUI } from "../telemetry/progress.ts";
 import { newRunKey } from "../telemetry/track.ts";
 import { resultShell, toUsage, usageFooter } from "../ui/tool-results.ts";

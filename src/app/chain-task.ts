@@ -10,7 +10,7 @@ import { MAX_LIVE_TASKS } from "../domain/task/index.ts";
 import { runChain } from "./chain.ts";
 import { isRunStopped, stoppedToolText } from "../domain/task/index.ts";
 import { capDelivery } from "../domain/run/index.ts";
-import { toUsage } from "../infra/host-usage.ts";
+import { toUsage } from "../infra/host/index.ts";
 import type { ChainSpec } from "./chain.ts";
 import { TaskStore } from "../domain/task/index.ts";
 import { readGlobalConfig, withGlobalConfig } from "./global-config.ts";

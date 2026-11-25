@@ -2,7 +2,7 @@
  * pi-subagents: the codemode worker pool of the host process.
  */
 
-import { CODEMODE_WORKERS_DEFAULT } from "../domain/task/index.ts";
+import { CODEMODE_WORKERS_DEFAULT } from "../../domain/task/index.ts";
 
 export function effectiveCodemodeWorkers(): number {
 	const raw = process.env.PI_CODEMODE_MAX_WORKERS;

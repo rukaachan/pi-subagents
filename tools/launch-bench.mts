@@ -8,7 +8,7 @@ import type { LaunchLeg, LaunchRun } from "../src/app/launch.ts";
 import { TaskStore } from "../src/domain/task/index.ts";
 import { MAX_LIVE_TASKS, newRecord } from "../src/domain/task/index.ts";
 import { startLaunch, stopLaunchSchedulers } from "../src/app/launch.ts";
-import { discoverSubagents } from "../src/infra/subagent-files.ts";
+import { discoverSubagents } from "../src/infra/files/index.ts";
 import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 
 const BODY = "line of a subagent report\n".repeat(50);

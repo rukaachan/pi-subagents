@@ -21,9 +21,9 @@ import {
 	editBudgetField,
 	editSubagentField,
 	validateField,
-} from "../src/infra/files.ts";
-import { loadSubagentFromContent } from "../src/infra/subagent-files.ts";
-import { deleteSubagentFile } from "../src/infra/trash.ts";
+} from "../src/infra/files/index.ts";
+import { loadSubagentFromContent } from "../src/infra/files/index.ts";
+import { deleteSubagentFile } from "../src/infra/files/index.ts";
 
 function rec(over: Partial<TaskRecord> = {}): TaskRecord {
 	return {

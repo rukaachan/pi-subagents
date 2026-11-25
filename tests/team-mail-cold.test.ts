@@ -17,7 +17,7 @@ import {
 	teamMessageApi,
 	waitForMember,
 } from "../src/app/team-mail.ts";
-import { createTeamMessageTool } from "../src/infra/team-message-tool.ts";
+import { createTeamMessageTool } from "../src/infra/team/message/index.ts";
 
 const sub: SubagentConfig = {
 	name: "worker",

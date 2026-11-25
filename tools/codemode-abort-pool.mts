@@ -42,7 +42,7 @@ interface Host {
 
 async function setup(): Promise<Host> {
 	const pi = await import("@earendil-works/pi-coding-agent");
-	const { loadSubagentFromContent } = await import("../src/infra/subagent-files.ts");
+	const { loadSubagentFromContent } = await import("../src/infra/files/subagent-files.ts");
 	const home = mkdtempSync(join(tmpdir(), "codemode-abort-"));
 	const file = join(home, "probe-abort.md");
 	writeFileSync(file, SUB, "utf8");
@@ -72,7 +72,7 @@ async function setup(): Promise<Host> {
 
 async function main(): Promise<void> {
 	const pi = await import("@earendil-works/pi-coding-agent");
-	const { startSubagentSession } = await import("../src/infra/host-session.ts");
+	const { startSubagentSession } = await import("../src/infra/host/host-session.ts");
 	const { ctx, cfg } = await setup();
 
 	const t0 = Date.now();

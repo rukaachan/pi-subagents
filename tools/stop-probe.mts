@@ -19,7 +19,7 @@ Read every file you are given, one by one, and never stop early.
 
 async function main(): Promise<void> {
 	const pi = await import("@earendil-works/pi-coding-agent");
-	const { loadSubagentFromContent } = await import("../src/infra/subagent-files.ts");
+	const { loadSubagentFromContent } = await import("../src/infra/files/subagent-files.ts");
 	const { launchBackground } = await import("../src/app/background.ts");
 	const { liveCount, liveLabels } = await import("../src/app/live-runs.ts");
 	const { stopAllLiveRuns } = await import("../src/app/stop-all.ts");

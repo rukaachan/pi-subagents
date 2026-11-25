@@ -3,7 +3,7 @@
  */
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { discoverSubagents } from "../../infra/subagent-files.ts";
+import { discoverSubagents } from "../../infra/files/index.ts";
 import { registerTemp, withTemps } from "../../domain/run/index.ts";
 import { markKind } from "../../app/ledger.ts";
 import { MAX_LIVE_TASKS, newRecord } from "../../domain/task/index.ts";
@@ -19,7 +19,7 @@ import { applyRunOverrides, overrideNote } from "./validate.ts";
 import { readGlobalConfig, withGlobalConfig } from "../../app/global-config.ts";
 import type { TaskParams } from "./schema.ts";
 import type { ToolResult } from "./types.ts";
-import { toUsage } from "../../infra/host-usage.ts";
+import { toUsage } from "../../infra/host/index.ts";
 import { planTask } from "./validate.ts";
 import { markStopped } from "../../app/stop-row.ts";
 import { isRunStopped, stoppedToolText } from "../../domain/task/index.ts";

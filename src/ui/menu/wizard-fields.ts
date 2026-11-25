@@ -4,8 +4,8 @@
 
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import type { SubagentConfig } from "../../domain/subagent/index.ts";
-import type { EditableField } from "../../infra/files.ts";
-import { FIELD_CHOICES } from "../../infra/files.ts";
+import type { EditableField } from "../../infra/files/index.ts";
+import { FIELD_CHOICES } from "../../infra/files/index.ts";
 import { pickChoice, pickFromList } from "../picker.ts";
 import { inModal } from "../../app/modal-depth.ts";
 import { modelRow } from "../view/format.ts";

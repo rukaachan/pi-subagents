@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { activateTools } from "../src/infra/host-session.ts";
+import { activateTools } from "../src/infra/host/index.ts";
 
 describe("child tool activation", () => {
 	it("adds the extra tool to an explicit list", () => {

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { contextNote } from "../src/infra/child-context.ts";
+import { contextNote } from "../src/infra/guard/index.ts";
 
 describe("the context note is the visible cost", () => {
 	it("counts files and chars and names the ones inside the workspace", () => {

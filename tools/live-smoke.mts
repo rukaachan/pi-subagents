@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadSubagentFromContent } from "../src/infra/subagent-files.ts";
+import { loadSubagentFromContent } from "../src/infra/files/index.ts";
 import { launchBackground, resumeTask } from "../src/app/background.ts";
 import { startTeamLaunch } from "../src/app/team-launch.ts";
 import { steerTask } from "../src/app/task-actions.ts";

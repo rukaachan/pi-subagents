@@ -6,8 +6,8 @@ import * as path from "node:path";
 import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 import { MAX_PROMPT_PREFIX_CHARS } from "../src/domain/subagent/index.ts";
 import { taskPrompt } from "../src/domain/subagent/index.ts";
-import { editSubagentField } from "../src/infra/edit-subagent.ts";
-import { loadSubagentFromContent } from "../src/infra/subagent-files.ts";
+import { editSubagentField } from "../src/infra/files/index.ts";
+import { loadSubagentFromContent } from "../src/infra/files/index.ts";
 
 function sub(over: Partial<SubagentConfig> = {}): SubagentConfig {
 	return {
