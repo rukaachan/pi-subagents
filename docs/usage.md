@@ -380,7 +380,9 @@ and the commands. The verifier defaults to `code-reviewer`; set `verify_with`
 to `tester` or another name. A `pass` makes the task `completed`; a `fail`
 returns it to `pending` with the reason in `last_error`, so dependents stay
 blocked. A verifier error leaves the task in review. Only the verifier or the
-lead can verify; a lead override needs a note and is journaled.
+lead can verify; a lead override needs a note and is journaled. If team mode
+is off, no verifier starts: the task stays in review and the lead can record
+its verdict with `v`.
 
 Ask for a second opinion without giving up ownership:
 `AgentTeam { action: "advise", question, task_id? }`. It starts one bounded,

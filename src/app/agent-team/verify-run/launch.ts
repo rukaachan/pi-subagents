@@ -10,7 +10,7 @@ import type { SubagentConfig } from "../../../domain/subagent/index.ts";
 import type { TaskStorePort } from "../../../domain/task/index.ts";
 import { launchBackground } from "../../run/index.ts";
 import type { ChildDeps } from "../../run/index.ts";
-import { getTask, linkVerifyRun } from "../board/index.ts";
+import { agentTeamEnabled, getTask, linkVerifyRun } from "../board/index.ts";
 import { journalWrite } from "../../../telemetry/journal/index.ts";
 
 function promptFor(
@@ -48,6 +48,15 @@ export function startAgentTeamVerification(
 ): void {
 	const view = getTask(taskId);
 	if (!view || view.task.status !== "in_review") return;
+	if (!agentTeamEnabled()) {
+		journalWrite({
+			event: "agent_team_verify",
+			taskId,
+			ok: false,
+			error: "agent team is off",
+		});
+		return;
+	}
 	const running = view.task.verifyRunId ? store.get(view.task.verifyRunId) : undefined;
 	if (running?.status === "running") return;
 	const disk = withTemps(discoverSubagents(ctx.cwd));
