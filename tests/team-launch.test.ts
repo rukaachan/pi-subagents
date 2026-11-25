@@ -29,14 +29,19 @@ beforeEach(() => {
 
 describe("team start", () => {
 	it("needs a prompt", async () => {
-		const result = await startTeamLaunch({} as never, { prompt: "   " }, ctx());
+		const result = await startTeamLaunch({} as never, { prompt: "   " }, ctx(), {} as never);
 		assert.equal(result.ok, false);
 		if (!result.ok) assert.match(result.error, /needs a prompt/);
 		assert.equal(teamEnabled(), false);
 	});
 
 	it("caps the prompt before it touches the board", async () => {
-		const result = await startTeamLaunch({} as never, { prompt: "x".repeat(2_001) }, ctx());
+		const result = await startTeamLaunch(
+			{} as never,
+			{ prompt: "x".repeat(2_001) },
+			ctx(),
+			{} as never,
+		);
 		assert.equal(result.ok, false);
 		if (!result.ok) assert.match(result.error, /2000/);
 		assert.equal(teamEnabled(), false);
@@ -44,7 +49,12 @@ describe("team start", () => {
 
 	it("caps a start at the member ceiling", async () => {
 		const roster = Array.from({ length: MAX_TEAM_MEMBERS + 1 }, (_, i) => `m${i}`);
-		const result = await startTeamLaunch({} as never, { prompt: "map auth", roster }, ctx());
+		const result = await startTeamLaunch(
+			{} as never,
+			{ prompt: "map auth", roster },
+			ctx(),
+			{} as never,
+		);
 		assert.equal(result.ok, false);
 		if (!result.ok) assert.match(result.error, /32 legs/);
 		assert.equal(teamEnabled(), false);
@@ -56,6 +66,7 @@ describe("team start", () => {
 			{} as never,
 			{ prompt: "map auth", roster: ["ghost"] },
 			ctx(),
+			{} as never,
 		);
 		assert.equal(result.ok, false);
 		if (!result.ok) assert.match(result.error, /Unknown subagent/);

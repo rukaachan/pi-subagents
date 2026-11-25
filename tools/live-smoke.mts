@@ -13,7 +13,9 @@ import { launchBackground, resumeTask } from "../src/app/run/index.ts";
 import { startTeamLaunch } from "../src/app/team/run/index.ts";
 import { steerTask } from "../src/app/run/index.ts";
 import { liveSession } from "../src/app/live/index.ts";
-import { TaskStore } from "../src/domain/task/index.ts";
+import { createSessionRuntime } from "../src/app/index.ts";
+import { hostChild } from "../src/infra/host/index.ts";
+import { fileState } from "../src/infra/state/index.ts";
 import { bindTeamMail, clearTeamMail } from "../src/app/team/channel/index.ts";
 import { stopAllLiveRuns } from "../src/app/stop/index.ts";
 
@@ -107,7 +109,9 @@ const gated = loadSubagentFromContent(gatedMarkdown, join(subs, "live-gated.md")
 assert.equal(typeof gated, "object", "gated fixture parses");
 if (typeof gated === "string") throw new Error(gated);
 
-const store = new TaskStore();
+const sessionRuntime = createSessionRuntime({ child: hostChild, state: fileState });
+const store = sessionRuntime.store;
+const deps = sessionRuntime.deps;
 bindTeamMail(store);
 clearTeamMail();
 try {
@@ -118,6 +122,7 @@ try {
 		"Reply with exactly LIVE_TASK_OK. Do not call any tool.",
 		dir,
 		ctx,
+		deps,
 		{ kind: "background" },
 	);
 	assert.match(await waitDone(store, taskId, "task"), /LIVE_TASK_OK/);
@@ -130,6 +135,7 @@ try {
 			roster: ["live-worker"],
 		},
 		ctx,
+		deps,
 	);
 	assert.equal(startedTeam.ok, true, startedTeam.ok ? "" : startedTeam.error);
 	if (!startedTeam.ok) throw new Error(startedTeam.error);
@@ -145,6 +151,7 @@ try {
 		'First call bash with command "sleep 5". Then reply with the last steer text you received.',
 		dir,
 		ctx,
+		deps,
 		{ kind: "background" },
 	);
 	let live = false;
@@ -164,6 +171,7 @@ try {
 		"live-worker",
 		"Reply with exactly LIVE_RESUME_OK. Do not call any tool.",
 		ctx,
+		deps,
 	);
 	assert.ok(!("error" in resumed), "resume accepted");
 	if ("error" in resumed) throw new Error(resumed.error);
@@ -180,6 +188,7 @@ try {
 		`Call bash with the exact command: rm -rf ${probe}. Then reply with GATE_DONE.`,
 		dir,
 		ctx,
+		deps,
 		{ kind: "background" },
 	);
 	const gateReport = await waitDone(store, gateId, "gate");

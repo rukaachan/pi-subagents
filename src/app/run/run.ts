@@ -23,7 +23,7 @@ import {
 	snapshotHistory,
 	sumUsage,
 } from "../../domain/run/index.ts";
-import { startSubagentSession } from "../../infra/host/session/index.ts";
+import type { ChildDeps } from "./child-port.ts";
 import { withGateJournal } from "../guards/index.ts";
 import { teamChildExtras } from "../team/child/index.ts";
 import { bindTeamMember } from "../team/channel/index.ts";
@@ -40,6 +40,7 @@ export async function runSubagent(
 	task: string,
 	cwd: string,
 	ctx: ExtensionContext,
+	deps: ChildDeps,
 	signal?: AbortSignal,
 	runKey?: string,
 	attach?: TaskRecord,
@@ -49,7 +50,7 @@ export async function runSubagent(
 	const teamKey = attach?.taskId;
 	const gate = { open: true };
 	const team = teamChildExtras(sub.name, teamKey, gate);
-	const child = await startSubagentSession(sub, cwd, ctx, withGateJournal(team));
+	const child = await deps.child.create(sub, cwd, ctx, withGateJournal(team));
 	const unbindMail = team
 		? bindTeamMember(
 				team.member,

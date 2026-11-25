@@ -4,8 +4,9 @@
 import { MAX_DONE_TASKS, MAX_LIVE_TASKS } from "./task-record.ts";
 import type { TaskRecord } from "./task-record.ts";
 import { freezeRestored } from "./task.ts";
+import type { TaskStorePort } from "./store.ts";
 
-export class TaskStore {
+export class TaskStore implements TaskStorePort {
 	private tasks = new Map<string, TaskRecord>();
 	private order: string[] = [];
 

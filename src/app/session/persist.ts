@@ -4,7 +4,7 @@
 
 import { dirname, resolve } from "node:path";
 import type { InMemoryLedger } from "./ledger.ts";
-import type { TaskStore } from "../../domain/task/index.ts";
+import type { TaskStorePort } from "../../domain/task/index.ts";
 import type { TaskRecord } from "../../domain/task/index.ts";
 import { freezeRestored } from "../../domain/task/index.ts";
 import { restoreTeam, teamSnapshot } from "../team/board/index.ts";
@@ -12,13 +12,11 @@ import { coldMailSnapshot, restoreColdMail } from "../team/channel/index.ts";
 import { releaseOrphanedTasks } from "../team/board/index.ts";
 import { findStateTask } from "../../infra/state/index.ts";
 import { journalWrite } from "../../telemetry/journal/index.ts";
+import type { StatePort } from "./state-port.ts";
 import {
 	capRecord,
 	defaultStatePath,
-	encodeState,
 	loadState,
-	saveState,
-	saveStateAsync,
 	STATE_VERSION,
 	type PersistedState,
 } from "../../infra/state/index.ts";
@@ -44,7 +42,7 @@ export function archivedTask(cwd: string, taskId: string): TaskRecord | undefine
 	return rec;
 }
 
-export function serializeState(store: TaskStore, ledger: InMemoryLedger): PersistedState {
+export function serializeState(store: TaskStorePort, ledger: InMemoryLedger): PersistedState {
 	const team = teamSnapshot();
 	const coldMail = coldMailSnapshot();
 	return {
@@ -56,8 +54,13 @@ export function serializeState(store: TaskStore, ledger: InMemoryLedger): Persis
 	};
 }
 
-export function restoreInto(store: TaskStore, ledger: InMemoryLedger, statePath: string): number {
-	const state = loadState(statePath);
+export function restoreInto(
+	store: TaskStorePort,
+	ledger: InMemoryLedger,
+	statePath: string,
+	port: StatePort,
+): number {
+	const state = port.load(statePath);
 	if (!state) return 0;
 	// Rows that were live cannot finish: count them as errors so totals add up.
 	const interrupted = state.tasks.filter((t) => t.status === "running");
@@ -85,8 +88,9 @@ export function reportStateError(message: string, notify?: (message: string) => 
 }
 
 export function attachPersistence(
-	store: TaskStore,
+	store: TaskStorePort,
 	ledger: InMemoryLedger,
+	port: StatePort,
 	statePath = defaultStatePath(),
 	onError?: (message: string) => void,
 ): () => void {
@@ -107,7 +111,7 @@ export function attachPersistence(
 			timer = null;
 		}
 		generation += 1;
-		report(saveState(statePath, encodeState(serializeState(store, ledger))).error);
+		report(port.save(statePath, port.encode(serializeState(store, ledger))).error);
 	};
 	const schedule = () => {
 		if (timer) return;
@@ -115,12 +119,12 @@ export function attachPersistence(
 			timer = null;
 			generation += 1;
 			const current = generation;
-			const json = encodeState(serializeState(store, ledger));
+			const json = port.encode(serializeState(store, ledger));
 			// Encoding stays on this thread (it reads live objects); the write
 			// and rename, which block on the file system, run off it.
-			void saveStateAsync(statePath, json, () => current === generation).then((result) =>
-				report(result.error),
-			);
+			void port
+				.saveAsync(statePath, json, () => current === generation)
+				.then((result) => report(result.error));
 		}, SAVE_DEBOUNCE_MS);
 	};
 	const onExit = () => flush();

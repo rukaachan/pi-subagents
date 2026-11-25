@@ -3,6 +3,7 @@
  */
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ChildDeps } from "../run/index.ts";
 import { suggestSubagentName } from "../../domain/subagent/index.ts";
 import type { SubagentConfig } from "../../domain/subagent/index.ts";
 import { useFooterUI } from "../../telemetry/live/index.ts";
@@ -12,7 +13,7 @@ import { isRunStopped, stoppedToolText } from "../../domain/task/index.ts";
 import { capDelivery } from "../../domain/run/index.ts";
 import { toUsage } from "../../infra/host/index.ts";
 import type { ChainSpec } from "./chain.ts";
-import { TaskStore } from "../../domain/task/index.ts";
+import type { TaskStorePort } from "../../domain/task/index.ts";
 import { readGlobalConfig, withGlobalConfig } from "../session/index.ts";
 import type { GlobalConfig } from "../session/index.ts";
 import { applyRunOverrides } from "../../domain/run/index.ts";
@@ -53,12 +54,13 @@ export function chainConfigs(
 }
 
 export async function runChainTask(
-	store: TaskStore,
+	store: TaskStorePort,
 	names: string[],
 	params: { description: string; prompt: string; run_in_background?: boolean },
 	signal: AbortSignal | undefined,
 	ctx: ExtensionContext,
 	subagents: SubagentConfig[],
+	deps: ChildDeps,
 	overrides: RunOverrides = {},
 ) {
 	const firstMissing = names.find((n) => !subagents.some((s) => s.name === n));
@@ -90,6 +92,7 @@ export async function runChainTask(
 		ordered,
 		ctx.cwd,
 		ctx,
+		deps,
 		params.description,
 		"background",
 		signal,

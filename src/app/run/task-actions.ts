@@ -3,6 +3,7 @@
  */
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ChildDeps } from "./child-port.ts";
 import { liveSession } from "../live/index.ts";
 import { stopTask } from "../live/index.ts";
 import { launchBackground } from "./background.ts";
@@ -10,7 +11,7 @@ import { removedIds, unknownTaskMessage } from "../stop/index.ts";
 import { queueSteer } from "../live/index.ts";
 import { cut } from "../../telemetry/live/index.ts";
 import { journalWrite } from "../../telemetry/journal/index.ts";
-import type { TaskStore } from "../../domain/task/index.ts";
+import type { TaskStorePort } from "../../domain/task/index.ts";
 
 export type TaskAction = "steer" | "retry" | "stop";
 
@@ -29,7 +30,7 @@ function fail(action: TaskAction, taskId: string, message: string): ActionResult
 }
 
 export async function steerTask(
-	store: TaskStore,
+	store: TaskStorePort,
 	taskId: string,
 	text: string | undefined,
 ): Promise<ActionResult> {
@@ -71,7 +72,11 @@ export async function steerTask(
 	};
 }
 
-export function stopTaskById(store: TaskStore, taskId: string, why = "TaskControl"): ActionResult {
+export function stopTaskById(
+	store: TaskStorePort,
+	taskId: string,
+	why = "TaskControl",
+): ActionResult {
 	const rec = store.get(taskId);
 	if (!rec) return fail("stop", taskId, unknownTaskMessage(taskId, removedIds));
 	if (rec.status !== "running") {
@@ -90,7 +95,12 @@ export function stopTaskById(store: TaskStore, taskId: string, why = "TaskContro
 	};
 }
 
-export function retryTask(store: TaskStore, taskId: string, ctx: ExtensionContext): ActionResult {
+export function retryTask(
+	store: TaskStorePort,
+	taskId: string,
+	ctx: ExtensionContext,
+	deps: ChildDeps,
+): ActionResult {
 	const rec = store.get(taskId);
 	if (!rec) return fail("retry", taskId, unknownTaskMessage(taskId, removedIds));
 	if (rec.status !== "error") {
@@ -104,11 +114,20 @@ export function retryTask(store: TaskStore, taskId: string, ctx: ExtensionContex
 			`Task ${taskId} has no saved prompt (it was restored from disk). Start a new task.`,
 		);
 	}
-	const newTaskId = launchBackground(store, rec.subagent, rec.description, prompt, rec.cwd, ctx, {
-		kind: rec.kind === "parallel" ? "parallel" : "background",
-		dispatch: rec.dispatch,
-		...(rec.runId ? { runId: rec.runId } : {}),
-	});
+	const newTaskId = launchBackground(
+		store,
+		rec.subagent,
+		rec.description,
+		prompt,
+		rec.cwd,
+		ctx,
+		deps,
+		{
+			kind: rec.kind === "parallel" ? "parallel" : "background",
+			dispatch: rec.dispatch,
+			...(rec.runId ? { runId: rec.runId } : {}),
+		},
+	);
 	return {
 		ok: true,
 		action: "retry",

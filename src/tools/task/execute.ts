@@ -7,7 +7,7 @@ import { discoverSubagents } from "../../infra/files/index.ts";
 import { registerTemp, withTemps } from "../../domain/run/index.ts";
 import { markKind } from "../../app/session/index.ts";
 import { MAX_LIVE_TASKS, newRecord } from "../../domain/task/index.ts";
-import { store } from "../../app/session/index.ts";
+import type { SessionRuntime } from "../../app/index.ts";
 import { pickFromPrompt } from "../../domain/task/tool/index.ts";
 import { launchBackground, resumeTask } from "../../app/run/index.ts";
 import { runChainTask, unknownSubagentResult } from "../../app/chain/index.ts";
@@ -31,6 +31,7 @@ function callerTools(ctx: ExtensionContext): string[] | undefined {
 }
 
 export async function executeTask(
+	runtime: SessionRuntime,
 	_toolCallId: string,
 	params: TaskParams,
 	signal: AbortSignal | undefined,
@@ -41,7 +42,7 @@ export async function executeTask(
 	if (!planned.ok) return planned.error;
 	const { overrides, chainNames, parallelNames, returnFields } = planned.plan;
 	if (parallelNames.length > 0) {
-		return runParallelTask(store, parallelNames, params, ctx, overrides);
+		return runParallelTask(runtime.store, parallelNames, params, ctx, overrides, runtime.deps);
 	}
 	if (!chainNames.length && !params.prompt) {
 		return {
@@ -88,7 +89,16 @@ export async function executeTask(
 	}
 	const subagents = withTemps(disk).subagents;
 	if (chainNames.length >= 2) {
-		return runChainTask(store, chainNames, params, signal ?? undefined, ctx, subagents, overrides);
+		return runChainTask(
+			runtime.store,
+			chainNames,
+			params,
+			signal ?? undefined,
+			ctx,
+			subagents,
+			runtime.deps,
+			overrides,
+		);
 	}
 	let dispatchEcho: { chosen: string; rule: string; matched: string } | undefined;
 	let wanted = chainNames[0] ?? params.subagent_type ?? tempName;
@@ -114,11 +124,12 @@ export async function executeTask(
 	if (params.resume) {
 		useFooterUI(ctx.ui);
 		const r = await resumeTask(
-			store,
+			runtime.store,
 			params.resume,
 			sub.name,
 			params.prompt,
 			ctx,
+			runtime.deps,
 			overrides,
 			returnFields,
 		);
@@ -137,7 +148,7 @@ export async function executeTask(
 
 	useFooterUI(ctx.ui);
 	if (params.run_in_background === true) {
-		if (!store.canStart(cap)) {
+		if (!runtime.store.canStart(cap)) {
 			return {
 				content: [
 					{
@@ -150,12 +161,13 @@ export async function executeTask(
 			};
 		}
 		const taskId = await launchBackground(
-			store,
+			runtime.store,
 			sub,
 			params.description,
 			params.prompt,
 			ctx.cwd,
 			ctx,
+			runtime.deps,
 			{
 				dispatch: dispatchEcho,
 				contract: returnFields,
@@ -182,21 +194,22 @@ export async function executeTask(
 		ctx.sessionManager.getSessionId(),
 	);
 	try {
-		store.add(rec);
+		runtime.store.add(rec);
 		rec.startedAt = Date.now();
-		store.touch();
+		runtime.store.touch();
 		markKind(sub.name, "foreground");
 		const result = await runSubagent(
 			sub,
 			params.prompt,
 			ctx.cwd,
 			ctx,
+			runtime.deps,
 			signal ?? undefined,
 			runKey,
 			rec,
 			returnFields,
 		);
-		store.touch();
+		runtime.store.touch();
 		const noteText = result.notes.length > 0 ? `\n\n[notes: ${result.notes.join(" ")}]` : "";
 		return {
 			content: [{ type: "text", text: capDelivery(`${result.text}${noteText}`) }],
@@ -215,7 +228,7 @@ export async function executeTask(
 	} catch (err) {
 		if (isRunStopped(err)) {
 			markStopped(rec, err.why);
-			store.touch();
+			runtime.store.touch();
 			const text = stoppedToolText(sub.name, err.why);
 			return {
 				content: [{ type: "text", text }],

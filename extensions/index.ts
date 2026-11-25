@@ -3,10 +3,14 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { taskTool } from "../src/tools/task/index.ts";
-import { taskOutputTool } from "../src/tools/index.ts";
-import { taskControlTool } from "../src/tools/index.ts";
-import { subagentAliasTool } from "../src/tools/index.ts";
+import { createTaskTool } from "../src/tools/task/index.ts";
+import {
+	createSubagentAliasTool,
+	createTaskControlTool,
+	createTaskOutputTool,
+	createTeamMessageTool,
+	createTeamTool,
+} from "../src/tools/index.ts";
 import { registerDelegateCommand, registerSubagentsCommand } from "../src/ui/commands/index.ts";
 import { teamEnabled } from "../src/app/team/board/index.ts";
 import {
@@ -17,15 +21,16 @@ import {
 } from "../src/app/team/channel/index.ts";
 import { HYBRID_POLICY } from "../src/domain/policy/index.ts";
 import { TEAM_LEAD_POLICY } from "../src/domain/policy/index.ts";
-import { teamMessageTool, teamTool } from "../src/tools/index.ts";
-import { beginSession, store, stopPersistence } from "../src/app/session/index.ts";
+import { createSessionRuntime } from "../src/app/index.ts";
 import { reportStateError } from "../src/app/session/index.ts";
 import { stopAllLiveRuns } from "../src/app/stop/index.ts";
 import { queuedLegCount, stopLaunchSchedulers } from "../src/app/launch/index.ts";
 import { watchEscapeKey } from "../src/app/stop/index.ts";
 import { liveCount } from "../src/app/live/index.ts";
 import { scopeTasks } from "../src/app/session/index.ts";
-import { applyCodemodeWorkerDefault } from "../src/infra/host/index.ts";
+import { applyCodemodeWorkerDefault, hostChild } from "../src/infra/host/index.ts";
+import { fileState } from "../src/infra/state/index.ts";
+import { fileJournal, setJournal } from "../src/telemetry/journal/index.ts";
 import { readGlobalConfig } from "../src/app/session/index.ts";
 import { CODEMODE_WORKERS_DEFAULT } from "../src/domain/task/index.ts";
 import { footerProgress } from "../src/telemetry/live/index.ts";
@@ -36,18 +41,24 @@ import {
 } from "../src/telemetry/notify/index.ts";
 import { registerSettledCard } from "../src/ui/view/run/index.ts";
 
-export { restoredCount } from "../src/app/session/index.ts";
+const runtime = createSessionRuntime({ child: hostChild, state: fileState });
+const store = runtime.store;
+setJournal(fileJournal);
+
+export function restoredCount(): number {
+	return runtime.restored();
+}
 
 export default function (pi: ExtensionAPI) {
 	const boot = readGlobalConfig(process.cwd());
 	bindTeamMail(store);
 	// The host shares two codemode workers with every session in the process.
 	applyCodemodeWorkerDefault(boot.liveCap ?? CODEMODE_WORKERS_DEFAULT);
-	pi.registerTool(taskTool);
-	pi.registerTool(taskOutputTool);
-	pi.registerTool(taskControlTool);
-	pi.registerTool(teamTool);
-	pi.registerTool(teamMessageTool);
+	pi.registerTool(createTaskTool(runtime));
+	pi.registerTool(createTaskOutputTool(runtime));
+	pi.registerTool(createTaskControlTool(runtime));
+	pi.registerTool(createTeamTool(runtime));
+	pi.registerTool(createTeamMessageTool(runtime));
 	pi.on("before_agent_start", (event) => {
 		event.systemPromptOptions.sections.pi_subagents_hybrid = HYBRID_POLICY;
 		if (teamEnabled()) event.systemPromptOptions.sections.pi_subagents_team = TEAM_LEAD_POLICY;
@@ -58,13 +69,13 @@ export default function (pi: ExtensionAPI) {
 	// `subagent` tool. It duplicates part of Task's schema, so an operator who
 	// does not need it can turn it off with `"alias": false` in settings.
 	// Read at load: /reload after changing it.
-	if (boot.alias !== false) pi.registerTool(subagentAliasTool);
+	if (boot.alias !== false) pi.registerTool(createSubagentAliasTool(runtime));
 	let unwatch: (() => void) | null = null;
 	let unwatchQueue: (() => void) | null = null;
 	pi.on("session_start", (_event, ctx) => {
 		const sessionId = ctx.sessionManager.getSessionId();
 		clearTeamMail();
-		beginSession(ctx.cwd, sessionId, (message) =>
+		runtime.begin(ctx.cwd, sessionId, (message) =>
 			reportStateError(message, (text) => ctx.ui.notify(`state save failed: ${text}`, "warning")),
 		);
 		setLeadInbox((text) => {
@@ -126,8 +137,8 @@ export default function (pi: ExtensionAPI) {
 			stopAllLiveRuns(event.reason);
 		}
 		footerProgress.clearDone();
-		stopPersistence();
+		runtime.stop();
 	});
-	registerSubagentsCommand(pi, store);
-	registerDelegateCommand(pi, store);
+	registerSubagentsCommand(pi, store, runtime.deps);
+	registerDelegateCommand(pi, store, runtime.deps);
 }

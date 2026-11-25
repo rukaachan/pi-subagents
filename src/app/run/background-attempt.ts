@@ -18,7 +18,7 @@ import { annotateFailure, awaitWithHardStop, surfaceBudgetNotes } from "../guard
 import { runReport } from "../../domain/run/index.ts";
 import { checkReturn } from "../../domain/run/index.ts";
 import { journalWrite } from "../../telemetry/journal/index.ts";
-import { startSubagentSession } from "../../infra/host/session/index.ts";
+import type { ChildSessionPort } from "./child-port.ts";
 import { withGateJournal } from "../guards/index.ts";
 import { teamChildExtras } from "../team/child/index.ts";
 import { sweepMemberTasks } from "../team/board/index.ts";
@@ -29,7 +29,7 @@ import { registerLiveSession } from "../live/index.ts";
 import { isRunStopped, RunStopped, stoppedRowNote } from "../../domain/task/index.ts";
 import type { LiveStop, StoppableSession } from "../live/index.ts";
 import { dropSteers, takeSteers } from "../live/index.ts";
-import { store } from "../session/index.ts";
+import type { TaskStorePort } from "../../domain/task/index.ts";
 import type { RunKind, TaskRecord } from "../../domain/task/index.ts";
 
 export interface AttemptResult {
@@ -45,6 +45,8 @@ export interface AttemptDeps {
 	prompt: string;
 	cwd: string;
 	ctx: ExtensionContext;
+	child: ChildSessionPort;
+	store: TaskStorePort;
 	kind: RunKind;
 	contract?: readonly string[];
 	live: LiveStop;
@@ -57,7 +59,7 @@ export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptRe
 	const { rec, sub, prompt, cwd, ctx, kind, contract, live, holder, setStopHandle } = deps;
 	const gate = { open: true };
 	const team = teamChildExtras(sub.name, rec.taskId, gate);
-	const child = await startSubagentSession(sub, cwd, ctx, withGateJournal(team));
+	const child = await deps.child.create(sub, cwd, ctx, withGateJournal(team));
 	const unbindMail = team
 		? bindTeamMember(
 				team.member,
@@ -69,7 +71,7 @@ export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptRe
 			)
 		: () => {};
 	rec.startedAt = Date.now();
-	store.touch();
+	deps.store.touch();
 	holder.abort = () => {
 		rec.history = snapshotHistory(child.session);
 		child.session.abort();

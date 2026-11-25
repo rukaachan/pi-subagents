@@ -7,6 +7,7 @@ import {
 	capRecord,
 	decodeState,
 	encodeState,
+	fileState,
 	defaultStatePath,
 	loadState,
 	saveState,
@@ -141,7 +142,7 @@ describe("persist", () => {
 
 		const store = new TaskStore();
 		const ledger = new InMemoryLedger();
-		restoreInto(store, ledger, file);
+		restoreInto(store, ledger, file, fileState);
 		const row = ledger.bySubagent().explorer;
 		assert.ok(row, "interrupted count restored");
 		assert.equal(row.running, 0);
@@ -221,7 +222,7 @@ describe("persist", () => {
 
 		const store = new TaskStore();
 		const ledger = new InMemoryLedger();
-		const n = restoreInto(store, ledger, file);
+		const n = restoreInto(store, ledger, file, fileState);
 		assert.equal(n, 1);
 		assert.ok(store.get("task-keep"));
 		assert.equal(ledger.bySubagent().worker?.error, 1);

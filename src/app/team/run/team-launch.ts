@@ -3,6 +3,7 @@
  */
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ChildDeps } from "../../run/index.ts";
 import { discoverSubagents } from "../../../infra/files/index.ts";
 import {
 	MAX_TEAM_DESCRIPTION,
@@ -26,7 +27,7 @@ import {
 	teamSummary,
 	updateTask,
 } from "../board/index.ts";
-import type { TaskStore } from "../../../domain/task/index.ts";
+import type { TaskStorePort } from "../../../domain/task/index.ts";
 
 function cut(value: string, max: number): string {
 	if (value.length <= max) return value;
@@ -52,9 +53,10 @@ function legPrompt(taskId: string, prompt: string): string {
 }
 
 export async function startTeamLaunch(
-	store: TaskStore,
+	store: TaskStorePort,
 	input: TeamLaunchInput,
 	ctx: ExtensionContext,
+	deps: ChildDeps,
 ): Promise<TeamLaunchResult> {
 	const prompt = input.prompt.trim();
 	if (!prompt) return { ok: false, error: "Team start needs a prompt." };
@@ -106,7 +108,7 @@ export async function startTeamLaunch(
 		created.push({ name, taskId: result.task.id, scopes });
 	}
 	const prompts = created.map((task) => legPrompt(task.taskId, prompt));
-	const started = startLaunch(store, "team", roster, prompt, ctx, {
+	const started = startLaunch(store, "team", roster, prompt, ctx, deps, {
 		promptFor: (_name, index) => prompts[index] ?? prompt,
 		// A queued leg gets its run id later; link it then, not just at handoff.
 		onLeg: (index, runId) => {

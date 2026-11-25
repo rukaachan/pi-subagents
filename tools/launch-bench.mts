@@ -5,7 +5,9 @@
 
 import { renderLegFull, renderRunReport } from "../src/ui/view/run/index.ts";
 import type { LaunchLeg, LaunchRun } from "../src/app/launch/index.ts";
-import { TaskStore } from "../src/domain/task/index.ts";
+import { createSessionRuntime } from "../src/app/index.ts";
+import { hostChild } from "../src/infra/host/index.ts";
+import { fileState } from "../src/infra/state/index.ts";
 import { MAX_LIVE_TASKS, newRecord } from "../src/domain/task/index.ts";
 import { startLaunch, stopLaunchSchedulers } from "../src/app/launch/index.ts";
 import { discoverSubagents } from "../src/infra/files/index.ts";
@@ -81,7 +83,9 @@ const names = discoverSubagents(process.cwd())
 	.subagents.map((s) => s.name)
 	.slice(0, 2);
 if (names.length > 0) {
-	const store = new TaskStore();
+	const runtime = createSessionRuntime({ child: hostChild, state: fileState });
+	const store = runtime.store;
+	const deps = runtime.deps;
 	const filler: SubagentConfig = {
 		name: "filler",
 		description: "",
@@ -99,7 +103,7 @@ if (names.length > 0) {
 	const admission = measure(
 		"start at full store",
 		() => {
-			const started = startLaunch(store, "team", names, "bench prompt", ctx);
+			const started = startLaunch(store, "team", names, "bench prompt", ctx, deps);
 			stopLaunchSchedulers();
 			return started.ok ? `queued-${started.queued}` : started.error;
 		},

@@ -1,9 +1,12 @@
 import { afterEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { taskOutputTool } from "../src/tools/index.ts";
-import { store } from "../src/app/session/index.ts";
+import { createTaskOutputTool } from "../src/tools/index.ts";
 import { MAX_DELIVERY_CHARS } from "../src/domain/run/index.ts";
 import { rec } from "./board-fixtures.ts";
+import { testRuntime } from "./runtime-fixture.ts";
+
+const runtime = testRuntime();
+const taskOutputTool = createTaskOutputTool(runtime);
 
 const ctx = {
 	cwd: "/tmp",
@@ -33,7 +36,7 @@ function textOf(result: { content: { type: string; text?: string }[] }): string 
 
 describe("TaskOutput delivery", () => {
 	afterEach(() => {
-		for (const record of store.list()) store.remove(record.taskId);
+		for (const record of runtime.store.list()) runtime.store.remove(record.taskId);
 	});
 
 	it("caps a large report before it enters the parent context", async () => {
@@ -44,7 +47,7 @@ describe("TaskOutput delivery", () => {
 				notes: ["a note"],
 			},
 		});
-		store.add(record);
+		runtime.store.add(record);
 		const result = await call(record.taskId);
 		const details = result.details as { truncated?: boolean; full_chars?: number } | undefined;
 		assert.equal(result.isError, undefined);
@@ -56,7 +59,7 @@ describe("TaskOutput delivery", () => {
 
 	it("never returns a row from another session or project", async () => {
 		const other = done({ taskId: "other", sessionId: "s2" });
-		store.add(other);
+		runtime.store.add(other);
 		const result = await call("other");
 		assert.equal(result.isError, true);
 		assert.match(textOf(result), /Unknown task_id/);

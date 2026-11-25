@@ -1,11 +1,13 @@
 /**
  * pi-subagents: append-only run journal.
  */
-import { appendFileSync, mkdirSync, renameSync, statSync } from "node:fs";
-import { dirname } from "node:path";
-import { JOURNAL_MAX_BYTES, type JournalEvent, defaultJournalPath } from "./journal-path.ts";
+import { fileJournal } from "./file.ts";
+import type { JournalEvent } from "./journal-path.ts";
+import type { JournalPort } from "./port.ts";
 
 export { JOURNAL_MAX_BYTES, type JournalEvent, defaultJournalPath } from "./journal-path.ts";
+export { fileJournal } from "./file.ts";
+export type { JournalPort } from "./port.ts";
 export {
 	STALE_AFTER_MS,
 	findJournalRun,
@@ -14,29 +16,18 @@ export {
 	type JournalRun,
 } from "./journal-fold.ts";
 
-function enabled(): boolean {
-	return process.env.PI_SUBAGENTS_JOURNAL !== "off";
+let sink: JournalPort = fileJournal;
+
+/** Install a sink. The entrypoint installs the file sink; tests can record. */
+export function setJournal(port: JournalPort): void {
+	sink = port;
 }
 
 /** Append one event. Silent no-op when the journal is off; never throws. */
 export function journalWrite(ev: JournalEvent): void {
-	if (!enabled()) return;
 	try {
-		const path = defaultJournalPath();
-		mkdirSync(dirname(path), { recursive: true });
-		rotateIfNeeded(path);
-		appendFileSync(path, `${JSON.stringify(ev)}\n`, "utf8");
+		sink.write(ev);
 	} catch {
 		/* the journal is advisory: never break a run */
-	}
-}
-
-function rotateIfNeeded(path: string): void {
-	try {
-		const stat = statSync(path);
-		if (stat.size <= JOURNAL_MAX_BYTES) return;
-		renameSync(path, `${path}.1`);
-	} catch {
-		/* the journal is advisory */
 	}
 }

@@ -94,7 +94,12 @@ describe("the run menu", () => {
 	it("opens a live run's session and returns to the same menu", async () => {
 		const h = harness();
 		const rec = record();
-		const run = showTaskDetail({ ui: h.ui, mode: "tui" } as never, {} as TaskStore, rec);
+		const run = showTaskDetail(
+			{ ui: h.ui, mode: "tui" } as never,
+			{} as TaskStore,
+			rec,
+			{} as never,
+		);
 
 		const menu = await next(h, ENTER);
 		assert.match(menu, /Open session/);
@@ -115,7 +120,12 @@ describe("the run menu", () => {
 	it("offers the saved transcript on a finished run", async () => {
 		const h = harness();
 		const rec = record({ status: "done" });
-		const run = showTaskDetail({ ui: h.ui, mode: "tui" } as never, {} as TaskStore, rec);
+		const run = showTaskDetail(
+			{ ui: h.ui, mode: "tui" } as never,
+			{} as TaskStore,
+			rec,
+			{} as never,
+		);
 		const menu = await next(h, ESC);
 		assert.match(menu, /Open session/);
 		assert.match(menu, /Resume with follow-up/);
@@ -126,7 +136,12 @@ describe("the run menu", () => {
 	it("leaves a finished chain alone, since steps are separate runs", async () => {
 		const h = harness();
 		const rec = record({ kind: "chain", status: "done", steps: [] });
-		const run = showTaskDetail({ ui: h.ui, mode: "tui" } as never, {} as TaskStore, rec);
+		const run = showTaskDetail(
+			{ ui: h.ui, mode: "tui" } as never,
+			{} as TaskStore,
+			rec,
+			{} as never,
+		);
 		const menu = await next(h, ESC);
 		assert.doesNotMatch(menu, /Open session/);
 		assert.match(menu, /Copy task_id/);
@@ -136,7 +151,12 @@ describe("the run menu", () => {
 	it("hides the viewer when a finished run kept no history", async () => {
 		const h = harness();
 		const rec = record({ status: "done", history: [] });
-		const run = showTaskDetail({ ui: h.ui, mode: "tui" } as never, {} as TaskStore, rec);
+		const run = showTaskDetail(
+			{ ui: h.ui, mode: "tui" } as never,
+			{} as TaskStore,
+			rec,
+			{} as never,
+		);
 		const menu = await next(h, ESC);
 		assert.doesNotMatch(menu, /Open session/);
 		await run;

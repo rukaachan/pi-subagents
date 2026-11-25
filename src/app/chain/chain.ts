@@ -12,7 +12,7 @@ import {
 	snapshotHistory,
 	sumUsage,
 } from "../../domain/run/index.ts";
-import { startSubagentSession } from "../../infra/host/session/index.ts";
+import type { ChildDeps } from "../run/index.ts";
 import { withGateJournal } from "../guards/index.ts";
 import { teamChildExtras } from "../team/child/index.ts";
 import { bindTeamMember } from "../team/channel/index.ts";
@@ -20,7 +20,7 @@ import { sweepMemberTasks } from "../team/board/index.ts";
 import { ledger, markKind } from "../session/index.ts";
 import { newTaskId } from "../../domain/task/index.ts";
 import type { ChainStep, TaskRecord } from "../../domain/task/index.ts";
-import { TaskStore } from "../../domain/task/index.ts";
+import type { TaskStorePort } from "../../domain/task/index.ts";
 import type { SubagentRunResult } from "../../domain/run/index.ts";
 import { liveStop, type LiveStop, type StoppableSession } from "../live/index.ts";
 import { markStopped } from "../stop/index.ts";
@@ -56,11 +56,12 @@ export interface ChainRun {
 }
 
 export function runChain(
-	store: TaskStore,
+	store: TaskStorePort,
 	spec: ChainSpec,
 	subagents: SubagentConfig[],
 	cwd: string,
 	ctx: ExtensionContext,
+	deps: ChildDeps,
 	description: string,
 	_kind: "foreground" | "background" = "background",
 	attachSignal?: AbortSignal,
@@ -113,7 +114,7 @@ export function runChain(
 				const runId = `${taskId}-${step.idx}`;
 				const gate = { open: true };
 				const team = teamChildExtras(sub.name, runId, gate);
-				const child = await startSubagentSession(sub, cwd, ctx, withGateJournal(team));
+				const child = await deps.child.create(sub, cwd, ctx, withGateJournal(team));
 				const unbindMail = team
 					? bindTeamMember(
 							team.member,

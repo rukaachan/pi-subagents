@@ -3,6 +3,7 @@
  */
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ChildDeps } from "../run/index.ts";
 import { discoverSubagents } from "../../infra/files/index.ts";
 import type { SubagentConfig } from "../../domain/subagent/index.ts";
 import { fanoutAdmission } from "../../domain/policy/index.ts";
@@ -11,14 +12,14 @@ import { effectiveCodemodeWorkers } from "../../infra/host/index.ts";
 import { withTemps } from "../../domain/run/index.ts";
 import { useFooterUI } from "../../telemetry/live/index.ts";
 import { MAX_LIVE_TASKS, newRunId } from "../../domain/task/index.ts";
-import { type TaskStore } from "../../domain/task/index.ts";
+import { type TaskStorePort } from "../../domain/task/index.ts";
 import { applyRunOverrides, type RunOverrides } from "../../domain/run/index.ts";
 import { readGlobalConfig, withGlobalConfig } from "../session/index.ts";
 import { launchBackground } from "../run/index.ts";
 import { unknownSubagentResult } from "./chain-task.ts";
 
 export async function runParallelTask(
-	store: TaskStore,
+	store: TaskStorePort,
 	names: string[],
 	params: {
 		description?: string;
@@ -29,6 +30,7 @@ export async function runParallelTask(
 	},
 	ctx: ExtensionContext,
 	overrides: RunOverrides,
+	deps: ChildDeps,
 ) {
 	const { subagents, errors } = withTemps(discoverSubagents(ctx.cwd));
 	const firstMissing = names.find((n) => !subagents.some((s) => s.name === n));
@@ -90,7 +92,7 @@ export async function runParallelTask(
 			notStarted.push(...legs.slice(i).map((r) => r.name));
 			break;
 		}
-		const id = await launchBackground(store, leg, label, prompt, ctx.cwd, ctx, {
+		const id = await launchBackground(store, leg, label, prompt, ctx.cwd, ctx, deps, {
 			kind: "parallel",
 			runId,
 		});

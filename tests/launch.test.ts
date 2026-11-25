@@ -12,6 +12,7 @@ import {
 import { TaskStore } from "../src/domain/task/index.ts";
 import { MAX_LIVE_TASKS, newRecord } from "../src/domain/task/index.ts";
 import { queuedLegCount, startLaunch, stopLaunchSchedulers } from "../src/app/launch/index.ts";
+import { hostChild } from "../src/infra/host/index.ts";
 import { discoverSubagents } from "../src/infra/files/index.ts";
 import { withTemps } from "../src/domain/run/index.ts";
 import { footerProgress } from "../src/telemetry/live/index.ts";
@@ -139,7 +140,7 @@ describe("launch footer wiring", () => {
 			cwd: process.cwd(),
 			ui: { setStatus: (_key: string, text: string | undefined) => statuses.push(text) },
 		} as never;
-		const started = startLaunch(store, "delegate", names, "probe", ctx);
+		const started = startLaunch(store, "delegate", names, "probe", ctx, { child: hostChild });
 		assert.ok(started.ok);
 		assert.equal(queuedLegCount(), names.length);
 		assert.equal(queuedLegCount("another-session"), 0);

@@ -5,9 +5,12 @@
 import { afterEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { markStopped } from "../src/app/stop/index.ts";
-import { taskOutputTool } from "../src/tools/index.ts";
-import { store } from "../src/app/session/index.ts";
+import { createTaskOutputTool } from "../src/tools/index.ts";
 import { board, rec } from "./board-fixtures.ts";
+import { testRuntime } from "./runtime-fixture.ts";
+
+const runtime = testRuntime();
+const taskOutputTool = createTaskOutputTool(runtime);
 
 const ctx = {
 	cwd: "/tmp",
@@ -20,7 +23,7 @@ function textOf(result: { content: { type: string; text?: string }[] }): string 
 
 describe("a stopped row", () => {
 	afterEach(() => {
-		for (const record of store.list()) store.remove(record.taskId);
+		for (const record of runtime.store.list()) runtime.store.remove(record.taskId);
 	});
 
 	it("keeps its history and its reason", () => {
@@ -69,7 +72,7 @@ describe("a stopped row", () => {
 			error: "interrupted by Esc",
 			history: [{ role: "user", content: "Task: map auth" }],
 		});
-		store.add(row);
+		runtime.store.add(row);
 		const result = await taskOutputTool.execute(
 			"call-1",
 			{ task_id: "cold-1" },

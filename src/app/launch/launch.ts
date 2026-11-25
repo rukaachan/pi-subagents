@@ -3,6 +3,7 @@
  */
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ChildDeps } from "../run/index.ts";
 import { discoverSubagents } from "../../infra/files/index.ts";
 import { withTemps } from "../../domain/run/index.ts";
 import type { SubagentRunResult } from "../../domain/run/index.ts";
@@ -13,7 +14,7 @@ import { launchBackground } from "../run/index.ts";
 import { readGlobalConfig, withGlobalConfig } from "../session/index.ts";
 import { useFooterUI } from "../../telemetry/live/index.ts";
 import type { TaskRecord } from "../../domain/task/index.ts";
-import type { TaskStore } from "../../domain/task/index.ts";
+import type { TaskStorePort } from "../../domain/task/index.ts";
 import { newRunId } from "../../domain/task/index.ts";
 import { MAX_LIVE_TASKS } from "../../domain/task/index.ts";
 
@@ -111,11 +112,12 @@ function settle(leg: LaunchLeg, rec: TaskRecord | undefined): void {
 }
 
 export function startLaunch(
-	store: TaskStore,
+	store: TaskStorePort,
 	kind: LaunchKind,
 	names: string[],
 	prompt: string,
 	ctx: ExtensionContext,
+	deps: ChildDeps,
 	options: {
 		promptFor?: (name: string, index: number) => string;
 		/** Called when a leg gets its run id, including legs that waited in the queue. */
@@ -187,6 +189,7 @@ export function startLaunch(
 						legPrompt,
 						ctx.cwd,
 						ctx,
+						deps,
 						{ kind: "parallel", runId },
 					);
 					options.onLeg?.(index, leg.taskId);

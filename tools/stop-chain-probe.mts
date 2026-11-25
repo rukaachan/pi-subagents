@@ -23,7 +23,12 @@ async function main(): Promise<void> {
 	const { runChainTask } = await import("../src/app/chain/chain-task.ts");
 	const { liveCount } = await import("../src/app/live/live-runs.ts");
 	const { stopAllLiveRuns } = await import("../src/app/stop/stop-all.ts");
-	const { store } = await import("../src/app/session/live-store.ts");
+	const { createSessionRuntime } = await import("../src/app/index.ts");
+	const { hostChild } = await import("../src/infra/host/index.ts");
+	const { fileState } = await import("../src/infra/state/index.ts");
+	const sessionRuntime = createSessionRuntime({ child: hostChild, state: fileState });
+	const store = sessionRuntime.store;
+	const deps = sessionRuntime.deps;
 	const { foldJournalFile } = await import("../src/telemetry/journal/journal-fold.ts");
 	const { defaultJournalPath } = await import("../src/telemetry/journal/journal-path.ts");
 	const { ledger } = await import("../src/app/session/ledger.ts");
@@ -67,6 +72,7 @@ async function main(): Promise<void> {
 			},
 			undefined,
 			ctx,
+			deps,
 			[cfg],
 		);
 		const details = started.details as { task_id?: string } | undefined;

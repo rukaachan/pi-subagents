@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { testRuntime } from "./runtime-fixture.ts";
 
 describe("a real run fires the finish hook", () => {
 	it(
@@ -62,7 +63,7 @@ describe("a real run fires the finish hook", () => {
 			const file = join(dir, "event.json");
 			cfg.finishHook = `cat > ${JSON.stringify(file)}`;
 			try {
-				await runSubagent(cfg, "say OK", dir, ctx, undefined, "probe-key");
+				await runSubagent(cfg, "say OK", dir, ctx, testRuntime().deps, undefined, "probe-key");
 				for (let i = 0; i < 60 && !existsSync(file); i += 1) {
 					await new Promise<void>((resolve) => {
 						setTimeout(resolve, 50);

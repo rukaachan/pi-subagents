@@ -80,6 +80,8 @@ function resolveModel(
 	return { model: found };
 }
 
+export const hostChild = { create: startSubagentSession };
+
 export async function startSubagentSession(
 	sub: SubagentConfig,
 	cwd: string,

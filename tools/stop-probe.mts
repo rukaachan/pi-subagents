@@ -23,7 +23,12 @@ async function main(): Promise<void> {
 	const { launchBackground } = await import("../src/app/run/background.ts");
 	const { liveCount, liveLabels } = await import("../src/app/live/live-runs.ts");
 	const { stopAllLiveRuns } = await import("../src/app/stop/stop-all.ts");
-	const { store } = await import("../src/app/session/live-store.ts");
+	const { createSessionRuntime } = await import("../src/app/index.ts");
+	const { hostChild } = await import("../src/infra/host/index.ts");
+	const { fileState } = await import("../src/infra/state/index.ts");
+	const sessionRuntime = createSessionRuntime({ child: hostChild, state: fileState });
+	const store = sessionRuntime.store;
+	const deps = sessionRuntime.deps;
 	const { removedIds, unknownTaskMessage } = await import("../src/app/stop/removed-ids.ts");
 	const { ledger } = await import("../src/app/session/ledger.ts");
 	const { foldJournalFile } = await import("../src/telemetry/journal/journal-fold.ts");
@@ -64,6 +69,7 @@ async function main(): Promise<void> {
 			`Read ${files.join(", ")}.`,
 			work,
 			ctx,
+			deps,
 		);
 		const liveAtLaunch = { count: liveCount(), labels: liveLabels() };
 

@@ -213,6 +213,13 @@ export async function saveStateAsync(
 }
 
 /** Write atomically (tmp + rename). Never throws. */
+export const fileState = {
+	load: loadState,
+	encode: encodeState,
+	save: saveState,
+	saveAsync: saveStateAsync,
+};
+
 export function saveState(statePath: string, json: string): { error?: string } {
 	try {
 		fs.mkdirSync(path.dirname(statePath), { recursive: true });

@@ -9,6 +9,7 @@ import { describe, it } from "node:test";
 import { foldJournal } from "../src/telemetry/journal/index.ts";
 import { loadSubagentFromContent } from "../src/infra/files/index.ts";
 import { runSubagent } from "../src/app/run/index.ts";
+import { testRuntime } from "./runtime-fixture.ts";
 
 const gate = process.env.PI_IT_JOURNAL === "1" && Boolean(process.env.PI_IT_MODEL);
 
@@ -50,6 +51,7 @@ describe("journal integration (real session)", () => {
 					"Strict rule: each codemode call may do exactly ONE thing. Write 6 parts; each part runs one codemode echo checkpoint. No batching.",
 					dir,
 					ctx,
+					testRuntime().deps,
 					undefined,
 					"journal-test-run",
 				);

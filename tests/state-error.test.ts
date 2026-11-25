@@ -6,6 +6,7 @@ import * as path from "node:path";
 import { attachPersistence, reportStateError, SAVE_DEBOUNCE_MS } from "../src/app/session/index.ts";
 import { InMemoryLedger } from "../src/app/session/index.ts";
 import { TaskStore } from "../src/domain/task/index.ts";
+import { fileState } from "../src/infra/state/index.ts";
 
 function wait(ms: number): Promise<void> {
 	return new Promise((resolve) => {
@@ -21,7 +22,7 @@ describe("state write failures are visible", () => {
 		const statePath = path.join(blocker, "nested", "state.json");
 		const store = new TaskStore();
 		const errors: string[] = [];
-		const off = attachPersistence(store, new InMemoryLedger(), statePath, (message) =>
+		const off = attachPersistence(store, new InMemoryLedger(), fileState, statePath, (message) =>
 			errors.push(message),
 		);
 		try {

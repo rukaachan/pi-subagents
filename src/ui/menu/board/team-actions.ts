@@ -3,11 +3,12 @@
  */
 
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import type { AppDeps } from "../../../app/index.ts";
 import type { TeamTaskView, TeamUpdate } from "../../../domain/team/index.ts";
 import { inModal } from "../../../app/stop/index.ts";
 import { startTeamLaunch } from "../../../app/team/run/index.ts";
 import { createTask, getTask, teamMembers, updateTask } from "../../../app/team/board/index.ts";
-import type { TaskStore } from "../../../domain/task/index.ts";
+import type { TaskStorePort } from "../../../domain/task/index.ts";
 import { pickFromList } from "../../index.ts";
 import { shortText } from "../../view/text/index.ts";
 import type { WorkspaceAction } from "../../view/workspace/index.ts";
@@ -107,7 +108,11 @@ async function confirmDelete(ctx: ExtensionCommandContext, view: TeamTaskView): 
 	if (ok) update(ctx, view, "delete");
 }
 
-async function startFlow(ctx: ExtensionCommandContext, store: TaskStore): Promise<void> {
+async function startFlow(
+	ctx: ExtensionCommandContext,
+	store: TaskStorePort,
+	deps: AppDeps,
+): Promise<void> {
 	const prompt = await input(ctx, "Team prompt");
 	if (!prompt) return;
 	const raw = await input(ctx, "Roster (comma-separated, blank = all)");
@@ -120,6 +125,7 @@ async function startFlow(ctx: ExtensionCommandContext, store: TaskStore): Promis
 		store,
 		{ prompt, ...(roster.length ? { roster } : {}) },
 		ctx,
+		deps,
 	);
 	if (!result.ok) {
 		notice(ctx, result.error, "error");
@@ -155,7 +161,8 @@ async function detailFlow(ctx: ExtensionCommandContext, taskId: string): Promise
 export async function runTeamAction(
 	action: WorkspaceAction,
 	ctx: ExtensionCommandContext,
-	store: TaskStore,
+	store: TaskStorePort,
+	deps: AppDeps,
 ): Promise<void> {
 	if (action.kind === "team-new") return createFlow(ctx);
 	if (action.kind === "team-edit") return editFlow(ctx, action.taskId);
@@ -176,5 +183,5 @@ export async function runTeamAction(
 		return;
 	}
 	if (action.kind === "team-detail") return detailFlow(ctx, action.taskId);
-	if (action.kind === "team-start") return startFlow(ctx, store);
+	if (action.kind === "team-start") return startFlow(ctx, store, deps);
 }

@@ -3,6 +3,7 @@
  */
 
 import { copyToClipboard, type ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import type { AppDeps } from "../../../app/index.ts";
 import { inModal } from "../../../app/stop/index.ts";
 import { liveSession } from "../../../app/live/index.ts";
 import { liveMember } from "../../../app/team/channel/index.ts";
@@ -18,7 +19,7 @@ import { retryTask, steerTask, stopTaskById } from "../../../app/run/index.ts";
 import { linkedRun } from "../../../app/team/board/index.ts";
 import { startFinish } from "../../../app/launch/index.ts";
 import { scopeTasks, type TaskScope } from "../../../app/session/index.ts";
-import type { TaskStore } from "../../../domain/task/index.ts";
+import type { TaskStorePort } from "../../../domain/task/index.ts";
 import { buildBoard, type BoardRow } from "../../view/board/index.ts";
 import { taskRow } from "../../view/text/index.ts";
 import { recentSteps } from "./task-list.ts";
@@ -41,7 +42,7 @@ function scopeOf(ctx: ExtensionCommandContext): TaskScope {
 	return { cwd: ctx.cwd, sessionId: ctx.sessionManager.getSessionId() };
 }
 
-function runsOf(store: TaskStore, scope: TaskScope): BoardRow[] {
+function runsOf(store: TaskStorePort, scope: TaskScope): BoardRow[] {
 	return buildBoard(scopeTasks(store.list(), scope), { live: (id) => !!liveSession(id) });
 }
 
@@ -50,7 +51,7 @@ function teamRows(): TeamRow[] {
 }
 
 function dataOf(
-	store: TaskStore,
+	store: TaskStorePort,
 	scope: TaskScope,
 	runs: BoardRow[] = runsOf(store, scope),
 ): WorkspaceData {
@@ -64,7 +65,7 @@ function dataOf(
 
 function mountWorkspace(
 	ctx: ExtensionCommandContext,
-	store: TaskStore,
+	store: TaskStorePort,
 	scope: TaskScope,
 	tab: WorkspaceTab,
 ): Promise<WorkspaceAction | undefined> {
@@ -132,8 +133,9 @@ function mountWorkspace(
 
 async function runRunsAction(
 	ctx: ExtensionCommandContext,
-	store: TaskStore,
+	store: TaskStorePort,
 	action: WorkspaceAction,
+	deps: AppDeps,
 ): Promise<void> {
 	if (action.kind === "open") {
 		const rec = store.get(action.taskId);
@@ -162,11 +164,11 @@ async function runRunsAction(
 		return;
 	}
 	if (action.kind !== "retry") return;
-	const result = retryTask(store, action.taskId, ctx);
+	const result = retryTask(store, action.taskId, ctx, deps);
 	ctx.ui.notify(result.message, result.ok ? "info" : "error");
 }
 
-function plainWorkspace(store: TaskStore, scope: TaskScope): string {
+function plainWorkspace(store: TaskStorePort, scope: TaskScope): string {
 	const runs = scopeTasks(store.list(), scope).toReversed();
 	const runText = runs.length === 0 ? "Runs: none this session." : runs.map(taskRow).join("\n");
 	return `${runText}\n\n${teamText()}`;
@@ -174,7 +176,8 @@ function plainWorkspace(store: TaskStore, scope: TaskScope): string {
 
 export async function openWorkspace(
 	ctx: ExtensionCommandContext,
-	store: TaskStore,
+	store: TaskStorePort,
+	deps: AppDeps,
 	initialTab: WorkspaceTab = "runs",
 ): Promise<void> {
 	const scope = scopeOf(ctx);
@@ -209,14 +212,14 @@ export async function openWorkspace(
 			continue;
 		}
 		if (action.kind.startsWith("team-")) {
-			await runTeamAction(action, ctx, store);
+			await runTeamAction(action, ctx, store, deps);
 			tab = "team";
 			continue;
 		}
 		if (action.kind === "finish") {
 			const prompt = await inModal(() => ctx.ui.input("Finish prompt", ""));
 			if (prompt) {
-				const result = startFinish(store, prompt, ctx);
+				const result = startFinish(store, prompt, ctx, deps);
 				if (!result.ok) {
 					ctx.ui.notify(result.error, result.usage ? "info" : "error");
 				} else {
@@ -235,7 +238,7 @@ export async function openWorkspace(
 			tab = "runs";
 			continue;
 		}
-		await runRunsAction(ctx, store, action);
+		await runRunsAction(ctx, store, action, deps);
 		tab = "runs";
 	}
 }

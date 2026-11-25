@@ -3,6 +3,7 @@
  */
 
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import type { AppDeps } from "../../app/index.ts";
 import { discoverSubagents } from "../../infra/files/index.ts";
 import { withTemps } from "../../domain/run/index.ts";
 import {
@@ -13,7 +14,7 @@ import {
 	rosterFor,
 } from "../../domain/policy/index.ts";
 import { latestLaunch, startLaunch, syncLegFailures } from "../../app/launch/index.ts";
-import type { TaskStore } from "../../domain/task/index.ts";
+import type { TaskStorePort } from "../../domain/task/index.ts";
 import { scopeTasks, type TaskScope } from "../../app/session/index.ts";
 import { openSessionView } from "../view/session/index.ts";
 import { renderRecordsReport, renderRunReport } from "../view/run/index.ts";
@@ -31,7 +32,7 @@ function rosterLine(cwd: string): string {
 	}
 }
 
-function usage(store: TaskStore, scope: TaskScope): string {
+function usage(store: TaskStorePort, scope: TaskScope): string {
 	const common = [
 		`/${COMMAND} reports          compact status`,
 		`/${COMMAND} report <name>    one leg's full report`,
@@ -52,7 +53,7 @@ function usage(store: TaskStore, scope: TaskScope): string {
 	return lines.join("\n");
 }
 
-function reports(store: TaskStore, text: string, scope: TaskScope): string {
+function reports(store: TaskStorePort, text: string, scope: TaskScope): string {
 	const query = parseReportQuery(text);
 	if (!query) return "";
 	const run = latestLaunch("delegate");
@@ -67,7 +68,7 @@ function reports(store: TaskStore, text: string, scope: TaskScope): string {
 }
 
 async function openLeg(
-	store: TaskStore,
+	store: TaskStorePort,
 	target: string,
 	ctx: ExtensionCommandContext,
 ): Promise<void> {
@@ -125,7 +126,11 @@ function startedNotice(started: ReturnType<typeof startLaunch>): string {
 	return `${state}\n${lines.join("\n")}\n\n/${COMMAND} reports for a summary.`;
 }
 
-export function registerDelegateCommand(pi: ExtensionAPI, store: TaskStore): void {
+export function registerDelegateCommand(
+	pi: ExtensionAPI,
+	store: TaskStorePort,
+	deps: AppDeps,
+): void {
 	pi.registerCommand(COMMAND, {
 		description: "Run one prompt on explorer + worker, or a named pair",
 		getArgumentCompletions: (prefix) => {
@@ -184,7 +189,7 @@ export function registerDelegateCommand(pi: ExtensionAPI, store: TaskStore): voi
 				parsed.request.roster,
 				subagents.map((sub) => sub.name),
 			);
-			const started = startLaunch(store, "delegate", names, parsed.request.prompt, ctx);
+			const started = startLaunch(store, "delegate", names, parsed.request.prompt, ctx, deps);
 			ctx.ui.notify(startedNotice(started), started.ok ? "info" : "error");
 		},
 	});

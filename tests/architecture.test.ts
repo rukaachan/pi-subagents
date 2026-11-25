@@ -79,7 +79,7 @@ describe("layer boundary: extensions -> src, never the reverse", () => {
 
 	it("the extension entry wires the pieces instead of owning them", () => {
 		const entry = readFileSync(join(root, "extensions/index.ts"), "utf8");
-		assert.match(entry, /registerSubagentsCommand\(pi, store\)/);
+		assert.match(entry, /registerSubagentsCommand\(pi, store, runtime\.deps\)/);
 		assert.doesNotMatch(entry, /async function runParallelTask/, "fan-out driver belongs in src");
 		assert.doesNotMatch(entry, /function resultShell/, "result rendering belongs in src");
 	});

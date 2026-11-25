@@ -6,7 +6,7 @@ import { MAX_COLD_CHARS, MAX_COLD_MESSAGES } from "../../../domain/team/index.ts
 import type { MailResult, TeamMessageApi, WaitOutcome } from "../../../domain/team/index.ts";
 import { LEAD_NAME } from "../../../domain/team/index.ts";
 import { journalWrite } from "../../../telemetry/journal/index.ts";
-import type { TaskStore } from "../../../domain/task/index.ts";
+import type { TaskStorePort } from "../../../domain/task/index.ts";
 import { teamMembers } from "../board/index.ts";
 import { clearWaits, MAX_WAIT_MS, waitForMemberCore } from "./team-wait.ts";
 
@@ -27,9 +27,9 @@ interface LiveMember {
 const live = new Map<string, LiveMember>();
 const cold = new Map<string, string[]>();
 let leadInbox: ((text: string) => void) | undefined;
-let tasks: TaskStore | undefined;
+let tasks: TaskStorePort | undefined;
 
-export function bindTeamMail(store: TaskStore): void {
+export function bindTeamMail(store: TaskStorePort): void {
 	tasks = store;
 }
 

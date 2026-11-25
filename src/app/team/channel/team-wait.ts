@@ -6,7 +6,7 @@ import { capDelivery } from "../../../domain/run/index.ts";
 import type { WaitOutcome } from "../../../domain/team/index.ts";
 import { LEAD_NAME, type TeamMember } from "../../../domain/team/index.ts";
 import type { TaskRecord } from "../../../domain/task/index.ts";
-import type { TaskStore } from "../../../domain/task/index.ts";
+import type { TaskStorePort } from "../../../domain/task/index.ts";
 
 export const MAX_WAIT_MS = 120_000;
 
@@ -22,7 +22,7 @@ export interface WaitTarget {
 
 export interface WaitDeps {
 	target: WaitTarget | undefined;
-	tasks: TaskStore | undefined;
+	tasks: TaskStorePort | undefined;
 	members: () => TeamMember[];
 }
 

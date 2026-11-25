@@ -3,6 +3,7 @@
  */
 
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import type { ChildDeps } from "../run/index.ts";
 import { discoverSubagents } from "../../infra/files/index.ts";
 import { withTemps } from "../../domain/run/index.ts";
 import { pickRoster, type RosterPick } from "../../domain/subagent/index.ts";
@@ -10,7 +11,7 @@ import { parseLaunchArgs, unknownLegs } from "../../domain/policy/index.ts";
 import { startLaunch, type LaunchRun } from "./launch.ts";
 import { readGlobalConfig } from "../session/index.ts";
 import { MAX_LIVE_TASKS } from "../../domain/task/index.ts";
-import type { TaskStore } from "../../domain/task/index.ts";
+import type { TaskStorePort } from "../../domain/task/index.ts";
 
 const MAX_LEGS = 4;
 
@@ -34,9 +35,10 @@ function capOf(ctx: ExtensionCommandContext): number {
 }
 
 export function startFinish(
-	store: TaskStore,
+	store: TaskStorePort,
 	args: string,
 	ctx: ExtensionCommandContext,
+	deps: ChildDeps,
 ): FinishResult {
 	const parsed = parseLaunchArgs(args);
 	if (!parsed.ok) {
@@ -73,7 +75,7 @@ export function startFinish(
 	if (names.length === 0) {
 		return { ok: false, error: `No subagent matched. Name one: ${available.join(", ")}` };
 	}
-	const started = startLaunch(store, "finish", names, parsed.request.prompt, ctx);
+	const started = startLaunch(store, "finish", names, parsed.request.prompt, ctx, deps);
 	if (!started.ok) return { ok: false, error: started.error };
 	return {
 		ok: true,

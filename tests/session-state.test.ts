@@ -6,10 +6,11 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { beginSession, store, stopPersistence } from "../src/app/session/index.ts";
 import { archivedTask } from "../src/app/session/index.ts";
+import { testRuntime } from "./runtime-fixture.ts";
 import { rec } from "./board-fixtures.ts";
 
+const runtime = testRuntime();
 const home = process.env.HOME;
 const dir = mkdtempSync(join(tmpdir(), "pi-session-state-"));
 
@@ -18,7 +19,7 @@ function done(taskId: string, sessionId: string) {
 }
 
 after(() => {
-	stopPersistence();
+	runtime.stop();
 	process.env.HOME = home;
 	rmSync(dir, { recursive: true, force: true });
 });
@@ -26,30 +27,30 @@ after(() => {
 describe("session-scoped state", () => {
 	it("keeps each session's rows out of the other's file", () => {
 		process.env.HOME = dir;
-		beginSession("/repo", "s1");
-		store.add(done("task-a", "s1"));
-		stopPersistence();
+		runtime.begin("/repo", "s1");
+		runtime.store.add(done("task-a", "s1"));
+		runtime.stop();
 
-		beginSession("/repo", "s2");
+		runtime.begin("/repo", "s2");
 		assert.deepEqual(
-			store.list().map((row) => row.taskId),
+			runtime.store.list().map((row) => row.taskId),
 			[],
 		);
-		store.add(done("task-b", "s2"));
-		stopPersistence();
+		runtime.store.add(done("task-b", "s2"));
+		runtime.stop();
 
-		beginSession("/repo", "s1");
+		runtime.begin("/repo", "s1");
 		assert.deepEqual(
-			store.list().map((row) => row.taskId),
+			runtime.store.list().map((row) => row.taskId),
 			["task-a"],
 		);
-		stopPersistence();
+		runtime.stop();
 	});
 
 	it("resumes a done row from an older session by id", () => {
 		process.env.HOME = dir;
-		beginSession("/repo", "s1");
-		store.add(
+		runtime.begin("/repo", "s1");
+		runtime.store.add(
 			rec({
 				taskId: "task-old",
 				sessionId: "s1",
@@ -65,22 +66,22 @@ describe("session-scoped state", () => {
 				},
 			}),
 		);
-		stopPersistence();
+		runtime.stop();
 
-		beginSession("/repo", "s2");
-		assert.equal(store.get("task-old"), undefined);
+		runtime.begin("/repo", "s2");
+		assert.equal(runtime.store.get("task-old"), undefined);
 		const found = archivedTask("/repo", "task-old");
 		assert.equal(found?.status, "done");
 		assert.equal(found?.history.length, 1);
 		assert.equal(found?.result?.text, "the old report");
 		assert.equal(archivedTask("/other-repo", "task-old"), undefined);
-		stopPersistence();
+		runtime.stop();
 	});
 
 	it("freezes an archived row that was still running", () => {
 		process.env.HOME = dir;
-		beginSession("/repo", "s-live");
-		store.add(
+		runtime.begin("/repo", "s-live");
+		runtime.store.add(
 			rec({
 				taskId: "task-cut",
 				sessionId: "s-live",
@@ -91,7 +92,7 @@ describe("session-scoped state", () => {
 				history: [{ timestamp: 7_500 }],
 			}),
 		);
-		stopPersistence();
+		runtime.stop();
 		const found = archivedTask("/repo", "task-cut");
 		assert.equal(found?.status, "error");
 		assert.equal(found?.endedAt, 7_500);
@@ -102,15 +103,15 @@ describe("session-scoped state", () => {
 		const pinned = join(dir, "pinned.json");
 		process.env.PI_SUBAGENTS_STATE = pinned;
 		try {
-			beginSession("/repo", "s1");
-			store.add(done("task-pin", "s1"));
-			stopPersistence();
-			beginSession("/repo", "s9");
+			runtime.begin("/repo", "s1");
+			runtime.store.add(done("task-pin", "s1"));
+			runtime.stop();
+			runtime.begin("/repo", "s9");
 			assert.deepEqual(
-				store.list().map((row) => row.taskId),
+				runtime.store.list().map((row) => row.taskId),
 				["task-pin"],
 			);
-			stopPersistence();
+			runtime.stop();
 		} finally {
 			delete process.env.PI_SUBAGENTS_STATE;
 		}

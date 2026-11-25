@@ -3,6 +3,7 @@
  */
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ChildDeps } from "./child-port.ts";
 import type { SubagentConfig } from "../../domain/subagent/index.ts";
 import { isTransientFailure } from "../../domain/run/index.ts";
 import { isRunStopped } from "../../domain/task/index.ts";
@@ -18,7 +19,7 @@ import { sweepMemberTasks } from "../team/board/index.ts";
 import { runBackgroundAttempt, type AttemptResult } from "./background-attempt.ts";
 import { RetryPolicy, sleepUnlessStopped } from "../retry/index.ts";
 import type { RunKind, TaskRecord } from "../../domain/task/index.ts";
-import type { TaskStore } from "../../domain/task/index.ts";
+import type { TaskStorePort } from "../../domain/task/index.ts";
 
 export { resumeTask } from "./background-resume.ts";
 
@@ -26,12 +27,13 @@ const MAX_ATTEMPTS = 3;
 const retryPolicy = new RetryPolicy();
 
 export function launchBackground(
-	store: TaskStore,
+	store: TaskStorePort,
 	sub: SubagentConfig,
 	description: string,
 	prompt: string,
 	cwd: string,
 	ctx: ExtensionContext,
+	deps: ChildDeps,
 	opts?: {
 		kind?: Extract<RunKind, "background" | "parallel">;
 		dispatch?: { rule: string; matched: string };
@@ -94,6 +96,8 @@ export function launchBackground(
 						prompt,
 						cwd,
 						ctx,
+						child: deps.child,
+						store,
 						kind,
 						contract: opts?.contract,
 						live,

@@ -183,7 +183,7 @@ describe("the three doors that stop runs", () => {
 		);
 		const body = source.slice(source.indexOf('on("session_shutdown"'));
 		assert.ok(
-			body.indexOf("stopAllLiveRuns") < body.indexOf("stopPersistence"),
+			body.indexOf("stopAllLiveRuns") < body.indexOf("runtime.stop"),
 			"rows must go before the file is written",
 		);
 	});

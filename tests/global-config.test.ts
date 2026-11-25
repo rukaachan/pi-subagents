@@ -9,8 +9,11 @@ import { join } from "node:path";
 import { aliasEnabled, readGlobalConfig, withGlobalConfig } from "../src/app/session/index.ts";
 import { applyRunOverrides } from "../src/domain/run/index.ts";
 import type { SubagentConfig } from "../src/domain/subagent/index.ts";
-import { subagentAliasTool } from "../src/tools/index.ts";
+import { createSubagentAliasTool } from "../src/tools/index.ts";
+import { testRuntime } from "./runtime-fixture.ts";
 import { chainConfigs } from "../src/app/chain/index.ts";
+
+const subagentAliasTool = createSubagentAliasTool(testRuntime());
 
 const sub = (over: Partial<SubagentConfig> = {}): SubagentConfig => ({
 	name: "probe",

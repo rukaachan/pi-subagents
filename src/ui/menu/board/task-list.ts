@@ -3,6 +3,7 @@
  */
 
 import { copyToClipboard, type ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import type { AppDeps } from "../../../app/index.ts";
 import { pickFromList } from "../../index.ts";
 import { inModal } from "../../../app/stop/index.ts";
 import { taskRowItems } from "../root/index.ts";
@@ -17,7 +18,7 @@ import { RECENT_LIMIT } from "../../../domain/run/index.ts";
 import { activityLine, activityRows } from "../../../telemetry/live/index.ts";
 import { ROUTE } from "../root/index.ts";
 import type { TaskRecord } from "../../../domain/task/index.ts";
-import { TaskStore } from "../../../domain/task/index.ts";
+import type { TaskStorePort } from "../../../domain/task/index.ts";
 import { scopeTasks } from "../../../app/session/index.ts";
 import type { ActivityStep } from "../../../domain/run/index.ts";
 import type { LiveRunInfo } from "../../view/run/index.ts";
@@ -102,8 +103,9 @@ export function recentSteps(rec: TaskRecord): string[] | undefined {
 
 export async function showTaskDetail(
 	ctx: ExtensionCommandContext,
-	store: TaskStore,
+	store: TaskStorePort,
 	rec: TaskRecord,
+	deps: AppDeps,
 ): Promise<void> {
 	const isChain = rec.kind === "chain";
 	const isParallelGroup = rec.kind === "parallel" && !!rec.legs && rec.legs.length > 1;
@@ -140,14 +142,18 @@ export async function showTaskDetail(
 		const follow = await inModal(() => ctx.ui.input(`Follow-up for ${rec.subagentName}`, ""));
 		if (!follow) return;
 		const { resumeTask } = await import("../../../app/run/index.ts");
-		const r = await resumeTask(store, rec.taskId, rec.subagentName, follow, ctx);
+		const r = await resumeTask(store, rec.taskId, rec.subagentName, follow, ctx, deps);
 		if ("error" in r) ctx.ui.notify(r.error, "error");
 		else ctx.ui.notify(`Resumed as ${r.taskId}.`, "info");
 		return;
 	}
 }
 
-export async function showTaskList(ctx: ExtensionCommandContext, store: TaskStore): Promise<void> {
+export async function showTaskList(
+	ctx: ExtensionCommandContext,
+	store: TaskStorePort,
+	deps: AppDeps,
+): Promise<void> {
 	const scope = { cwd: ctx.cwd, sessionId: ctx.sessionManager.getSessionId() };
 	for (;;) {
 		const tasks = sortTaskRows(scopeTasks(store.list(), scope));
@@ -172,6 +178,6 @@ export async function showTaskList(ctx: ExtensionCommandContext, store: TaskStor
 			ctx.ui.notify("That run expired.", "warning");
 			continue;
 		}
-		await showTaskDetail(ctx, store, rec);
+		await showTaskDetail(ctx, store, rec, deps);
 	}
 }

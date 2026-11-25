@@ -16,8 +16,10 @@ import {
 	taskList,
 	updateTask,
 } from "../src/app/team/board/index.ts";
-import { beginSession, stopPersistence } from "../src/app/session/index.ts";
 import { createTeamTool } from "../src/infra/team/tools/index.ts";
+import { testRuntime } from "./runtime-fixture.ts";
+
+const runtime = testRuntime();
 
 function call(
 	tool: ReturnType<typeof createTeamTool>,
@@ -175,14 +177,14 @@ describe("team tool", () => {
 describe("team persistence", () => {
 	const dir = mkdtempSync(join(tmpdir(), "pi-team-"));
 	after(() => {
-		stopPersistence();
+		runtime.stop();
 		delete process.env.PI_SUBAGENTS_STATE;
 		rmSync(dir, { recursive: true, force: true });
 	});
 
 	it("restores tasks and owners after a session reload", () => {
 		process.env.PI_SUBAGENTS_STATE = join(dir, "state.json");
-		beginSession(dir, "s-a");
+		runtime.begin(dir, "s-a");
 		enableTeam();
 		joinTeam("worker");
 		createTask({ subject: "Persisted", description: "detail", writeScopes: ["src"] });
@@ -194,9 +196,9 @@ describe("team persistence", () => {
 			{ taskId: "task-1", expectedRevision: 2, action: "complete" },
 			{ name: "worker", lead: false },
 		);
-		stopPersistence();
+		runtime.stop();
 
-		beginSession(dir, "s-b");
+		runtime.begin(dir, "s-b");
 		const summary = teamSummary();
 		assert.equal(summary.enabled, true);
 		assert.equal(summary.done, 1);
@@ -209,7 +211,7 @@ describe("team persistence", () => {
 
 	it("releases a task that was claimed when Pi stopped", () => {
 		process.env.PI_SUBAGENTS_STATE = join(dir, "stop.json");
-		beginSession(dir, "s-c");
+		runtime.begin(dir, "s-c");
 		enableTeam();
 		joinTeam("worker", "run-a");
 		createTask({ subject: "In flight", description: "" });
@@ -217,9 +219,9 @@ describe("team persistence", () => {
 			{ taskId: "task-1", expectedRevision: 1, action: "claim" },
 			{ name: "worker", lead: false },
 		);
-		stopPersistence();
+		runtime.stop();
 
-		beginSession(dir, "s-d");
+		runtime.begin(dir, "s-d");
 		const task = taskList()[0]?.task;
 		assert.equal(task?.status, "pending");
 		assert.equal(task?.owner, undefined);

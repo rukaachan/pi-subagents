@@ -14,16 +14,21 @@ import { ledger } from "../../app/session/index.ts";
 import { shortPath } from "../view/text/index.ts";
 import { subagentRow, taskRow } from "../view/text/index.ts";
 import { subagentDetail } from "../view/run/index.ts";
-import { TaskStore } from "../../domain/task/index.ts";
+import type { TaskStorePort } from "../../domain/task/index.ts";
 import { scopeTasks } from "../../app/session/index.ts";
 import { parseLaunchArgs } from "../../domain/policy/index.ts";
 import { disableTeam, enableTeam } from "../../app/team/board/index.ts";
 import { startTeamLaunch } from "../../app/team/run/index.ts";
 import { startFinish } from "../../app/launch/index.ts";
+import type { AppDeps } from "../../app/index.ts";
 import { finishNotice } from "../view/run/index.ts";
 import { teamText } from "../view/workspace/index.ts";
 
-export function registerSubagentsCommand(pi: ExtensionAPI, store: TaskStore): void {
+export function registerSubagentsCommand(
+	pi: ExtensionAPI,
+	store: TaskStorePort,
+	deps: AppDeps,
+): void {
 	pi.registerCommand("subagents", {
 		description: "Mission control; list, tasks, team, finish, trash, new, or a name",
 		getArgumentCompletions: (prefix) => {
@@ -46,7 +51,7 @@ export function registerSubagentsCommand(pi: ExtensionAPI, store: TaskStore): vo
 					ctx.ui.notify(teamText(), "info");
 					return;
 				}
-				await openWorkspace(ctx, store, "team");
+				await openWorkspace(ctx, store, deps, "team");
 				return;
 			}
 
@@ -80,6 +85,7 @@ export function registerSubagentsCommand(pi: ExtensionAPI, store: TaskStore): vo
 						...(parsed.request.roster ? { roster: parsed.request.roster } : {}),
 					},
 					ctx,
+					deps,
 				);
 				if (!result.ok) {
 					ctx.ui.notify(result.error, "error");
@@ -98,7 +104,7 @@ export function registerSubagentsCommand(pi: ExtensionAPI, store: TaskStore): vo
 			}
 
 			if (query === "finish" || query.startsWith("finish ")) {
-				const result = startFinish(store, raw.slice("finish".length).trim(), ctx);
+				const result = startFinish(store, raw.slice("finish".length).trim(), ctx, deps);
 				if (!result.ok) {
 					ctx.ui.notify(result.error, result.usage ? "info" : "error");
 					return;
@@ -128,7 +134,7 @@ export function registerSubagentsCommand(pi: ExtensionAPI, store: TaskStore): vo
 					ctx.ui.notify(`${head}\n${body}`, "info");
 					return;
 				}
-				await showTaskList(ctx, store);
+				await showTaskList(ctx, store, deps);
 				return;
 			}
 
@@ -195,7 +201,7 @@ export function registerSubagentsCommand(pi: ExtensionAPI, store: TaskStore): vo
 				return;
 			}
 
-			await openWorkspace(ctx, store);
+			await openWorkspace(ctx, store, deps);
 		},
 	});
 }

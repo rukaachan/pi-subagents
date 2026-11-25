@@ -15,7 +15,7 @@ import { beginTeamSession, joinTeam } from "../src/app/team/board/index.ts";
 import { restoreInto, serializeState } from "../src/app/session/index.ts";
 import { InMemoryLedger } from "../src/app/session/index.ts";
 import { TaskStore } from "../src/domain/task/index.ts";
-import { encodeState, saveState } from "../src/infra/state/index.ts";
+import { encodeState, fileState, saveState } from "../src/infra/state/index.ts";
 
 describe("cold team mail survives reload", () => {
 	it("serializes, clears, restores, and flushes the exact lines", () => {
@@ -39,7 +39,7 @@ describe("cold team mail survives reload", () => {
 
 			clearTeamMail();
 			assert.equal(coldMailSnapshot(), undefined);
-			restoreInto(store, new InMemoryLedger(), file);
+			restoreInto(store, new InMemoryLedger(), file, fileState);
 			assert.deepEqual(coldMailSnapshot(), {
 				worker: ["[team message] from lead: first", "[team message] from lead: second"],
 			});
@@ -71,7 +71,7 @@ describe("cold team mail survives reload", () => {
 			}
 			saveState(file, encodeState(serializeState(store, new InMemoryLedger())));
 			clearTeamMail();
-			restoreInto(store, new InMemoryLedger(), file);
+			restoreInto(store, new InMemoryLedger(), file, fileState);
 			const over = sendTeamMessage("lead", "worker", "one too many");
 			assert.equal(over.ok, false);
 			assert.match(over.error ?? "", /inbox is full/);

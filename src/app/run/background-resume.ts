@@ -16,7 +16,7 @@ import { annotateFailure, awaitWithHardStop, surfaceBudgetNotes } from "../guard
 import { runReport } from "../../domain/run/index.ts";
 import { checkReturn } from "../../domain/run/index.ts";
 import { resumePrompt } from "../retry/index.ts";
-import { startSubagentSession } from "../../infra/host/session/index.ts";
+import type { ChildDeps } from "./child-port.ts";
 import { withGateJournal } from "../guards/index.ts";
 import { teamChildExtras } from "../team/child/index.ts";
 import { bindTeamMember } from "../team/channel/index.ts";
@@ -34,16 +34,17 @@ import type { RunOverrides } from "../../domain/run/index.ts";
 import { readGlobalConfig, withGlobalConfig } from "../session/index.ts";
 import { ledger, markKind } from "../session/index.ts";
 import type { TaskRecord } from "../../domain/task/index.ts";
-import type { TaskStore } from "../../domain/task/index.ts";
+import type { TaskStorePort } from "../../domain/task/index.ts";
 import { announceSettle } from "../live/index.ts";
 import { archivedTask } from "../session/index.ts";
 
 export async function resumeTask(
-	store: TaskStore,
+	store: TaskStorePort,
 	taskId: string,
 	subagentName: string,
 	prompt: string,
 	ctx: ExtensionContext,
+	deps: ChildDeps,
 	overrides: RunOverrides = {},
 	contract: readonly string[] = [],
 ): Promise<{ taskId: string; resumed: true } | { error: string }> {
@@ -94,7 +95,7 @@ export async function resumeTask(
 		try {
 			const gate = { open: true };
 			const team = teamChildExtras(sub.name, rec.taskId, gate);
-			const child = await startSubagentSession(sub, rec.cwd, ctx, withGateJournal(team));
+			const child = await deps.child.create(sub, rec.cwd, ctx, withGateJournal(team));
 			const unbindMail = team
 				? bindTeamMember(
 						team.member,

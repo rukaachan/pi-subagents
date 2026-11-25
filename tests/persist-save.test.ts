@@ -5,6 +5,7 @@ import * as path from "node:path";
 import { describe, it } from "node:test";
 import { InMemoryLedger } from "../src/app/session/index.ts";
 import { attachPersistence, SAVE_DEBOUNCE_MS } from "../src/app/session/index.ts";
+import { fileState } from "../src/infra/state/index.ts";
 import { newTaskId, type TaskRecord } from "../src/domain/task/index.ts";
 import { TaskStore } from "../src/domain/task/index.ts";
 import type { SubagentConfig } from "../src/domain/subagent/index.ts";
@@ -66,7 +67,7 @@ describe("state size and save", () => {
 		const file = path.join(dir, STATE_FILE_NAME);
 		const store = new TaskStore();
 		const ledger = new InMemoryLedger();
-		const stop = attachPersistence(store, ledger, file);
+		const stop = attachPersistence(store, ledger, fileState, file);
 		try {
 			store.add(doneRec({ taskId: "task-async" }));
 			await new Promise((resolve) => {
