@@ -4,7 +4,7 @@
 
 import { getMarkdownTheme, type Theme } from "@earendil-works/pi-coding-agent";
 import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
-import { shortText, usageLine } from "./view/format.ts";
+import { shortText, usageLine } from "./view/text/index.ts";
 import { toUsage } from "../infra/host/index.ts";
 
 export { toUsage };

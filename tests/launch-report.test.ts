@@ -5,7 +5,7 @@ import {
 	renderLegLine,
 	renderRecordsReport,
 	renderRunReport,
-} from "../src/ui/view/launch-report.ts";
+} from "../src/ui/view/run/index.ts";
 import { syncLegFailures, type LaunchLeg, type LaunchRun } from "../src/app/launch/index.ts";
 import { newRecord } from "../src/domain/task/index.ts";
 import type { SubagentConfig } from "../src/domain/subagent/index.ts";

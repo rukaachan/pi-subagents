@@ -4,8 +4,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { initTheme } from "@earendil-works/pi-coding-agent";
-import { pickFromList } from "../src/ui/picker.ts";
-import { type PickHost, type PickItem } from "../src/ui/picker-types.ts";
+import { pickFromList } from "../src/ui/index.ts";
+import { type PickHost, type PickItem } from "../src/ui/index.ts";
 
 const SUBAGENTS: PickItem[] = [
 	{ value: "code-reviewer", label: "code-reviewer", description: "read-only ◇ — Review diffs" },

@@ -3,7 +3,7 @@
  * Run: npm run bench:launch
  */
 
-import { renderLegFull, renderRunReport } from "../src/ui/view/launch-report.ts";
+import { renderLegFull, renderRunReport } from "../src/ui/view/run/index.ts";
 import type { LaunchLeg, LaunchRun } from "../src/app/launch/index.ts";
 import { TaskStore } from "../src/domain/task/index.ts";
 import { MAX_LIVE_TASKS, newRecord } from "../src/domain/task/index.ts";

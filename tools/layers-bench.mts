@@ -4,7 +4,7 @@
 import { performance } from "node:perf_hooks";
 import { wrapTextWithAnsi } from "@earendil-works/pi-tui";
 import { transcriptEntries } from "../src/telemetry/live/index.ts";
-import { createSessionView } from "../src/ui/view/session-screen.ts";
+import { createSessionView } from "../src/ui/view/session/index.ts";
 import { capRecord } from "../src/infra/state/index.ts";
 import type { TaskRecord } from "../src/domain/task/index.ts";
 

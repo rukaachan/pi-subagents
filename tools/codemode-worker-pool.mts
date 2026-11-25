@@ -50,7 +50,7 @@ interface Leg {
 async function main(): Promise<void> {
 	const pi = await import("@earendil-works/pi-coding-agent");
 	const { loadSubagentFromContent } = await import("../src/infra/files/subagent-files.ts");
-	const { startSubagentSession } = await import("../src/infra/host/host-session.ts");
+	const { startSubagentSession } = await import("../src/infra/host/session/host-session.ts");
 	// The extension sets the pool when pi loads it. The probe loads the
 	// same wiring, so it measures what the package actually ships.
 	const { applyCodemodeWorkerDefault } = await import("../src/infra/host/worker-pool.ts");

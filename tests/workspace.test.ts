@@ -6,14 +6,14 @@ import assert from "node:assert/strict";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import type { TeamTaskView } from "../src/domain/team/index.ts";
 import { board, plainTheme, rec } from "./board-fixtures.ts";
-import { buildTeamRows, renderTeamScreen } from "../src/ui/view/team-screen.ts";
-import { createWorkspaceView } from "../src/ui/view/workspace-view.ts";
+import { buildTeamRows, renderTeamScreen } from "../src/ui/view/workspace/index.ts";
+import { createWorkspaceView } from "../src/ui/view/workspace/index.ts";
 import {
 	renderWorkspace,
 	workspaceHeight,
 	type WorkspaceAction,
 	type WorkspaceData,
-} from "../src/ui/view/workspace-screen.ts";
+} from "../src/ui/view/workspace/index.ts";
 
 function teamView(over: Partial<TeamTaskView["task"]> = {}): TeamTaskView {
 	return {

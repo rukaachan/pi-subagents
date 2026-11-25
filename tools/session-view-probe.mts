@@ -7,7 +7,7 @@
 import { fileURLToPath } from "node:url";
 import { initTheme } from "@earendil-works/pi-coding-agent";
 import { visibleWidth } from "@earendil-works/pi-tui";
-import { createSessionView } from "../src/ui/view/session-screen.ts";
+import { createSessionView } from "../src/ui/view/session/index.ts";
 
 initTheme("dark", false);
 

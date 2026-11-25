@@ -22,7 +22,7 @@ const FILE_COUNT = 40;
 async function main(): Promise<void> {
 	const pi = await import("@earendil-works/pi-coding-agent");
 	const { loadSubagentFromContent } = await import("../src/infra/files/subagent-files.ts");
-	const { startSubagentSession } = await import("../src/infra/host/host-session.ts");
+	const { startSubagentSession } = await import("../src/infra/host/session/host-session.ts");
 	const { trackSession } = await import("../src/telemetry/live/track.ts");
 	const { footerProgress } = await import("../src/telemetry/live/progress.ts");
 

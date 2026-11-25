@@ -3,7 +3,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { cardLines, registerSettledCard } from "../src/ui/view/settled-card.ts";
+import { cardLines, registerSettledCard } from "../src/ui/view/run/index.ts";
 import type { SettleDetails } from "../src/telemetry/notify/index.ts";
 
 function plainTheme() {

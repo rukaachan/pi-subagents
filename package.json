@@ -31,8 +31,7 @@
 		"bench:vendor": "node --experimental-strip-types tools/vendor-bench.mts",
 		"e2e:delegate": "PI_DELEGATE_E2E=1 node --experimental-strip-types tools/delegate-e2e.mts",
 		"e2e": "npm run e2e:delegate",
-		"e2e:fixtures": "E2E_TUI=0 node --experimental-strip-types --test tools/e2e/*.test.ts",
-		"e2e:tui": "E2E_TUI=1 node --experimental-strip-types --test tools/e2e/viewer.test.ts",
+		"e2e:fixtures": "node --experimental-strip-types --test --test-concurrency=4 tools/e2e/*.test.ts",
 		"check": "npm run format:check && npm run lint && npm run typecheck && npm test",
 		"arch": "node --experimental-strip-types --test tests/architecture.test.ts",
 		"clean": "rm -rf node_modules"

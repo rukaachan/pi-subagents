@@ -4,8 +4,8 @@
 
 import { defineTool } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
-import { usageFooter, resultShell } from "../../ui/tool-results.ts";
-import { shortText } from "../../ui/view/format.ts";
+import { usageFooter, resultShell } from "../../ui/index.ts";
+import { shortText } from "../../ui/view/text/index.ts";
 import { executeTask } from "./execute.ts";
 import { taskMeta } from "../../domain/policy/index.ts";
 import { taskSchema } from "../../domain/task/tool/index.ts";

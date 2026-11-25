@@ -1,8 +1,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { InMemoryLedger } from "../src/app/session/index.ts";
-import { spawnSummary } from "../src/ui/view/rows.ts";
-import { subagentDetail } from "../src/ui/view/detail.ts";
+import { spawnSummary } from "../src/ui/view/text/index.ts";
+import { subagentDetail } from "../src/ui/view/run/index.ts";
 import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 
 function sub(): SubagentConfig {

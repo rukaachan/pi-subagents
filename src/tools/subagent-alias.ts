@@ -22,10 +22,10 @@ import {
 import { subagentArgs } from "../domain/task/tool/index.ts";
 import { useFooterUI } from "../telemetry/live/index.ts";
 import { newRunKey } from "../telemetry/live/index.ts";
-import { resultShell, toUsage, usageFooter } from "../ui/tool-results.ts";
+import { resultShell, toUsage, usageFooter } from "../ui/index.ts";
 import { capDelivery } from "../domain/run/index.ts";
 import { Text } from "@earendil-works/pi-tui";
-import { shortText } from "../ui/view/format.ts";
+import { shortText } from "../ui/view/text/index.ts";
 import { DELEGATION_RULE } from "../domain/policy/index.ts";
 import { subagentAliasParameters } from "./subagent-alias-schema.ts";
 

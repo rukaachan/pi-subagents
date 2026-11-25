@@ -4,7 +4,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { visibleWidth } from "@earendil-works/pi-tui";
-import { detailLines } from "../src/ui/view/board-detail.ts";
+import { detailLines } from "../src/ui/view/board/index.ts";
 import { board, plainTheme, rec } from "./board-fixtures.ts";
 
 const theme = plainTheme();

@@ -1,7 +1,7 @@
 /**
  * Shared fixtures for the board tests.
  */
-import { buildBoard } from "../src/ui/view/board-model.ts";
+import { buildBoard } from "../src/ui/view/board/index.ts";
 import type { TaskRecord } from "../src/domain/task/index.ts";
 import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 

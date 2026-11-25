@@ -9,7 +9,7 @@ import {
 	createBoardView,
 	renderBoard,
 	type BoardAction,
-} from "../src/ui/view/board-screen.ts";
+} from "../src/ui/view/board/index.ts";
 import { board, plainTheme, rec } from "./board-fixtures.ts";
 
 const ESC = "\x1b";

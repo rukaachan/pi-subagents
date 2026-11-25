@@ -3,8 +3,8 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { pickFromList } from "../src/ui/picker.ts";
-import type { PickHost } from "../src/ui/picker-types.ts";
+import { pickFromList } from "../src/ui/index.ts";
+import type { PickHost } from "../src/ui/index.ts";
 import { watchEscapeKey } from "../src/app/stop/index.ts";
 import { inModal, isModalOpen, modalDepth } from "../src/app/stop/index.ts";
 

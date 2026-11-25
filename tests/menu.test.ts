@@ -5,10 +5,10 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { ROUTE, isRoute } from "../src/ui/menu/constants.ts";
-import { subagentRowItems, taskRowItems, trashRowItems } from "../src/ui/menu/items.ts";
-import { modelRow, stepTitle, trashBase, trashRow } from "../src/ui/view/format.ts";
-import { recentSteps, sortTaskRows } from "../src/ui/menu/task-list.ts";
+import { ROUTE, isRoute } from "../src/ui/menu/root/index.ts";
+import { subagentRowItems, taskRowItems, trashRowItems } from "../src/ui/menu/root/index.ts";
+import { modelRow, stepTitle, trashBase, trashRow } from "../src/ui/view/text/index.ts";
+import { recentSteps, sortTaskRows } from "../src/ui/menu/board/index.ts";
 import { footerProgress } from "../src/telemetry/live/index.ts";
 import type { TaskRecord } from "../src/domain/task/index.ts";
 import type { SubagentConfig } from "../src/domain/subagent/index.ts";
@@ -167,7 +167,7 @@ describe("menu helpers", () => {
 
 	it("numbers every wizard step against one total", () => {
 		const src = fs.readFileSync(
-			path.join(import.meta.dirname, "..", "src", "ui", "menu", "wizard.ts"),
+			path.join(import.meta.dirname, "..", "src", "ui", "menu", "root", "wizard.ts"),
 			"utf8",
 		);
 		const total = Number(src.match(/const TOTAL = (\d+);/)?.[1]);

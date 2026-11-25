@@ -3,7 +3,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { createSessionView } from "../src/ui/view/session-screen.ts";
+import { createSessionView } from "../src/ui/view/session/index.ts";
 
 function plainTheme() {
 	return { fg: (_token: string, text: string) => text, bold: (text: string) => text };

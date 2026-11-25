@@ -4,12 +4,12 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { board, plainTheme, rec } from "./board-fixtures.ts";
-import { createWorkspaceView } from "../src/ui/view/workspace-view.ts";
+import { createWorkspaceView } from "../src/ui/view/workspace/index.ts";
 import {
 	renderWorkspace,
 	workspaceHeight,
 	type WorkspaceData,
-} from "../src/ui/view/workspace-screen.ts";
+} from "../src/ui/view/workspace/index.ts";
 
 function empty(): WorkspaceData {
 	return { runs: [], team: [], teamEnabled: false, summary: { open: 0, done: 0, enabled: false } };

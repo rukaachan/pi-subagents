@@ -3,7 +3,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { finishNotice } from "../src/ui/view/finish-notice.ts";
+import { finishNotice } from "../src/ui/view/run/index.ts";
 
 const legs = [
 	{ name: "code-reviewer", status: "running" as const, taskId: "task-a" },

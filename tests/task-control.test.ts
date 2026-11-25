@@ -1,6 +1,6 @@
 import { afterEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { taskControlTool } from "../src/tools/task-control.ts";
+import { taskControlTool } from "../src/tools/index.ts";
 import { store } from "../src/app/session/index.ts";
 import { registerLiveSession } from "../src/app/live/index.ts";
 import { registerLive, liveCount } from "../src/app/live/index.ts";

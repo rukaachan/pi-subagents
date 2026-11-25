@@ -9,7 +9,7 @@ import { store } from "../app/session/index.ts";
 import { inTaskScope } from "../app/session/index.ts";
 import { retryTask, steerTask, stopTaskById, type ActionResult } from "../app/run/index.ts";
 import { unknownTaskMessage } from "../app/stop/index.ts";
-import { shortText } from "../ui/view/format.ts";
+import { shortText } from "../ui/view/text/index.ts";
 
 export const taskControlTool = defineTool({
 	name: "TaskControl",

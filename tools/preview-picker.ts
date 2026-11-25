@@ -4,9 +4,9 @@
 
 import { getSelectListTheme, initTheme } from "@earendil-works/pi-coding-agent";
 import { SelectList } from "@earendil-works/pi-tui";
-import { subagentRowItems, taskRowItems, trashRowItems } from "../src/ui/menu/items.ts";
+import { subagentRowItems, taskRowItems, trashRowItems } from "../src/ui/menu/root/index.ts";
 import { discoverSubagents } from "../src/domain/subagent/index.ts";
-import { fitDescriptions } from "../src/ui/picker-render.ts";
+import { fitDescriptions } from "../src/ui/index.ts";
 import type { TaskRecord } from "../src/domain/task/index.ts";
 
 initTheme("dark", false);

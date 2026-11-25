@@ -4,7 +4,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { visibleWidth } from "@earendil-works/pi-tui";
-import { boardHint } from "../src/ui/view/board-hint.ts";
+import { boardHint } from "../src/ui/view/board/index.ts";
 import { board, rec } from "./board-fixtures.ts";
 
 function hint(row: ReturnType<typeof rec>, live = false): string {

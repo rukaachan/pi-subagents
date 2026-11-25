@@ -4,7 +4,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { DELEGATION_RULE, taskMeta } from "../src/domain/policy/index.ts";
-import { subagentAliasTool } from "../src/tools/subagent-alias.ts";
+import { subagentAliasTool } from "../src/tools/index.ts";
 
 describe("the delegation rule", () => {
 	it("is attached to Task", () => {

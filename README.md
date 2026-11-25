@@ -286,8 +286,7 @@ npm run bench:layers  # viewer paint, streaming, and state save
 npm run bench:finish  # roster pick latency over the six starters
 PI_DELEGATE_E2E=1 npm run e2e:delegate # real RPC run (spends model calls)
 npm run e2e           # real model delegate probe (spends model calls)
-npm run e2e:fixtures  # full forced-answer suite: team start, delegate, defaults, chain, parallel, abort, viewer
-npm run e2e:tui       # optional tmux viewer check (needs tmux)
+npm run e2e:fixtures  # full forced-answer suite: team start, delegate, defaults, chain, parallel, abort
 ```
 
 Pi loads the extension with jiti, so there is no build step. `npm run

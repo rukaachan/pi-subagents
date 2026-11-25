@@ -9,8 +9,8 @@ import {
 } from "../src/domain/run/index.ts";
 import { newRecord } from "../src/domain/task/index.ts";
 import { DEFAULT_TIMEOUT_SEC, effectiveBudget } from "../src/domain/subagent/index.ts";
-import { taskDetail } from "../src/ui/view/detail.ts";
-import { taskRow } from "../src/ui/view/rows.ts";
+import { taskDetail } from "../src/ui/view/run/index.ts";
+import { taskRow } from "../src/ui/view/text/index.ts";
 import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 import type { SubagentDiscoveryResult } from "../src/domain/subagent/index.ts";
 

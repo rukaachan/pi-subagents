@@ -4,11 +4,10 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { taskTool } from "../src/tools/task/index.ts";
-import { taskOutputTool } from "../src/tools/task-output.ts";
-import { taskControlTool } from "../src/tools/task-control.ts";
-import { subagentAliasTool } from "../src/tools/subagent-alias.ts";
-import { registerSubagentsCommand } from "../src/ui/command.ts";
-import { registerDelegateCommand } from "../src/ui/delegate-command.ts";
+import { taskOutputTool } from "../src/tools/index.ts";
+import { taskControlTool } from "../src/tools/index.ts";
+import { subagentAliasTool } from "../src/tools/index.ts";
+import { registerDelegateCommand, registerSubagentsCommand } from "../src/ui/commands/index.ts";
 import { teamEnabled } from "../src/app/team/board/index.ts";
 import {
 	bindTeamMail,
@@ -18,7 +17,7 @@ import {
 } from "../src/app/team/channel/index.ts";
 import { HYBRID_POLICY } from "../src/domain/policy/index.ts";
 import { TEAM_LEAD_POLICY } from "../src/domain/policy/index.ts";
-import { teamMessageTool, teamTool } from "../src/tools/team.ts";
+import { teamMessageTool, teamTool } from "../src/tools/index.ts";
 import { beginSession, store, stopPersistence } from "../src/app/session/index.ts";
 import { reportStateError } from "../src/app/session/index.ts";
 import { stopAllLiveRuns } from "../src/app/stop/index.ts";
@@ -35,7 +34,7 @@ import {
 	SETTLED_CUSTOM_TYPE,
 	setNotifySink,
 } from "../src/telemetry/notify/index.ts";
-import { registerSettledCard } from "../src/ui/view/settled-card.ts";
+import { registerSettledCard } from "../src/ui/view/run/index.ts";
 
 export { restoredCount } from "../src/app/session/index.ts";
 

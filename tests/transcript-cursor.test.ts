@@ -3,7 +3,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { createTranscriptCursor } from "../src/ui/view/transcript-cursor.ts";
+import { createTranscriptCursor } from "../src/ui/view/session/index.ts";
 
 function user(text: string) {
 	return { role: "user", content: text };

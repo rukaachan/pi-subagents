@@ -4,7 +4,7 @@
 
 import { getSelectListTheme, type Theme } from "@earendil-works/pi-coding-agent";
 import { Container, SelectList, Text, visibleWidth } from "@earendil-works/pi-tui";
-import { shortText } from "./view/format.ts";
+import { shortText } from "./view/text/index.ts";
 import type { PickItem } from "./picker-types.ts";
 
 export const KEY_UP = "\x1b[A";

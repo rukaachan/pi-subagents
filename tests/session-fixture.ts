@@ -1,8 +1,8 @@
 /**
  * Shared stand-ins for the transcript screen tests.
  */
-import { createSessionView } from "../src/ui/view/session-screen.ts";
-import type { SessionViewDeps } from "../src/ui/view/session-screen.ts";
+import { createSessionView } from "../src/ui/view/session/index.ts";
+import type { SessionViewDeps } from "../src/ui/view/session/index.ts";
 
 export function plainTheme() {
 	return { fg: (_token: string, text: string) => text, bold: (text: string) => text };

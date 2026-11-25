@@ -2,10 +2,10 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { MAX_LIVE_TASKS, newRecord } from "../src/domain/task/index.ts";
 import { TaskStore } from "../src/domain/task/index.ts";
-import { kindBadge } from "../src/ui/view/format.ts";
-import { parallelStrip } from "../src/ui/view/rows.ts";
-import { taskDetail } from "../src/ui/view/detail.ts";
-import { taskRowItems } from "../src/ui/menu/items.ts";
+import { kindBadge } from "../src/ui/view/text/index.ts";
+import { parallelStrip } from "../src/ui/view/text/index.ts";
+import { taskDetail } from "../src/ui/view/run/index.ts";
+import { taskRowItems } from "../src/ui/menu/root/index.ts";
 import type { ParallelLeg } from "../src/domain/task/index.ts";
 import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 

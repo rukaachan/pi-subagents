@@ -4,7 +4,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { initTheme } from "@earendil-works/pi-coding-agent";
-import { showTaskDetail } from "../src/ui/menu/task-list.ts";
+import { showTaskDetail } from "../src/ui/menu/board/index.ts";
 import type { TaskRecord } from "../src/domain/task/index.ts";
 import type { TaskStore } from "../src/domain/task/index.ts";
 import type { SubagentConfig } from "../src/domain/subagent/index.ts";

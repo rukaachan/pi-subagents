@@ -1,6 +1,6 @@
 import { afterEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { taskOutputTool } from "../src/tools/task-output.ts";
+import { taskOutputTool } from "../src/tools/index.ts";
 import { store } from "../src/app/session/index.ts";
 import { MAX_DELIVERY_CHARS } from "../src/domain/run/index.ts";
 import { rec } from "./board-fixtures.ts";

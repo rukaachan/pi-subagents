@@ -21,9 +21,9 @@ import {
 	sourceBadge,
 	toolsBadge,
 	usageLine,
-} from "../src/ui/view/format.ts";
-import { subagentDetail, taskDetail } from "../src/ui/view/detail.ts";
-import { subagentRow, taskRow } from "../src/ui/view/rows.ts";
+} from "../src/ui/view/text/index.ts";
+import { subagentDetail, taskDetail } from "../src/ui/view/run/index.ts";
+import { subagentRow, taskRow } from "../src/ui/view/text/index.ts";
 import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 import type { TaskRecord } from "../src/domain/task/index.ts";
 import { newTaskId } from "../src/domain/task/index.ts";

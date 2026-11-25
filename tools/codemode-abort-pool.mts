@@ -72,7 +72,7 @@ async function setup(): Promise<Host> {
 
 async function main(): Promise<void> {
 	const pi = await import("@earendil-works/pi-coding-agent");
-	const { startSubagentSession } = await import("../src/infra/host/host-session.ts");
+	const { startSubagentSession } = await import("../src/infra/host/session/host-session.ts");
 	const { ctx, cfg } = await setup();
 
 	const t0 = Date.now();

@@ -268,11 +268,10 @@ it is manual/nightly and never a CI gate. `npm run coverage` prints Node's
 line, branch, and function coverage without a percentage gate.
 `npm run e2e:fixtures` copies fixtures into a temp home, starts a local
 fake provider, and checks team start admission, the queue, hook lines, failure
-labels, chain, parallel, abort, the viewer, and the shipped defaults
+labels, chain, parallel, abort, and the shipped defaults
 (`/subagents team <prompt>` with no roster runs all six starters; `/delegate`
 runs explorer and worker). It spends no model calls
-and leaves your real home alone. `npm run e2e:tui` adds the optional tmux
-viewer check.
+and leaves your real home alone.
 
 `npm run bench:layers` measures the viewer and the state save. On this
 machine an appended message costs 0.3–0.4 ms to paint instead of 46 ms

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { createFind, findMatches } from "../src/ui/view/session-find.ts";
+import { createFind, findMatches } from "../src/ui/view/session/index.ts";
 
 const LINES = ["alpha needle", "beta", "gamma NEEDLE", "delta"];
 

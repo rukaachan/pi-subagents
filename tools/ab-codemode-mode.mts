@@ -92,7 +92,7 @@ function writeFixture(dir: string, arm: Arm): string {
 async function runOne(arm: Arm, cwd: string, tag: string): Promise<Record<string, unknown>> {
 	const pi = await import("@earendil-works/pi-coding-agent");
 	const { loadSubagentFromContent } = await import("../src/infra/files/subagent-files.ts");
-	const { startSubagentSession } = await import("../src/infra/host/host-session.ts");
+	const { startSubagentSession } = await import("../src/infra/host/session/host-session.ts");
 	const { sumUsage } = await import("../src/domain/run/run-result.ts");
 
 	const file = writeFixture(join(cwd, ".ab-agents"), arm);

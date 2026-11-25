@@ -5,7 +5,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { loadSubagentFromContent } from "../src/infra/files/index.ts";
 import { decodeState, STATE_VERSION } from "../src/infra/state/index.ts";
-import { currentFieldValue } from "../src/ui/menu/wizard-fields.ts";
+import { currentFieldValue } from "../src/ui/menu/root/index.ts";
 import {
 	EDITABLE_FIELDS,
 	FIELD_CHOICES,

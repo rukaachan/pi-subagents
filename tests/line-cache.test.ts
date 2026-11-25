@@ -3,7 +3,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { createLineCache, gutterWidth } from "../src/ui/view/line-cache.ts";
+import { createLineCache, gutterWidth } from "../src/ui/view/session/screen/index.ts";
 
 function counter() {
 	let calls = 0;

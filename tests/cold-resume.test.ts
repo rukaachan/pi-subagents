@@ -5,7 +5,7 @@
 import { afterEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { markStopped } from "../src/app/stop/index.ts";
-import { taskOutputTool } from "../src/tools/task-output.ts";
+import { taskOutputTool } from "../src/tools/index.ts";
 import { store } from "../src/app/session/index.ts";
 import { board, rec } from "./board-fixtures.ts";
 

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { boardHeight, renderBoard } from "../src/ui/view/board-screen.ts";
+import { boardHeight, renderBoard } from "../src/ui/view/board/index.ts";
 import { board, plainTheme, rec } from "./board-fixtures.ts";
 
 describe("board team strip", () => {
