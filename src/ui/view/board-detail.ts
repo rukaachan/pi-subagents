@@ -7,10 +7,14 @@ import { truncateToWidth } from "@earendil-works/pi-tui";
 import type { BoardRow } from "./board-model.ts";
 import { actionKeys } from "./board-hint.ts";
 
-const STATUS_COLOR: Record<BoardRow["section"], "accent" | "success" | "error" | "warning"> = {
+const STATUS_COLOR: Record<
+	BoardRow["section"],
+	"accent" | "success" | "error" | "warning" | "dim"
+> = {
 	queued: "warning",
 	running: "accent",
 	done: "success",
+	stopped: "dim",
 	failed: "error",
 };
 

@@ -17,8 +17,8 @@ export interface BoardRender {
 	team?: { open: number; done: number; enabled: boolean };
 	/** The last few steps of a run; only asked for the selected row. */
 	activity?: (taskId: string) => readonly string[] | undefined;
-	/** Failed runs stay collapsed until the user asks for them. */
-	failed?: { total: number; hidden: boolean };
+	/** Stopped and failed runs stay collapsed until the user asks for them. */
+	hidden?: { failed: number; stopped: number; hidden: boolean };
 }
 
 interface Line {
@@ -31,6 +31,7 @@ const SECTION_TITLE: Record<BoardSection, string> = {
 	queued: "QUEUED",
 	running: "RUNNING",
 	done: "DONE",
+	stopped: "STOPPED",
 	failed: "FAILED",
 };
 
@@ -113,12 +114,14 @@ export function renderBoard(rows: BoardRow[], opts: BoardRender): string[] {
 	});
 	const live = rows.filter((r) => r.section === "running" || r.section === "queued").length;
 	const done = rows.filter((r) => r.section === "done").length;
-	const failed = opts.failed?.total ?? rows.filter((r) => r.section === "failed").length;
-	const counts = `${live} live · ${done} done · ${failed} failed`;
+	const stopped = opts.hidden?.stopped ?? rows.filter((r) => r.section === "stopped").length;
+	const failed = opts.hidden?.failed ?? rows.filter((r) => r.section === "failed").length;
+	const stoppedPart = stopped > 0 ? ` · ${stopped} stopped` : "";
+	const counts = `${live} live · ${done} done${stoppedPart} · ${failed} failed`;
 	const team = opts.team ? ` · team ${opts.team.open} open` : "";
 	const title = `${theme.bold("Mission control")}  ${theme.fg("muted", counts + team)}`;
 	const rule = theme.fg("borderMuted", "─".repeat(Math.max(1, width)));
-	const hint = theme.fg("dim", boardHint(rows, cursor, opts.failed));
+	const hint = theme.fg("dim", boardHint(rows, cursor, opts.hidden));
 	const box = hintFrame(hint, width, wide ? listWidth + 1 : undefined, theme);
 	const out = [title, rule, ...body, ...box];
 	return out.map((line) => truncateToWidth(line, width, ""));

@@ -120,7 +120,7 @@ describe("journal fold", () => {
 				status: "interrupted",
 				turns: 1,
 				elapsedSec: 5,
-				error: "interrupted by Esc: the row was removed",
+				error: "interrupted by Esc",
 			}),
 		];
 		const [run] = foldJournal(lines);

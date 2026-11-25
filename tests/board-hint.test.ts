@@ -34,9 +34,10 @@ describe("the board footer", () => {
 		assert.match(empty, /0\/0$/);
 	});
 
-	it("offers the failed toggle only while failures are known", () => {
-		assert.match(boardHint([], 0, { total: 3, hidden: true }), /e show 3 failed/);
-		assert.match(boardHint([], 0, { total: 3, hidden: false }), /e hide failed/);
-		assert.doesNotMatch(boardHint([], 0), /show .* failed|hide failed/);
+	it("offers the hidden toggle only while stopped or failed rows are known", () => {
+		const three = { failed: 2, stopped: 1, hidden: true };
+		assert.match(boardHint([], 0, three), /e show 3 hidden/);
+		assert.match(boardHint([], 0, { ...three, hidden: false }), /e hide hidden/);
+		assert.doesNotMatch(boardHint([], 0), /show .* hidden|hide hidden/);
 	});
 });

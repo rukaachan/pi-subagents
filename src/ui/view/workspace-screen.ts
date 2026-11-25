@@ -44,7 +44,7 @@ export interface WorkspaceRender extends WorkspaceData {
 	teamCursor: number;
 	theme: Pick<import("@earendil-works/pi-coding-agent").Theme, "fg" | "bold">;
 	activity?: (taskId: string) => readonly string[] | undefined;
-	failed?: { total: number; hidden: boolean };
+	hidden?: { failed: number; stopped: number; hidden: boolean };
 }
 
 export function workspaceHeight(tab: WorkspaceTab, data: WorkspaceData): number {
@@ -72,7 +72,7 @@ export function renderWorkspace(opts: WorkspaceRender): string[] {
 					theme: opts.theme,
 					team: opts.summary,
 					activity: opts.activity,
-					...(opts.failed ? { failed: opts.failed } : {}),
+					...(opts.hidden ? { hidden: opts.hidden } : {}),
 				})
 			: renderTeamScreen(opts.team, {
 					width: opts.width,

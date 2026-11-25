@@ -9,7 +9,7 @@ import type { TaskRecord } from "../../app/task-record.ts";
 import { lastMessageAt } from "../../domain/task.ts";
 import { shortText } from "./format.ts";
 
-export type BoardSection = "queued" | "running" | "done" | "failed";
+export type BoardSection = "queued" | "running" | "done" | "stopped" | "failed";
 
 export interface BoardRow {
 	taskId: string;
@@ -36,11 +36,18 @@ export interface BoardDeps {
 	live?: (taskId: string) => boolean;
 }
 
-const SECTION_ORDER: Record<BoardSection, number> = { queued: 0, running: 1, done: 2, failed: 3 };
+const SECTION_ORDER: Record<BoardSection, number> = {
+	queued: 0,
+	running: 1,
+	done: 2,
+	stopped: 3,
+	failed: 4,
+};
 
 export function boardSection(rec: TaskRecord): BoardSection {
 	if (rec.status === "error") return "failed";
 	if (rec.status === "done") return "done";
+	if (rec.status === "stopped") return "stopped";
 	return rec.startedAt === undefined ? "queued" : "running";
 }
 
@@ -96,6 +103,7 @@ const GLYPH: Record<BoardSection, string> = {
 	queued: "○",
 	running: "…",
 	done: "✓",
+	stopped: "⊘",
 	failed: "✗",
 };
 
@@ -113,7 +121,13 @@ export function rowLine(
 ): string {
 	const marker = selected ? theme.fg("accent", "› ") : "  ";
 	const glyph = theme.fg(
-		row.section === "failed" ? "error" : row.section === "done" ? "success" : "warning",
+		row.section === "failed"
+			? "error"
+			: row.section === "done"
+				? "success"
+				: row.section === "stopped"
+					? "dim"
+					: "warning",
 		GLYPH[row.section],
 	);
 	const name = selected ? theme.fg("accent", row.name) : row.name;

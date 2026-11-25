@@ -134,9 +134,9 @@ describe("the stopped run error", () => {
 		assert.equal(isRunStopped(new Error("boom")), false);
 	});
 
-	it("tells the caller the row is gone", () => {
+	it("tells the caller the row can resume", () => {
 		const text = stoppedToolText("worker", "reload");
 		assert.match(text, /Subagent "worker" stopped: interrupted by reload\./);
-		assert.match(text, /Its row was removed\./);
+		assert.match(text, /Resume it by id/);
 	});
 });

@@ -27,10 +27,10 @@ describe("failed runs", () => {
 			runsCursor: 0,
 			teamCursor: 0,
 			theme: plainTheme() as never,
-			failed: { total: 1, hidden: true },
+			hidden: { failed: 1, stopped: 0, hidden: true },
 		});
 		assert.match(out[0] ?? "", /1 failed/);
-		assert.match(out.at(-2) ?? "", /e show 1 failed/);
+		assert.match(out.at(-2) ?? "", /e show 1 hidden/);
 		assert.equal(
 			out.some((line) => line.includes("✗")),
 			false,
@@ -45,12 +45,34 @@ describe("failed runs", () => {
 			runsCursor: 0,
 			teamCursor: 0,
 			theme: plainTheme() as never,
-			failed: { total: 1, hidden: false },
+			hidden: { failed: 1, stopped: 0, hidden: false },
 		});
-		assert.match(open.at(-2) ?? "", /e hide failed/);
+		assert.match(open.at(-2) ?? "", /e hide hidden/);
 		assert.equal(
 			open.some((line) => line.includes("✗")),
 			true,
+		);
+	});
+
+	it("hides stopped rows behind the same toggle", () => {
+		const stopped = board([rec({ taskId: "stop", status: "stopped", endedAt: 2_000 })])[0];
+		assert.ok(stopped);
+		assert.equal(stopped.section, "stopped");
+		const out = renderWorkspace({
+			...empty(),
+			tab: "runs",
+			width: 90,
+			height: 8,
+			runsCursor: 0,
+			teamCursor: 0,
+			theme: plainTheme() as never,
+			hidden: { failed: 0, stopped: 1, hidden: true },
+		});
+		assert.match(out[0] ?? "", /1 stopped/);
+		assert.match(out.at(-2) ?? "", /e show 1 hidden/);
+		assert.equal(
+			out.some((line) => line.includes("⊘")),
+			false,
 		);
 	});
 
@@ -66,8 +88,8 @@ describe("failed runs", () => {
 			theme: plainTheme() as never,
 			render: () => {},
 			onAction: () => {},
-			failed: () => ({ total: 1, hidden: true }),
-			toggleFailed: () => {
+			hidden: () => ({ failed: 1, stopped: 0, hidden: true }),
+			toggleHidden: () => {
 				toggles += 1;
 			},
 		});

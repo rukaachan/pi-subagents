@@ -75,6 +75,27 @@ chars) and lands when the session starts. `stop` aborts the run and
 journals `{event: "stop", family: "coordination"}`; it is never labeled
 `spec`. The board keys `s`, `x`, `r` call the same functions as the tool.
 
+## Driver proof
+
+Coverage percentages are not the gate; one real-host path per driver is.
+`npm run coverage` prints the numbers, and the e2e child process is not
+merged into them, so this table is the claim that matters:
+
+| driver                                            | real proof                                                               |
+| ------------------------------------------------- | ------------------------------------------------------------------------ |
+| `src/app/run.ts` foreground                       | `tools/live-smoke.mts` (real provider), `tools/e2e/chain.test.ts` abort  |
+| `src/app/background.ts` + `background-attempt.ts` | `tools/e2e/recovery.test.ts` stop-then-resume, live smoke task           |
+| `src/app/background-resume.ts`                    | `tools/e2e/recovery.test.ts` resume, live smoke resume                   |
+| `src/app/chain.ts`                                | `tools/e2e/chain.test.ts` chain, `tools/e2e/recovery.test.ts` chain stop |
+| `src/app/fanout.ts`                               | `tools/e2e/chain.test.ts` two parallel legs                              |
+| `src/app/team-launch.ts`                          | `tools/e2e/team-launch.test.ts`, live smoke team start                   |
+| `src/app/team-run.ts`                             | `tools/e2e/team.test.ts` claim, complete, reload                         |
+
+Retry has its own proof: `tools/e2e/retry.test.ts` runs a real Pi process
+against a fake provider that answers 429 once and asserts the `retry`
+journal line. A live 429 would need a streaming proxy in front of a paid
+provider; no measured defect justifies that cost.
+
 ## Team board state
 
 The team board is persisted with the rows, in the same per-session
@@ -327,12 +348,13 @@ What "stop" means here:
 - **No wind-down, no waiting.** A stop request books the stop, calls
   `abort()`, and calls `dispose()`. Measured on a live background run
   (`tools/stop-probe.mts`): **3 ms** from request to "nothing live".
-- **A stopped row is removed, not finished.** The board and the project
-  state file stop claiming a run that no
-  longer exists. A stopped chain is the exception: it keeps its row as
-  `error` so the cut step and the `pending` steps after it stay visible. A removed id is remembered (last 50), so
-  `TaskOutput` answers `Task "…" was stopped (Esc, reload, or quit) and
-its row was removed.` instead of pretending it expired.
+- **A stopped row stays, as `stopped`.** The store keeps the row, a
+  snapshot of its transcript, and the reason, and the state file persists
+  all three. The board hides it with failed runs until `e`. `TaskOutput`
+  answers `Task "…" was stopped: interrupted by Esc. Resume it by id, or
+start a new task.` A stopped chain keeps its row too: the cut step is
+  `error` and later steps stay `pending`. An id that is truly gone
+  (pruned, or from another session) still answers `Unknown task_id`.
 - **The ledger books a `stopped` run**, not a failure. `SpawnCounts`
   gained the field; old files without it read as `0`, and the picker
   title adds `· ⊘ n`.
@@ -343,7 +365,7 @@ its row was removed.` instead of pretending it expired.
   kind of stop closure, so one request covers them all. A chain's
   `run_in_background` step, which no signal could reach before, stops
   too — measured the same way (`tools/stop-chain-probe.mts`): live 1 →
-  stopped in 4 ms, row gone, step journal `interrupted`, ledger
+  stopped in 4 ms, row `stopped`, step journal `interrupted`, ledger
   `stopped: 1`.
 - **The window before the child exists is covered.** `launchBackground`
   registers a placeholder before it awaits session creation, so a key
@@ -351,11 +373,11 @@ its row was removed.` instead of pretending it expired.
   the real session replaces the placeholder and is stopped before its
   first request.
 
-What a stop does **not** do: it does not resume, and it keeps no
-history for that row — the row is gone on purpose. A parent that dies
-on its own (crash, `kill -9`, power) is a different case: those rows
-are still restored as `error: Interrupted by Pi restart. History was
-not saved.`
+What a stop does **not** do: it does not resume on its own. The row
+waits as `stopped` until a `Task` call passes `resume`; a chain step
+still does not resume alone. A parent that dies on its own (crash,
+`kill -9`, power) is a different case: those rows are still restored as
+`error: Interrupted by Pi restart. History was not saved.`
 
 ## Rules (v2)
 

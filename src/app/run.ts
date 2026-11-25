@@ -74,6 +74,7 @@ export async function runSubagent(
 	// ledger books a stop, and the journal says `interrupted`.
 	const live = liveStop(trackKey ?? `${sub.name}-foreground`, sub.name, child.session, (why) => {
 		gate.open = false;
+		if (attach) attach.history = snapshotHistory(child.session);
 		ledger.finish(sub.name, "stopped");
 		sweepMemberTasks(teamKey, false, Date.now(), "stopped");
 		stop?.({ status: "interrupted", error: stoppedRowNote(why) });
@@ -162,6 +163,7 @@ export async function runSubagent(
 		budgetStop.dispose();
 		live.unregister();
 		stop?.();
+		if (attach) attach.history = snapshotHistory(child.session);
 		child.session.dispose();
 		if (live.wasStopped()) sweepMemberTasks(teamKey, false, Date.now(), "stopped");
 	}

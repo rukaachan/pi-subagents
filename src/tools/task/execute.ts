@@ -21,7 +21,7 @@ import type { TaskParams } from "./schema.ts";
 import type { ToolResult } from "./types.ts";
 import { toUsage } from "../../infra/host-usage.ts";
 import { planTask } from "./validate.ts";
-import { removedIds } from "../../app/removed-ids.ts";
+import { markStopped } from "../../app/stop-row.ts";
 import { isRunStopped, stoppedToolText } from "../../domain/run-stop.ts";
 import { capDelivery } from "../../domain/run-result.ts";
 
@@ -214,8 +214,8 @@ export async function executeTask(
 		};
 	} catch (err) {
 		if (isRunStopped(err)) {
-			store.remove(rec.taskId);
-			removedIds.add(rec.taskId);
+			markStopped(rec, err.why);
+			store.touch();
 			const text = stoppedToolText(sub.name, err.why);
 			return {
 				content: [{ type: "text", text }],

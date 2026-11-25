@@ -5,7 +5,7 @@
 export const MAX_REMOVED_IDS = 50;
 
 export function removedTaskMessage(taskId: string): string {
-	return `Task "${taskId}" was stopped (Esc, reload, or quit) and its row was removed. Start a new task to continue.`;
+	return `Task "${taskId}" is no longer on the board. Start a new task to continue.`;
 }
 
 export class RemovedIds {

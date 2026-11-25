@@ -11,7 +11,7 @@ import { cut } from "../telemetry/progress.ts";
 import { newTaskId } from "./task-record.ts";
 import { liveStop } from "./live-runs.ts";
 import type { StoppableSession } from "./live-runs.ts";
-import { removedIds } from "./removed-ids.ts";
+import { markStopped } from "./stop-row.ts";
 import { ledger, markKind } from "./ledger.ts";
 import { announceSettle } from "./settle-notice.ts";
 import { sweepMemberTasks } from "./team-sweep.ts";
@@ -73,8 +73,8 @@ export function launchBackground(
 			dispose: () => holder.dispose(),
 		},
 		(why) => {
-			store.remove(taskId);
-			removedIds.add(taskId);
+			markStopped(rec, why);
+			store.touch();
 			ledger.finish(sub.name, "stopped");
 			sweepMemberTasks(taskId, false, Date.now(), "stopped");
 			stopCurrent?.(why);

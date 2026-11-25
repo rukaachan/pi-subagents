@@ -21,7 +21,8 @@ import { applyReportBudget, effectiveBudget } from "../domain/subagent/budget.ts
 import { MAX_LIVE_TASKS, newTaskId } from "./task-record.ts";
 import { liveStop } from "./live-runs.ts";
 import { registerLiveSession } from "./live-sessions.ts";
-import { removedIds, unknownTaskMessage } from "./removed-ids.ts";
+import { unknownTaskMessage } from "./removed-ids.ts";
+import { markStopped } from "./stop-row.ts";
 import { isRunStopped, RunStopped, stoppedRowNote } from "../domain/run-stop.ts";
 import { applyRunOverrides } from "../domain/tiers.ts";
 import type { RunOverrides } from "../domain/tiers.ts";
@@ -114,8 +115,9 @@ export async function resumeTask(
 			);
 			const live = liveStop(followId, sub.name, child.session, (why) => {
 				gate.open = false;
-				store.remove(followId);
-				removedIds.add(followId);
+				follow.history = snapshotHistory(child.session);
+				markStopped(follow, why);
+				store.touch();
 				ledger.finish(sub.name, "stopped");
 				sweepMemberTasks(rec.taskId, false, Date.now(), "stopped");
 				stop({ status: "interrupted", error: stoppedRowNote(why) });

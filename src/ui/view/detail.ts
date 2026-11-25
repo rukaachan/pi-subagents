@@ -43,7 +43,8 @@ export function taskDetail(rec: TaskRecord, live?: LiveRunInfo): string {
 		if (rec.result.notes.length > 0) out.push(`[notes: ${rec.result.notes.join(" ")}]`);
 		return out.join("\n");
 	}
-	if (rec.status === "error") head.push(["error", rec.error ?? "unknown error"]);
+	if (rec.status === "stopped") head.push(["stopped", rec.error ?? "interrupted"]);
+	else if (rec.status === "error") head.push(["error", rec.error ?? "unknown error"]);
 	else if (live && (live.turns !== undefined || live.tool)) {
 		head.push([
 			"live",

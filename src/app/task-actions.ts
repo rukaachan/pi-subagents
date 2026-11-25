@@ -80,7 +80,6 @@ export function stopTaskById(store: TaskStore, taskId: string, why = "TaskContro
 	if (!stopTask(taskId, why)) {
 		return fail("stop", taskId, `Task ${taskId} has no live child to stop; it may be finishing.`);
 	}
-	removedIds.add(taskId);
 	journalWrite({ event: "stop", id: taskId, family: "coordination", why });
 	return {
 		ok: true,

@@ -19,9 +19,12 @@ const sleep = (ms: number) =>
 
 interface StateTask {
 	taskId: string;
+	description: string;
 	status: string;
 	kind?: string;
+	history?: unknown[];
 	steps?: { status: string }[];
+	result?: { text?: string };
 }
 
 function stateTasks(home: E2EHome): StateTask[] {
@@ -51,6 +54,43 @@ async function waitFor(check: () => boolean, label: string, timeoutMs = 20_000):
 }
 
 describe("e2e: recovery", () => {
+	it("resumes a stopped row with the history it kept", { timeout: 60_000 }, async () => {
+		const provider = await startFakeProvider();
+		const home = await createE2EHome({ baseUrl: provider.baseUrl, liveCap: 12 });
+		const rpc = startRpc(home);
+		try {
+			await rpc.prompt("E2E_COLD_RESUME");
+			await waitFor(
+				() =>
+					stateTasks(home).some(
+						(task) => task.status === "stopped" && (task.history?.length ?? 0) > 0,
+					),
+				"the stopped row and its history",
+			);
+			const stopped = stateTasks(home).find((task) => task.status === "stopped");
+			if (!stopped) assert.fail("missing the stopped row");
+			await waitFor(
+				() =>
+					stateTasks(home).some(
+						(task) => task.description === `resume of ${stopped.taskId}` && task.status === "done",
+					),
+				"the resume row",
+			);
+			const follows = stateTasks(home).filter(
+				(task) => task.description === `resume of ${stopped.taskId}`,
+			);
+			assert.equal(follows.length, 1, "one follow-up row");
+			assert.match(String(follows[0]?.result?.text), /COLD_RESUMED/);
+		} catch (error) {
+			rpc.artifacts(join(repoRoot, "artifacts", "e2e", "cold-resume"));
+			throw error;
+		} finally {
+			await rpc.stop();
+			await provider.close();
+			home.cleanup();
+		}
+	});
+
 	it(
 		"leaves the later chain step pending when the chain is stopped",
 		{ timeout: 60_000 },

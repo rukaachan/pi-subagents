@@ -5,7 +5,7 @@
  * Manual/nightly only; never a CI gate.
  */
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadSubagentFromContent } from "../src/infra/subagent-files.ts";
@@ -42,6 +42,8 @@ async function waitDone(store: TaskStore, taskId: string, label: string): Promis
 }
 
 const dir = mkdtempSync(join(tmpdir(), "pi-live-smoke-"));
+const journalPath = join(dir, "journal.ndjson");
+process.env.PI_SUBAGENTS_JOURNAL = journalPath;
 const subs = join(dir, ".pi", "subagents");
 mkdirSync(subs, { recursive: true });
 const markdown = [
@@ -59,6 +61,22 @@ const markdown = [
 	"Follow the task exactly. Keep the final report to one line.",
 ].join("\n");
 writeFileSync(join(subs, "live-worker.md"), markdown);
+const gatedMarkdown = [
+	"---",
+	"name: live-gated",
+	"description: live smoke gate",
+	`model: ${modelId}`,
+	"thinkingLevel: off",
+	"autonomy: high",
+	"gates: on",
+	"codemode: false",
+	"tools: bash",
+	"budget: { timeoutSec: 120, maxTurns: 0, maxInputTokens: 0, maxReportChars: 2000 }",
+	"---",
+	"",
+	"Run the command the task gives you with bash. If it is blocked, report the block reason.",
+].join("\n");
+writeFileSync(join(subs, "live-gated.md"), gatedMarkdown);
 
 const pi = await import("@earendil-works/pi-coding-agent");
 const host = pi as unknown as {
@@ -85,6 +103,9 @@ const ctx = {
 const sub = loadSubagentFromContent(markdown, join(subs, "live-worker.md"), "project");
 assert.equal(typeof sub, "object", "fixture parses");
 if (typeof sub === "string") throw new Error(sub);
+const gated = loadSubagentFromContent(gatedMarkdown, join(subs, "live-gated.md"), "project");
+assert.equal(typeof gated, "object", "gated fixture parses");
+if (typeof gated === "string") throw new Error(gated);
 
 const store = new TaskStore();
 bindTeamMail(store);
@@ -148,6 +169,32 @@ try {
 	if ("error" in resumed) throw new Error(resumed.error);
 	assert.match(await waitDone(store, resumed.taskId, "resume"), /LIVE_RESUME_OK/);
 	console.log("resume: LIVE_RESUME_OK");
+
+	const probe = "/tmp/pi-live-gate-probe";
+	mkdirSync(probe, { recursive: true });
+	writeFileSync(join(probe, "keep.txt"), "alive");
+	const gateId = launchBackground(
+		store,
+		gated,
+		"live gate",
+		`Call bash with the exact command: rm -rf ${probe}. Then reply with GATE_DONE.`,
+		dir,
+		ctx,
+		{ kind: "background" },
+	);
+	const gateReport = await waitDone(store, gateId, "gate");
+	assert.match(gateReport, /gates|recursive delete|blocked/i);
+	assert.equal(existsSync(join(probe, "keep.txt")), true, "the gate kept the probe dir");
+	const journalLines = readFileSync(journalPath, "utf8")
+		.split("\n")
+		.filter(Boolean)
+		.map((line) => JSON.parse(line) as { event?: string; tool?: string; reason?: string });
+	const blocked = journalLines.find((line) => line.event === "gate");
+	assert.ok(blocked, "the gate wrote its journal line");
+	assert.equal(blocked.tool, "bash");
+	assert.equal(blocked.reason, "recursive delete (bash)");
+	rmSync(probe, { recursive: true, force: true });
+	console.log("gate: recursive delete (bash)");
 	console.log("LIVE_SMOKE_OK");
 } finally {
 	stopAllLiveRuns("live smoke");

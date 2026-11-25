@@ -23,7 +23,7 @@ import type { ChainStep, TaskRecord } from "./task-record.ts";
 import { TaskStore } from "./task-store.ts";
 import type { SubagentRunResult } from "../domain/run-result.ts";
 import { liveStop, type LiveStop, type StoppableSession } from "./live-runs.ts";
-import { removedIds } from "./removed-ids.ts";
+import { markStopped } from "./stop-row.ts";
 import { RunStopped } from "../domain/run-stop.ts";
 import { aggregateResult } from "./chain-result.ts";
 
@@ -140,6 +140,7 @@ export function runChain(
 					child.session,
 					(why) => {
 						gate.open = false;
+						rec.history = snapshotHistory(child.session);
 						stop({ status: "interrupted", error: `interrupted by ${why}` });
 					},
 				);
@@ -209,8 +210,7 @@ export function runChain(
 			ledger.finish(rec.subagentName, "done");
 		} catch (err) {
 			if (err instanceof RunStopped) {
-				store.remove(taskId);
-				removedIds.add(taskId);
+				markStopped(rec, err.why);
 				ledger.finish(rec.subagentName, "stopped");
 				store.touch();
 				throw err;

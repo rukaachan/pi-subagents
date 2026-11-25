@@ -17,7 +17,7 @@ export type WaitOutcome =
 	| {
 			kind: "settled";
 			taskId: string;
-			status: "done" | "error";
+			status: "done" | "error" | "stopped";
 			report: string;
 			error?: string;
 	  }

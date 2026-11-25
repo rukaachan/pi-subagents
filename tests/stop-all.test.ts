@@ -96,7 +96,7 @@ describe("an id that a stop removed", () => {
 		const memory = new RemovedIds(3);
 		memory.add("t1");
 		assert.equal(memory.has("t1"), true);
-		assert.match(unknownTaskMessage("t1", memory), /was stopped \(Esc, reload, or quit\)/);
+		assert.match(unknownTaskMessage("t1", memory), /no longer on the board/);
 	});
 
 	it("is forgotten after the cap, and then reads as unknown again", () => {
@@ -117,8 +117,8 @@ describe("an id that a stop removed", () => {
 	});
 
 	it("says the trigger in the row note", () => {
-		assert.match(removedTaskMessage("x"), /removed/);
-		assert.equal(stoppedRowNote("reload"), "interrupted by reload: the row was removed");
+		assert.match(removedTaskMessage("x"), /no longer on the board/);
+		assert.equal(stoppedRowNote("reload"), "interrupted by reload");
 	});
 });
 

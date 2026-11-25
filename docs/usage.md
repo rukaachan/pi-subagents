@@ -184,14 +184,15 @@ input is open `esc` cancels only the input; `esc` outside search still
 closes the viewer.
 
 `/subagents` opens mission control even when nothing runs. The RUNS tab
-shows queued, running, done and failed runs, grouped by run. Keys:
+shows queued, running, done, stopped and failed runs, grouped by run. Keys:
 `↑↓` move, `enter` open, `s` steer, `x` stop, `r` retry, `c` copy,
 `f` finish, `tab` switch to TEAM, `esc` back. The footer lists only the
 keys that work for the selected row, so a done row does not advertise
 steer or retry. On a wide terminal the right pane shows the selected
 run's last three steps, says `waiting for the first step` before any
 arrive, and pins that row's keys to its bottom line. Failed runs stay
-collapsed; the title still counts them, and `e` shows or hides them. The
+collapsed beside stopped runs; the title still counts them, and `e` shows
+or hides both. The
 Team tab shows one row per board task and keeps every board action:
 `t` team on/off (also shown as `(t)` beside the counts),
 `n` new, `e` edit, `a` assign, `c` claim, `r` release, `x` complete,
@@ -261,7 +262,8 @@ settled in 2–4 s, and a 271-char compact report.
 
 `npm run e2e` runs the real-model delegate probe and spends calls.
 `PI_IT_LIVE=1 PI_IT_MODEL=provider/model npm run smoke:live` checks one
-Task, one Team start, one steer, and one resume against a real provider;
+Task, one Team start, one steer, one resume, and one gated `bash` call
+against a real provider;
 it is manual/nightly and never a CI gate. `npm run coverage` prints Node's
 line, branch, and function coverage without a percentage gate.
 `npm run e2e:fixtures` copies fixtures into a temp home, starts a local
@@ -499,12 +501,13 @@ same prompt and a new `task_id`. Stopping a chain cuts the running step,
 keeps the chain row as `error`, and leaves every later step `pending`.
 
 Resume: pass `resume: task_id` plus a new `prompt` with the same
-`subagent_type`. The follow-up run keeps prior history. A done task
-resumes after a Pi restart: its row and history persist on disk. One
-resume makes one follow-up row; the original keeps its id. A stopped
-run has no row left, so start a new task instead of resuming it. The
-child gets a bounded, readable transcript of the old run (newest entries
-kept, older ones counted), never a raw history dump.
+`subagent_type`. The follow-up run keeps prior history. A done or stopped
+task resumes after a Pi restart: its row and history persist on disk. A
+stop keeps the row as `stopped`, so `TaskOutput` names the reason and the
+same id resumes with the transcript it kept. One resume makes one
+follow-up row; the original keeps its id. The child gets a bounded,
+readable transcript of the old run (newest entries kept, older ones
+counted), never a raw history dump.
 
 Return contract: pass `return: ["files", "risks"]` to make the report end
 with one line per field (`files: …`, `risks: …`). Only the last contiguous

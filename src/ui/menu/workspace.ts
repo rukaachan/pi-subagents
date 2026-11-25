@@ -70,14 +70,20 @@ function mountWorkspace(
 ): Promise<WorkspaceAction | undefined> {
 	return ctx.ui.custom<WorkspaceAction | undefined>((tui, theme, _kb, done) => {
 		let finished = false;
-		let showFailed = false;
+		let showHidden = false;
 		const runs = () => {
 			const rows = runsOf(store, scope);
-			return showFailed ? rows : rows.filter((row) => row.section !== "failed");
+			return showHidden
+				? rows
+				: rows.filter((row) => row.section !== "failed" && row.section !== "stopped");
 		};
-		const failed = () => {
-			const total = runsOf(store, scope).filter((row) => row.section === "failed").length;
-			return { total, hidden: !showFailed };
+		const hidden = () => {
+			const rows = runsOf(store, scope);
+			return {
+				failed: rows.filter((row) => row.section === "failed").length,
+				stopped: rows.filter((row) => row.section === "stopped").length,
+				hidden: !showHidden,
+			};
 		};
 		const finish = (action: WorkspaceAction | undefined) => {
 			if (finished) return;
@@ -87,9 +93,9 @@ function mountWorkspace(
 		const view = createWorkspaceView({
 			tab,
 			runs,
-			failed,
-			toggleFailed: () => {
-				showFailed = !showFailed;
+			hidden,
+			toggleHidden: () => {
+				showHidden = !showHidden;
 				tui.requestRender();
 			},
 			team: teamRows,

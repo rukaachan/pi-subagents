@@ -548,6 +548,53 @@ function answerFor(
 	}
 	if (all.includes("E2E_STEER_TEXT") && toolResult(messages)) return { text: "STEER_APPLIED" };
 
+	if (hasToken(prompt, "E2E_COLD_RESUME")) {
+		const calls = toolCalls(messages);
+		const resumed = calls.find(
+			(call) => call.name === "Task" && typeof call.args.resume === "string",
+		);
+		if (resumed) return { text: "COLD_RESUME_DONE" };
+		const task = calls.find((call) => call.name === "Task" && !call.args.resume);
+		if (!task)
+			return {
+				tool: {
+					name: "Task",
+					args: {
+						description: "cold resume",
+						subagent_type: "e2e-a",
+						prompt: "E2E_COLD_SLOW",
+						run_in_background: true,
+					},
+				},
+			};
+		const stopped = calls.find(
+			(call) => call.name === "TaskControl" && call.args.action === "stop",
+		);
+		if (!stopped)
+			return {
+				tool: { name: "TaskControl", args: { action: "stop", task_id: taskId(all) } },
+				delayMs: 800,
+			};
+		return {
+			tool: {
+				name: "Task",
+				args: {
+					description: "cold resume follow",
+					subagent_type: "e2e-a",
+					prompt: "E2E_COLD_CHILD",
+					resume: taskId(all),
+				},
+			},
+			delayMs: 500,
+		};
+	}
+	if (hasToken(prompt, "E2E_COLD_CHILD")) return { text: "COLD_RESUMED", delayMs: 200 };
+	if (hasToken(prompt, "E2E_COLD_SLOW")) {
+		if (!toolResult(messages))
+			return { tool: { name: "read", args: { path: ".pi/subagents/e2e-a.md" } } };
+		return { text: "TOO_LATE", delayMs: 6000 };
+	}
+
 	if (hasToken(prompt, "E2E_CHAIN_STOP")) {
 		const calls = toolCalls(messages);
 		const task = calls.find((call) => call.name === "Task" && Array.isArray(call.args.chain));

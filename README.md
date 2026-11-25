@@ -10,6 +10,7 @@ checkout.
 
 ## Requirements
 
+- Linux (Windows and macOS are not supported)
 - Pi 1.4.0 or newer
 - Node.js 22.19 or newer
 

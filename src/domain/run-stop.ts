@@ -17,9 +17,9 @@ export function isRunStopped(err: unknown): err is RunStopped {
 }
 
 export function stoppedToolText(name: string, why: string): string {
-	return `Subagent "${name}" stopped: interrupted by ${why}. Its row was removed. Start a new task to continue.`;
+	return `Subagent "${name}" stopped: interrupted by ${why}. Resume it by id, or start a new task.`;
 }
 
 export function stoppedRowNote(why: string): string {
-	return `interrupted by ${why}: the row was removed`;
+	return `interrupted by ${why}`;
 }

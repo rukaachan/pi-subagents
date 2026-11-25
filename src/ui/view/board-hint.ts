@@ -15,15 +15,15 @@ export function actionKeys(row: BoardRow | undefined): string[] {
 	return parts;
 }
 
-export function boardHint(
-	rows: readonly BoardRow[],
-	cursor: number,
-	failed?: { total: number; hidden: boolean },
-): string {
-	const toggle =
-		failed && failed.total > 0
-			? [failed.hidden ? `e show ${failed.total} failed` : "e hide failed"]
-			: [];
+export interface HiddenRows {
+	failed: number;
+	stopped: number;
+	hidden: boolean;
+}
+
+export function boardHint(rows: readonly BoardRow[], cursor: number, hidden?: HiddenRows): string {
+	const total = hidden ? hidden.failed + hidden.stopped : 0;
+	const toggle = total > 0 ? [hidden?.hidden ? `e show ${total} hidden` : "e hide hidden"] : [];
 	const parts = ["↑↓", ...actionKeys(rows[cursor]), ...toggle, "f finish", "tab", "esc"];
 	parts.push(rows.length === 0 ? "0/0" : `${cursor + 1}/${rows.length}`);
 	return parts.join(" · ");

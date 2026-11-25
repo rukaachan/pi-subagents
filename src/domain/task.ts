@@ -6,7 +6,7 @@ import type { FailureFamily } from "./failure.ts";
 import type { SubagentConfig } from "./subagent/config.ts";
 import type { SubagentRunResult } from "./run-result.ts";
 
-export type TaskStatus = "running" | "done" | "error";
+export type TaskStatus = "running" | "done" | "error" | "stopped";
 export type RunKind = "foreground" | "background" | "alias" | "chain" | "parallel";
 
 /** The live cap; fan-out legs share it. */

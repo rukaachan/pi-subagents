@@ -114,6 +114,22 @@ export const taskOutputTool = defineTool({
 				},
 			};
 		}
+		if (rec.status === "stopped") {
+			return {
+				content: [
+					{
+						type: "text",
+						text: `Task ${rec.taskId} (${rec.subagentName}) was stopped: ${rec.error ?? "interrupted"}. Resume it by id, or start a new task.`,
+					},
+				],
+				details: {
+					task_id: rec.taskId,
+					status: "stopped",
+					subagent_type: rec.subagentName,
+					...(rec.runId ? { run_id: rec.runId } : {}),
+				},
+			};
+		}
 		if (rec.status === "error") {
 			return {
 				content: [

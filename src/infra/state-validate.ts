@@ -33,7 +33,9 @@ function strings(value: unknown): string[] {
 }
 
 function status(value: unknown): TaskStatus | undefined {
-	return value === "running" || value === "done" || value === "error" ? value : undefined;
+	return value === "running" || value === "done" || value === "error" || value === "stopped"
+		? value
+		: undefined;
 }
 
 function source(value: unknown): SubagentSource {

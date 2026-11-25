@@ -21,8 +21,8 @@ export interface WorkspaceViewDeps {
 	summary: () => { open: number; done: number; enabled: boolean };
 	height: () => number;
 	activity?: (taskId: string) => readonly string[] | undefined;
-	failed?: () => { total: number; hidden: boolean };
-	toggleFailed?: () => void;
+	hidden?: () => { failed: number; stopped: number; hidden: boolean };
+	toggleHidden?: () => void;
 	theme: WorkspaceRender["theme"];
 	render: () => void;
 	onAction: (action: WorkspaceAction) => void;
@@ -72,13 +72,13 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 
 	function keyOf(): string {
 		const all = data();
-		const failed = deps.failed?.();
+		const hidden = deps.hidden?.();
 		return [
 			tab,
 			runsCursor,
 			teamCursor,
 			all.teamEnabled,
-			`${failed?.total ?? 0}:${failed?.hidden ? 1 : 0}`,
+			`${hidden?.failed ?? 0}:${hidden?.stopped ?? 0}:${hidden?.hidden ? 1 : 0}`,
 			all.runs
 				.map((row) => `${row.taskId}:${row.section}:${row.turns}:${row.elapsedSec}`)
 				.join("|"),
@@ -89,6 +89,11 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 				)
 				.join("|"),
 		].join("|");
+	}
+
+	function hiddenTotal(): number {
+		const hidden = deps.hidden?.();
+		return hidden ? hidden.failed + hidden.stopped : 0;
 	}
 
 	function sync(): void {
@@ -179,7 +184,7 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 				teamCursor,
 				theme: deps.theme,
 				activity: deps.activity,
-				...(deps.failed ? { failed: deps.failed() } : {}),
+				...(deps.hidden ? { hidden: deps.hidden() } : {}),
 			});
 		},
 
@@ -193,8 +198,8 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 			if (key === "1") return switchTab("runs");
 			if (key === "2") return switchTab("team");
 			if (key === "f") return emit({ kind: "finish" });
-			if (key === "e" && tab === "runs" && deps.failed?.().total) {
-				deps.toggleFailed?.();
+			if (key === "e" && tab === "runs" && hiddenTotal()) {
+				deps.toggleHidden?.();
 				runsCursor = Math.max(0, Math.min(runsCursor, deps.runs().length - 1));
 				return;
 			}

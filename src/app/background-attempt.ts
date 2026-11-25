@@ -70,7 +70,10 @@ export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptRe
 		: () => {};
 	rec.startedAt = Date.now();
 	store.touch();
-	holder.abort = () => child.session.abort();
+	holder.abort = () => {
+		rec.history = snapshotHistory(child.session);
+		child.session.abort();
+	};
 	holder.dispose = () => child.session.dispose();
 	const stop = trackSession(
 		child.session,
@@ -165,6 +168,7 @@ export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptRe
 		budgetStop.dispose();
 		unregisterView();
 		stop();
+		rec.history = snapshotHistory(child.session);
 		child.session.dispose();
 		if (live.wasStopped()) sweepMemberTasks(rec.taskId, false, Date.now(), "stopped");
 		holder.abort = () => {};

@@ -115,7 +115,11 @@ export function snapshotHistory(session: AgentSession): AgentMessage[] {
 }
 
 export function recordFailure(
-	target: { history: unknown[]; status: "done" | "running" | "pending" | "error"; error?: string },
+	target: {
+		history: unknown[];
+		status: "done" | "running" | "pending" | "error" | "stopped";
+		error?: string;
+	},
 	session: AgentSession,
 	err: unknown,
 ): string {

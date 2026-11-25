@@ -40,6 +40,13 @@ export function renderTaskOutputResult(result: OutputResult, expanded: boolean, 
 	const text = result.content[0];
 	const body = text?.type === "text" ? (text.text ?? "") : "(no output)";
 	const id = details?.task_id ?? "";
+	if (details?.status === "stopped") {
+		return new Text(
+			`${theme.fg("warning", "⊘ TaskOutput")} ${theme.fg("accent", id)} ${theme.fg("dim", shortText(body, 200))}`,
+			0,
+			0,
+		);
+	}
 	if (
 		details?.status === "error" ||
 		details?.error ||

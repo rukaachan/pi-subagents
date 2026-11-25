@@ -190,6 +190,13 @@ roster pick is p50 38–82 µs and p95 73–110 µs across local runs, with 1.2
 legs per prompt on average. The pick is noise beside session startup; the win is
 that the operator types one command instead of naming every leg.
 
+## Platform
+
+Linux only. The stop path, process teardown, and the probes assume POSIX
+signals. Windows and macOS are untested and unsupported. A macOS CI job
+was tried and removed when no runner was available, so the claim is
+Linux, not "cross-platform".
+
 ## Harness growth rule (after arxiv 2609.40303)
 
 A new stage, subagent, field, or tool-policy knob must earn its seat:
