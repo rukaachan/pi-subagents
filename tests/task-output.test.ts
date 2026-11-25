@@ -2,7 +2,7 @@ import { afterEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { taskOutputTool } from "../src/tools/task-output.ts";
 import { store } from "../src/app/live-store.ts";
-import { MAX_DELIVERY_CHARS } from "../src/domain/run-result.ts";
+import { MAX_DELIVERY_CHARS } from "../src/domain/run/index.ts";
 import { rec } from "./board-fixtures.ts";
 
 const ctx = {

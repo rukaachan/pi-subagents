@@ -2,7 +2,6 @@
  * pi-subagents: the rules that decide and suggest.
  */
 
-import type { SubagentBudget } from "./budget.ts";
 import type { SubagentConfig } from "./config.ts";
 
 export interface SubagentDiscoveryResult {
@@ -43,15 +42,4 @@ export function suggestSubagentName(input: string, names: string[]): string | nu
 		}
 	}
 	return bestDist <= 2 ? best : null;
-}
-
-// Apply the report-characters budget to a run's output text.
-export function applyReportBudget(text: string, budget: SubagentBudget | undefined): string {
-	if (!budget || !budget.maxReportChars) return text;
-	const cap = budget.maxReportChars;
-	if (text.length <= cap) return text;
-	const gone = text.length - cap;
-	const marker = `\n\n[truncated: ${gone} characters over the ${cap}-char budget]`;
-	if (marker.length >= cap) return marker.slice(0, cap);
-	return text.slice(0, cap - marker.length) + marker;
 }

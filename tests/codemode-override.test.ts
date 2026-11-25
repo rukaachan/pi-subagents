@@ -3,11 +3,11 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { applyRunOverrides, overrideNote, parseCodemodeOverride } from "../src/domain/tiers.ts";
-import { planCodemode } from "../src/domain/subagent/codemode.ts";
-import type { SubagentConfig } from "../src/domain/subagent/config.ts";
-import { planTask } from "../src/tools/task/validate.ts";
-import type { TaskParams } from "../src/tools/task/schema.ts";
+import { applyRunOverrides, overrideNote, parseCodemodeOverride } from "../src/domain/run/index.ts";
+import { planCodemode } from "../src/domain/task/index.ts";
+import type { SubagentConfig } from "../src/domain/subagent/index.ts";
+import { planTask } from "../src/tools/task/index.ts";
+import type { TaskParams } from "../src/tools/task/index.ts";
 
 const sub = (over: Partial<SubagentConfig> = {}): SubagentConfig => ({
 	name: "probe",

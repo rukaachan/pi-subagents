@@ -3,7 +3,7 @@
  */
 
 import { ActivityLog } from "./activity.ts";
-import type { ActivityStep } from "../domain/activity-step.ts";
+import type { ActivityStep } from "../domain/run/index.ts";
 
 export interface ProgressSnapshot {
 	turns: number;

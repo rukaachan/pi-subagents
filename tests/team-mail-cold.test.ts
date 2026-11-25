@@ -3,10 +3,10 @@ import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { SubagentConfig } from "../src/domain/subagent/config.ts";
-import type { TaskRecord } from "../src/domain/task.ts";
-import { newRecord } from "../src/app/task-record.ts";
-import { TaskStore } from "../src/app/task-store.ts";
+import type { SubagentConfig } from "../src/domain/subagent/index.ts";
+import type { TaskRecord } from "../src/domain/task/index.ts";
+import { newRecord } from "../src/domain/task/index.ts";
+import { TaskStore } from "../src/domain/task/index.ts";
 import { beginTeamSession, enableTeam, joinTeam } from "../src/app/team-store.ts";
 import {
 	bindTeamMail,

@@ -1,9 +1,9 @@
 /**
  * pi-subagents: granting codemode, and what it costs at runtime.
  */
-import { clampToolsForAutonomy, TOOL_GROUPS } from "./config.ts";
-import type { SubagentConfig } from "./config.ts";
-import { MAX_LIVE_TASKS } from "../task.ts";
+import { clampToolsForAutonomy, TOOL_GROUPS } from "../subagent/index.ts";
+import type { SubagentConfig } from "../subagent/index.ts";
+import { MAX_LIVE_TASKS } from "./task.ts";
 
 // Codemode workers alive per pi process.
 /** The host's own limit: two codemode workers per pi process. */

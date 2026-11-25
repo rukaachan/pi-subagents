@@ -4,8 +4,8 @@
 
 import * as os from "node:os";
 import type { TrashItem } from "../../infra/trash.ts";
-import type { SubagentRunResult } from "../../domain/run-result.ts";
-import type { TaskRecord } from "../../app/task-record.ts";
+import type { SubagentRunResult } from "../../domain/run/index.ts";
+import type { TaskRecord } from "../../domain/task/index.ts";
 
 export function shortPath(p: string): string {
 	const home = os.homedir();

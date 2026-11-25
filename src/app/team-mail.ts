@@ -2,11 +2,11 @@
  * pi-subagents: live messages between team members.
  */
 
-import { MAX_COLD_CHARS, MAX_COLD_MESSAGES } from "../domain/team-mail.ts";
-import type { MailResult, TeamMessageApi, WaitOutcome } from "../domain/team-mail.ts";
-import { LEAD_NAME } from "../domain/team.ts";
+import { MAX_COLD_CHARS, MAX_COLD_MESSAGES } from "../domain/team/index.ts";
+import type { MailResult, TeamMessageApi, WaitOutcome } from "../domain/team/index.ts";
+import { LEAD_NAME } from "../domain/team/index.ts";
 import { journalWrite } from "../telemetry/journal.ts";
-import type { TaskStore } from "./task-store.ts";
+import type { TaskStore } from "../domain/task/index.ts";
 import { teamMembers } from "./team-store.ts";
 import { clearWaits, MAX_WAIT_MS, waitForMember as waitCore } from "./team-wait.ts";
 

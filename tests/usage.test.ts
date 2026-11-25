@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { sumUsage } from "../src/domain/run-result.ts";
+import { sumUsage } from "../src/domain/run/index.ts";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 
 // sumUsage reads the AgentMessage union from Pi.

@@ -3,7 +3,7 @@
  */
 
 import { writeScopeWarnings } from "./team-scope.ts";
-import { canonicalWorkspacePath } from "./workspace-path.ts";
+import { canonicalWorkspacePath } from "../policy/index.ts";
 
 export const LEAD_NAME = "lead";
 export const MAX_TEAM_TASKS = 128;

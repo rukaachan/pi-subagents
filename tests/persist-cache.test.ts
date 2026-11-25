@@ -4,7 +4,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { capRecord } from "../src/infra/state-file.ts";
-import type { TaskRecord } from "../src/domain/task.ts";
+import type { TaskRecord } from "../src/domain/task/index.ts";
 
 describe("the message size cache", () => {
 	it("measures each message once across saves", () => {

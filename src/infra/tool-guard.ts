@@ -6,7 +6,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import type { ToolDefinition } from "@earendil-works/pi-coding-agent";
 import type { TSchema } from "typebox";
-import { pathsRefusal } from "../domain/subagent/paths.ts";
+import { pathsRefusal } from "../domain/subagent/index.ts";
 
 const MAX_LINK_DEPTH = 64;
 

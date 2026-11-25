@@ -6,7 +6,7 @@ import { copyToClipboard, type ExtensionCommandContext } from "@earendil-works/p
 import { inModal } from "../../app/modal-depth.ts";
 import { liveSession } from "../../app/live-sessions.ts";
 import { liveMember } from "../../app/team-mail.ts";
-import { MAX_TEAM_TASKS } from "../../domain/team.ts";
+import { MAX_TEAM_TASKS } from "../../domain/team/index.ts";
 import {
 	disableTeam,
 	enableTeam,
@@ -18,7 +18,7 @@ import { retryTask, steerTask, stopTaskById } from "../../app/task-actions.ts";
 import { linkedRun } from "../../app/team-run.ts";
 import { startFinish } from "../../app/finish.ts";
 import { scopeTasks, type TaskScope } from "../../app/task-scope.ts";
-import type { TaskStore } from "../../app/task-store.ts";
+import type { TaskStore } from "../../domain/task/index.ts";
 import { buildBoard, type BoardRow } from "../view/board-model.ts";
 import { taskRow } from "../view/rows.ts";
 import { recentSteps } from "./task-list.ts";

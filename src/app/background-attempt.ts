@@ -3,7 +3,7 @@
  */
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import type { SubagentConfig } from "../domain/subagent/config.ts";
+import type { SubagentConfig } from "../domain/subagent/index.ts";
 import { footerProgress } from "../telemetry/progress.ts";
 import { trackSession } from "../telemetry/track.ts";
 import { abandonedNote, installRunBudget } from "./guards/install.ts";
@@ -13,10 +13,10 @@ import {
 	providerFailure,
 	snapshotHistory,
 	sumUsage,
-} from "../domain/run-result.ts";
+} from "../domain/run/index.ts";
 import { annotateFailure, awaitWithHardStop, surfaceBudgetNotes } from "./guards/stop.ts";
-import { runReport } from "../domain/run-report.ts";
-import { checkReturn } from "../domain/subagent/contract.ts";
+import { runReport } from "../domain/run/index.ts";
+import { checkReturn } from "../domain/run/index.ts";
 import { journalWrite } from "../telemetry/journal.ts";
 import { startSubagentSession } from "../infra/host-session.ts";
 import { withGateJournal } from "./child-gate-journal.ts";
@@ -24,13 +24,13 @@ import { teamChildExtras } from "./team-child.ts";
 import { sweepMemberTasks } from "./team-sweep.ts";
 import { bindTeamMember } from "./team-mail.ts";
 import { windDownSignal } from "./guards/wind.ts";
-import { applyReportBudget, effectiveBudget } from "../domain/subagent/budget.ts";
+import { applyReportBudget, effectiveBudget } from "../domain/subagent/index.ts";
 import { registerLiveSession } from "./live-sessions.ts";
-import { isRunStopped, RunStopped, stoppedRowNote } from "../domain/run-stop.ts";
+import { isRunStopped, RunStopped, stoppedRowNote } from "../domain/task/index.ts";
 import type { LiveStop, StoppableSession } from "./live-runs.ts";
 import { dropSteers, takeSteers } from "./steer-queue.ts";
 import { store } from "./live-store.ts";
-import type { RunKind, TaskRecord } from "./task-record.ts";
+import type { RunKind, TaskRecord } from "../domain/task/index.ts";
 
 export interface AttemptResult {
 	ok: boolean;

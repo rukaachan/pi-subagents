@@ -3,15 +3,15 @@ import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { TaskStore } from "../src/app/task-store.ts";
+import { TaskStore } from "../src/domain/task/index.ts";
 import {
 	newRecord,
 	newTaskId,
 	MAX_LIVE_TASKS,
 	MAX_DONE_TASKS,
 	type TaskRecord,
-} from "../src/app/task-record.ts";
-import type { SubagentConfig } from "../src/domain/subagent/config.ts";
+} from "../src/domain/task/index.ts";
+import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 import {
 	BUDGET_EDIT_FIELDS,
 	EDITABLE_FIELDS,

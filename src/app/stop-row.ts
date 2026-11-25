@@ -2,8 +2,8 @@
  * pi-subagents: a stopped run keeps its row so it can resume.
  */
 
-import { stoppedRowNote } from "../domain/run-stop.ts";
-import type { TaskRecord } from "./task-record.ts";
+import { stoppedRowNote } from "../domain/task/index.ts";
+import type { TaskRecord } from "../domain/task/index.ts";
 
 export function markStopped(rec: TaskRecord | undefined, why: string, now = Date.now()): void {
 	if (!rec || rec.status === "stopped") return;

@@ -2,8 +2,8 @@
  * pi-subagents: which run a board task points at.
  */
 
-import type { TaskRecord } from "./task-record.ts";
-import type { TaskStore } from "./task-store.ts";
+import type { TaskRecord } from "../domain/task/index.ts";
+import type { TaskStore } from "../domain/task/index.ts";
 import { getTask } from "./team-store.ts";
 
 export type LinkedRun = { ok: true; runId: string; rec: TaskRecord } | { ok: false; error: string };

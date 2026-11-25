@@ -3,20 +3,20 @@
  */
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { suggestSubagentName } from "../domain/subagent/discovery.ts";
-import type { SubagentConfig } from "../domain/subagent/config.ts";
+import { suggestSubagentName } from "../domain/subagent/index.ts";
+import type { SubagentConfig } from "../domain/subagent/index.ts";
 import { useFooterUI } from "../telemetry/progress.ts";
-import { MAX_LIVE_TASKS } from "./task-record.ts";
+import { MAX_LIVE_TASKS } from "../domain/task/index.ts";
 import { runChain } from "./chain.ts";
-import { isRunStopped, stoppedToolText } from "../domain/run-stop.ts";
-import { capDelivery } from "../domain/run-result.ts";
+import { isRunStopped, stoppedToolText } from "../domain/task/index.ts";
+import { capDelivery } from "../domain/run/index.ts";
 import { toUsage } from "../infra/host-usage.ts";
 import type { ChainSpec } from "./chain.ts";
-import { TaskStore } from "./task-store.ts";
+import { TaskStore } from "../domain/task/index.ts";
 import { readGlobalConfig, withGlobalConfig } from "./global-config.ts";
 import type { GlobalConfig } from "./global-config.ts";
-import { applyRunOverrides } from "../domain/tiers.ts";
-import type { RunOverrides } from "../domain/tiers.ts";
+import { applyRunOverrides } from "../domain/run/index.ts";
+import type { RunOverrides } from "../domain/run/index.ts";
 
 export function unknownSubagentResult(
 	name: string,

@@ -3,9 +3,9 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { clampToolsForAutonomy } from "../src/domain/subagent/config.ts";
+import { clampToolsForAutonomy } from "../src/domain/subagent/index.ts";
 import { loadSubagentFromContent } from "../src/infra/subagent-files.ts";
-import { planCodemode } from "../src/domain/subagent/codemode.ts";
+import { planCodemode } from "../src/domain/task/index.ts";
 
 const FRONT_WITH = (fm: string) => `---\n${fm}\n---\n\nbody\n`;
 describe("budget frontmatter block", () => {

@@ -3,11 +3,11 @@
  */
 
 import { getAgentDir, SettingsManager } from "@earendil-works/pi-coding-agent";
-import { KNOWN_TOOLS, resolveToolPolicy } from "../domain/subagent/config.ts";
-import type { SubagentAutonomy, SubagentConfig } from "../domain/subagent/config.ts";
-import { parseCodemodeFlag } from "../domain/subagent/frontmatter.ts";
-import { parseBudget } from "../domain/subagent/budget.ts";
-import type { SubagentBudget } from "../domain/subagent/budget.ts";
+import { KNOWN_TOOLS, resolveToolPolicy } from "../domain/subagent/index.ts";
+import type { SubagentAutonomy, SubagentConfig } from "../domain/subagent/index.ts";
+import { parseCodemodeFlag } from "../domain/subagent/index.ts";
+import { parseBudget } from "../domain/subagent/index.ts";
+import type { SubagentBudget } from "../domain/subagent/index.ts";
 
 export const MIN_LIVE_CAP = 1;
 export const MAX_LIVE_CAP = 64;

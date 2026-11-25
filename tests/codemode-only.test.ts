@@ -3,14 +3,14 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseCodemodeFlag } from "../src/domain/subagent/frontmatter.ts";
+import { parseCodemodeFlag } from "../src/domain/subagent/index.ts";
 import {
 	planCodemode,
 	codemodeLegs,
 	withScriptRoute,
 	teachesScriptRoute,
-} from "../src/domain/subagent/codemode.ts";
-import type { SubagentConfig } from "../src/domain/subagent/config.ts";
+} from "../src/domain/task/index.ts";
+import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 
 const sub = (over: Partial<SubagentConfig> = {}): SubagentConfig => ({
 	name: "worker",

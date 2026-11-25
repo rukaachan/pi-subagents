@@ -10,7 +10,7 @@ import {
 	registerLive,
 	stopLiveRuns,
 } from "../src/app/live-runs.ts";
-import { RunStopped, isRunStopped, stoppedToolText } from "../src/domain/run-stop.ts";
+import { RunStopped, isRunStopped, stoppedToolText } from "../src/domain/task/index.ts";
 
 function fakeSession() {
 	const calls: string[] = [];

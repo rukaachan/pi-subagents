@@ -8,9 +8,9 @@ import {
 	codemodeLegs,
 	CODEMODE_WORKERS_DEFAULT,
 	HOST_CODEMODE_WORKERS,
-} from "../src/domain/subagent/codemode.ts";
-import { MAX_LIVE_TASKS } from "../src/domain/task.ts";
-import { clampToolsForAutonomy, type SubagentConfig } from "../src/domain/subagent/config.ts";
+} from "../src/domain/task/index.ts";
+import { MAX_LIVE_TASKS } from "../src/domain/task/index.ts";
+import { clampToolsForAutonomy, type SubagentConfig } from "../src/domain/subagent/index.ts";
 
 const sub = (over: Partial<SubagentConfig> = {}): SubagentConfig => ({
 	name: "worker",

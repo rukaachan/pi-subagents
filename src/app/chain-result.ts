@@ -2,8 +2,8 @@
  * pi-subagents: one report and usage total for a finished chain.
  */
 
-import type { SubagentRunResult } from "../domain/run-result.ts";
-import type { TaskRecord } from "./task-record.ts";
+import type { SubagentRunResult } from "../domain/run/index.ts";
+import type { TaskRecord } from "../domain/task/index.ts";
 
 export function aggregateResult(steps: SubagentRunResult[], rec: TaskRecord): SubagentRunResult {
 	const usage = steps.reduce<SubagentRunResult["usage"]>(

@@ -3,7 +3,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { pickRoster, scoreRoster } from "../src/domain/subagent/roster.ts";
+import { pickRoster, scoreRoster } from "../src/domain/subagent/index.ts";
 
 const SUBS = [
 	{ name: "code-reviewer", description: "Reviews diffs for bugs and standards." },

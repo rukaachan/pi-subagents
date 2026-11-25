@@ -3,11 +3,11 @@
  */
 
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import type { TeamTaskView, TeamUpdate } from "../../domain/team.ts";
+import type { TeamTaskView, TeamUpdate } from "../../domain/team/index.ts";
 import { inModal } from "../../app/modal-depth.ts";
 import { startTeamLaunch } from "../../app/team-launch.ts";
 import { createTask, getTask, teamMembers, updateTask } from "../../app/team-store.ts";
-import type { TaskStore } from "../../app/task-store.ts";
+import type { TaskStore } from "../../domain/task/index.ts";
 import { pickFromList } from "../picker.ts";
 import { shortText } from "../view/format.ts";
 import type { WorkspaceAction } from "../view/workspace-screen.ts";

@@ -3,10 +3,10 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { clampToolsForAutonomy, type SubagentConfig } from "../src/domain/subagent/config.ts";
+import { clampToolsForAutonomy, type SubagentConfig } from "../src/domain/subagent/index.ts";
 import { loadSubagentFromContent } from "../src/infra/subagent-files.ts";
-import { parseCodemodeFlag } from "../src/domain/subagent/frontmatter.ts";
-import { planCodemode } from "../src/domain/subagent/codemode.ts";
+import { parseCodemodeFlag } from "../src/domain/subagent/index.ts";
+import { planCodemode } from "../src/domain/task/index.ts";
 
 const FRONT = (fm: string) => `---\n${fm}\n---\n\nbody text\n`;
 const sub = (over: Partial<SubagentConfig> = {}): SubagentConfig => ({

@@ -13,13 +13,13 @@ import { taskDetail } from "../view/detail.ts";
 import { openSessionView } from "../view/session-view.ts";
 import { footerProgress } from "../../telemetry/progress.ts";
 import { findJournalRun } from "../../telemetry/journal.ts";
-import { RECENT_LIMIT } from "../../domain/activity-step.ts";
+import { RECENT_LIMIT } from "../../domain/run/index.ts";
 import { activityLine, activityRows } from "../../telemetry/activity.ts";
 import { ROUTE } from "./constants.ts";
-import type { TaskRecord } from "../../app/task-record.ts";
-import { TaskStore } from "../../app/task-store.ts";
+import type { TaskRecord } from "../../domain/task/index.ts";
+import { TaskStore } from "../../domain/task/index.ts";
 import { scopeTasks } from "../../app/task-scope.ts";
-import type { ActivityStep } from "../../domain/activity-step.ts";
+import type { ActivityStep } from "../../domain/run/index.ts";
 import type { LiveRunInfo } from "../view/detail.ts";
 
 async function copyId(ctx: ExtensionCommandContext, id: string): Promise<void> {

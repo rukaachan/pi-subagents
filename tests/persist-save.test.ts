@@ -5,9 +5,9 @@ import * as path from "node:path";
 import { describe, it } from "node:test";
 import { InMemoryLedger } from "../src/app/ledger.ts";
 import { attachPersistence, SAVE_DEBOUNCE_MS } from "../src/app/persist.ts";
-import { newTaskId, type TaskRecord } from "../src/app/task-record.ts";
-import { TaskStore } from "../src/app/task-store.ts";
-import type { SubagentConfig } from "../src/domain/subagent/config.ts";
+import { newTaskId, type TaskRecord } from "../src/domain/task/index.ts";
+import { TaskStore } from "../src/domain/task/index.ts";
+import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 import {
 	capRecord,
 	loadState,

@@ -1,7 +1,12 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { createTeamTask, newTeam, type TeamBoard, type TeamMember } from "../src/domain/team.ts";
-import { updateTeamTask } from "../src/domain/team-update.ts";
+import {
+	createTeamTask,
+	newTeam,
+	type TeamBoard,
+	type TeamMember,
+} from "../src/domain/team/index.ts";
+import { updateTeamTask } from "../src/domain/team/index.ts";
 
 const lead = { name: "lead", lead: true };
 const alice = { name: "alice", lead: false };

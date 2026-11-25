@@ -3,7 +3,7 @@
  */
 import { MAX_DONE_TASKS, MAX_LIVE_TASKS } from "./task-record.ts";
 import type { TaskRecord } from "./task-record.ts";
-import { freezeRestored } from "../domain/task.ts";
+import { freezeRestored } from "./task.ts";
 
 export class TaskStore {
 	private tasks = new Map<string, TaskRecord>();

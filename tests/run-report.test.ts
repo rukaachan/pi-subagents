@@ -3,8 +3,8 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { anyAssistantText } from "../src/domain/run-result.ts";
-import { runReport } from "../src/domain/run-report.ts";
+import { anyAssistantText } from "../src/domain/run/index.ts";
+import { runReport } from "../src/domain/run/index.ts";
 
 type Session = Parameters<typeof runReport>[0];
 const session = (messages: Msg[], last?: string): Session =>
@@ -82,7 +82,7 @@ describe("run report: the first line tells how the run ended", () => {
 });
 describe("failed run: history kept for resume", () => {
 	it("copies the messages, sets status and error, and detaches the copy", async () => {
-		const { recordFailure } = await import("../src/domain/run-result.ts");
+		const { recordFailure } = await import("../src/domain/run/run-result.ts");
 		const messages = [{ role: "user", content: [{ type: "text", text: "task" }] }];
 		type FailSession = Parameters<typeof recordFailure>[1];
 		const live = { messages } as unknown as FailSession;

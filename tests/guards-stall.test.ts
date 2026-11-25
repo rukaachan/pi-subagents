@@ -3,7 +3,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { type SubagentConfig } from "../src/domain/subagent/config.ts";
+import { type SubagentConfig } from "../src/domain/subagent/index.ts";
 import { installRunBudget } from "../src/app/guards/install.ts";
 
 describe("stall watchdog: silence is the failure, not slowness", () => {
@@ -111,7 +111,7 @@ describe("stall watchdog: silence is the failure, not slowness", () => {
 });
 describe("Task-level budget opt-out (v0.13.4)", () => {
 	it("applyRunOverrides merges a per-run budget and the note shows caps", async () => {
-		const { applyRunOverrides, overrideNote } = await import("../src/domain/tiers.ts");
+		const { applyRunOverrides, overrideNote } = await import("../src/domain/run/tiers.ts");
 		const base: SubagentConfig = {
 			name: "x",
 			description: "",

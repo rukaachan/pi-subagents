@@ -2,8 +2,8 @@
  * pi-subagents: what a run is doing, in one line per step.
  */
 
-import type { ActivityStep } from "../domain/activity-step.ts";
-import { DETAIL_CHARS, RECENT_LIMIT } from "../domain/activity-step.ts";
+import type { ActivityStep } from "../domain/run/index.ts";
+import { DETAIL_CHARS, RECENT_LIMIT } from "../domain/run/index.ts";
 
 /** Collapse whitespace and cut, so a command cannot break the row. */
 function oneLine(text: string, max: number): string {

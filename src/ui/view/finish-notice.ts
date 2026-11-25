@@ -3,7 +3,7 @@
  */
 
 import type { LaunchLeg } from "../../app/launch.ts";
-import type { RosterPick } from "../../domain/subagent/roster.ts";
+import type { RosterPick } from "../../domain/subagent/index.ts";
 
 const MAX_ROWS = 8;
 

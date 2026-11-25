@@ -2,7 +2,7 @@
  * pi-subagents: free team tasks that a run can no longer finish.
  */
 
-import { releaseTasks } from "../domain/team-sweep.ts";
+import { releaseTasks } from "../domain/team/index.ts";
 import { teamBoard, teamChanged, teamMembers } from "./team-store.ts";
 
 export interface TaskSweep {

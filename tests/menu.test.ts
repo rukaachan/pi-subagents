@@ -10,8 +10,8 @@ import { subagentRowItems, taskRowItems, trashRowItems } from "../src/ui/menu/it
 import { modelRow, stepTitle, trashBase, trashRow } from "../src/ui/view/format.ts";
 import { recentSteps, sortTaskRows } from "../src/ui/menu/task-list.ts";
 import { footerProgress } from "../src/telemetry/progress.ts";
-import type { TaskRecord } from "../src/app/task-record.ts";
-import type { SubagentConfig } from "../src/domain/subagent/config.ts";
+import type { TaskRecord } from "../src/domain/task/index.ts";
+import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 
 const taskRec = (over: Partial<TaskRecord>): TaskRecord =>
 	({

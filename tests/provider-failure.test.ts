@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { providerFailure } from "../src/domain/run-result.ts";
+import { providerFailure } from "../src/domain/run/index.ts";
 
 const session = (messages: unknown[]) => ({ messages }) as never;
 

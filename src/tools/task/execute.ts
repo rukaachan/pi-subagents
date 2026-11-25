@@ -4,9 +4,9 @@
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { discoverSubagents } from "../../infra/subagent-files.ts";
-import { registerTemp, withTemps } from "../../domain/temp.ts";
+import { registerTemp, withTemps } from "../../domain/run/index.ts";
 import { markKind } from "../../app/ledger.ts";
-import { MAX_LIVE_TASKS, newRecord } from "../../app/task-record.ts";
+import { MAX_LIVE_TASKS, newRecord } from "../../domain/task/index.ts";
 import { store } from "../../app/live-store.ts";
 import { pickFromPrompt } from "./pick.ts";
 import { launchBackground, resumeTask } from "../../app/background.ts";
@@ -22,8 +22,8 @@ import type { ToolResult } from "./types.ts";
 import { toUsage } from "../../infra/host-usage.ts";
 import { planTask } from "./validate.ts";
 import { markStopped } from "../../app/stop-row.ts";
-import { isRunStopped, stoppedToolText } from "../../domain/run-stop.ts";
-import { capDelivery } from "../../domain/run-result.ts";
+import { isRunStopped, stoppedToolText } from "../../domain/task/index.ts";
+import { capDelivery } from "../../domain/run/index.ts";
 
 function callerTools(ctx: ExtensionContext): string[] | undefined {
 	const tools = (ctx as unknown as { tools?: readonly { name: string }[] }).tools;

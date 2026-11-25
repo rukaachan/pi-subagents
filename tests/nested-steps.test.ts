@@ -3,7 +3,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { nestedStep } from "../src/domain/activity-step.ts";
+import { nestedStep } from "../src/domain/run/index.ts";
 import { activityLine } from "../src/telemetry/activity.ts";
 import { footerProgress } from "../src/telemetry/progress.ts";
 import { trackSession } from "../src/telemetry/track.ts";

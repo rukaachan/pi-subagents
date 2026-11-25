@@ -93,7 +93,7 @@ async function runOne(arm: Arm, cwd: string, tag: string): Promise<Record<string
 	const pi = await import("@earendil-works/pi-coding-agent");
 	const { loadSubagentFromContent } = await import("../src/infra/subagent-files.ts");
 	const { startSubagentSession } = await import("../src/infra/host-session.ts");
-	const { sumUsage } = await import("../src/domain/run-result.ts");
+	const { sumUsage } = await import("../src/domain/run/run-result.ts");
 
 	const file = writeFixture(join(cwd, ".ab-agents"), arm);
 	const cfg = loadSubagentFromContent(readFileSync(file, "utf8"), file, "user");

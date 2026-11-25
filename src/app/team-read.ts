@@ -10,8 +10,8 @@ import {
 	type TeamFilters,
 	type TeamTask,
 	type TeamTaskView,
-} from "../domain/team.ts";
-import { scopeConflicts } from "../domain/team-scope.ts";
+} from "../domain/team/index.ts";
+import { scopeConflicts } from "../domain/team/index.ts";
 
 export function resolveTaskOn(board: TeamBoard, taskId: string) {
 	const task = board.tasks.find((row) => row.id === taskId);

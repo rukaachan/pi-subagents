@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beginTeamSession, teamEnabled } from "../src/app/team-store.ts";
 import { startTeamLaunch } from "../src/app/team-launch.ts";
-import { MAX_TEAM_MEMBERS } from "../src/domain/team.ts";
+import { MAX_TEAM_MEMBERS } from "../src/domain/team/index.ts";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 const project = mkdtempSync(join(tmpdir(), "pi-team-launch-"));

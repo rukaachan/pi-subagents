@@ -8,8 +8,8 @@ import {
 	teamView,
 	type TeamBoard,
 	type TeamMember,
-} from "../src/domain/team.ts";
-import { updateTeamTask } from "../src/domain/team-update.ts";
+} from "../src/domain/team/index.ts";
+import { updateTeamTask } from "../src/domain/team/index.ts";
 
 const lead = { name: "lead", lead: true };
 const alice = { name: "alice", lead: false };

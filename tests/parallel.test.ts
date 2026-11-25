@@ -1,13 +1,13 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { MAX_LIVE_TASKS, newRecord } from "../src/app/task-record.ts";
-import { TaskStore } from "../src/app/task-store.ts";
+import { MAX_LIVE_TASKS, newRecord } from "../src/domain/task/index.ts";
+import { TaskStore } from "../src/domain/task/index.ts";
 import { kindBadge } from "../src/ui/view/format.ts";
 import { parallelStrip } from "../src/ui/view/rows.ts";
 import { taskDetail } from "../src/ui/view/detail.ts";
 import { taskRowItems } from "../src/ui/menu/items.ts";
-import type { ParallelLeg } from "../src/app/task-record.ts";
-import type { SubagentConfig } from "../src/domain/subagent/config.ts";
+import type { ParallelLeg } from "../src/domain/task/index.ts";
+import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 
 const sub: SubagentConfig = {
 	name: "explorer",

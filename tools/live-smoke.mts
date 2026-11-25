@@ -13,7 +13,7 @@ import { launchBackground, resumeTask } from "../src/app/background.ts";
 import { startTeamLaunch } from "../src/app/team-launch.ts";
 import { steerTask } from "../src/app/task-actions.ts";
 import { liveSession } from "../src/app/live-sessions.ts";
-import { TaskStore } from "../src/app/task-store.ts";
+import { TaskStore } from "../src/domain/task/index.ts";
 import { bindTeamMail, clearTeamMail } from "../src/app/team-mail.ts";
 import { stopAllLiveRuns } from "../src/app/stop-all.ts";
 

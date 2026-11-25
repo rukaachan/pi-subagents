@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { DISPATCH_RULES, dispatchSubagent } from "../src/domain/dispatch.ts";
+import { DISPATCH_RULES, dispatchSubagent } from "../src/domain/policy/index.ts";
 
 describe("dispatchSubagent (nameless Task)", () => {
 	it("routes the knife-edge prompts the way a human would", () => {

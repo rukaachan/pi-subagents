@@ -4,18 +4,18 @@
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { discoverSubagents } from "../infra/subagent-files.ts";
-import { withTemps } from "../domain/temp.ts";
-import type { SubagentRunResult } from "../domain/run-result.ts";
-import type { LaunchKind } from "../domain/launch.ts";
-import type { FailureFamily } from "../domain/failure.ts";
-import { unknownLegs } from "../domain/launch.ts";
+import { withTemps } from "../domain/run/index.ts";
+import type { SubagentRunResult } from "../domain/run/index.ts";
+import type { LaunchKind } from "../domain/policy/index.ts";
+import type { FailureFamily } from "../domain/policy/index.ts";
+import { unknownLegs } from "../domain/policy/index.ts";
 import { launchBackground } from "./background.ts";
 import { readGlobalConfig, withGlobalConfig } from "./global-config.ts";
 import { useFooterUI } from "../telemetry/progress.ts";
-import type { TaskRecord } from "./task-record.ts";
-import type { TaskStore } from "./task-store.ts";
-import { newRunId } from "./task-record.ts";
-import { MAX_LIVE_TASKS } from "../domain/task.ts";
+import type { TaskRecord } from "../domain/task/index.ts";
+import type { TaskStore } from "../domain/task/index.ts";
+import { newRunId } from "../domain/task/index.ts";
+import { MAX_LIVE_TASKS } from "../domain/task/index.ts";
 
 export type LegStatus = "queued" | "running" | "done" | "error" | "stopped";
 

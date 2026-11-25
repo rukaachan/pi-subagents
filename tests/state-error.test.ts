@@ -5,7 +5,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { attachPersistence, reportStateError, SAVE_DEBOUNCE_MS } from "../src/app/persist.ts";
 import { InMemoryLedger } from "../src/app/ledger.ts";
-import { TaskStore } from "../src/app/task-store.ts";
+import { TaskStore } from "../src/domain/task/index.ts";
 
 function wait(ms: number): Promise<void> {
 	return new Promise((resolve) => {

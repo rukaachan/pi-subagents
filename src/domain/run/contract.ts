@@ -2,7 +2,7 @@
  * pi-subagents: the fields a caller needs back.
  */
 
-import type { FailureFamily } from "../failure.ts";
+import type { FailureFamily } from "../policy/index.ts";
 
 export const MAX_RETURN_FIELDS = 8;
 export const MAX_RETURN_FIELD_CHARS = 40;

@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { SpawnCounts, TaskRecord } from "../domain/task.ts";
+import type { SpawnCounts, TaskRecord } from "../domain/task/index.ts";
 import { decodeTasks } from "./state-validate.ts";
 import { decodeTeam, type PersistedTeam } from "./state-team.ts";
 

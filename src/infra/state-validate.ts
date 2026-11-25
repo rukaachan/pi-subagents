@@ -2,15 +2,11 @@
  * pi-subagents: validate records read from disk.
  */
 
-import type { RunKind, TaskRecord, TaskStatus } from "../domain/task.ts";
+import type { RunKind, TaskRecord, TaskStatus } from "../domain/task/index.ts";
 import { decodeLegs, decodeSteps } from "./state-steps.ts";
-import type { FailureFamily } from "../domain/failure.ts";
-import type {
-	SubagentAutonomy,
-	SubagentConfig,
-	SubagentSource,
-} from "../domain/subagent/config.ts";
-import type { SubagentRunResult, SubagentUsage } from "../domain/run-result.ts";
+import type { FailureFamily } from "../domain/policy/index.ts";
+import type { SubagentAutonomy, SubagentConfig, SubagentSource } from "../domain/subagent/index.ts";
+import type { SubagentRunResult, SubagentUsage } from "../domain/run/index.ts";
 
 type Obj = Record<string, unknown>;
 

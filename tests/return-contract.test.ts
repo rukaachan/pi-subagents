@@ -7,8 +7,8 @@ import {
 	MAX_RETURN_FIELD_CHARS,
 	missingReturn,
 	parseReturn,
-} from "../src/domain/subagent/contract.ts";
-import { planTask } from "../src/tools/task/validate.ts";
+} from "../src/domain/run/index.ts";
+import { planTask } from "../src/tools/task/index.ts";
 
 describe("return contract parsing", () => {
 	it("treats no value as no contract", () => {

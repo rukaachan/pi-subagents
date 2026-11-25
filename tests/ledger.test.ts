@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { InMemoryLedger } from "../src/app/ledger.ts";
 import { spawnSummary } from "../src/ui/view/rows.ts";
 import { subagentDetail } from "../src/ui/view/detail.ts";
-import type { SubagentConfig } from "../src/domain/subagent/config.ts";
+import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 
 function sub(): SubagentConfig {
 	return {

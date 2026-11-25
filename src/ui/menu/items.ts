@@ -2,8 +2,8 @@
  * pi-subagents: menu row builders.
  */
 
-import type { SubagentConfig } from "../../domain/subagent/config.ts";
-import type { TaskRecord } from "../../app/task-record.ts";
+import type { SubagentConfig } from "../../domain/subagent/index.ts";
+import type { TaskRecord } from "../../domain/task/index.ts";
 import { kindBadge, shortText, taskStatusIcon, toolsBadge, usageLine } from "../view/format.ts";
 import { shortKey } from "../view/format.ts";
 

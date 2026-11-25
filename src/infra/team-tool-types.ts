@@ -11,7 +11,7 @@ import type {
 	TeamTaskStatus,
 	TeamTaskView,
 	TeamUpdate,
-} from "../domain/team.ts";
+} from "../domain/team/index.ts";
 
 export interface TeamConflict {
 	id: string;

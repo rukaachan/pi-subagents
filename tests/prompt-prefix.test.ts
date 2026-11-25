@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { SubagentConfig } from "../src/domain/subagent/config.ts";
-import { MAX_PROMPT_PREFIX_CHARS } from "../src/domain/subagent/config.ts";
-import { taskPrompt } from "../src/domain/subagent/prompt.ts";
+import type { SubagentConfig } from "../src/domain/subagent/index.ts";
+import { MAX_PROMPT_PREFIX_CHARS } from "../src/domain/subagent/index.ts";
+import { taskPrompt } from "../src/domain/subagent/index.ts";
 import { editSubagentField } from "../src/infra/edit-subagent.ts";
 import { loadSubagentFromContent } from "../src/infra/subagent-files.ts";
 

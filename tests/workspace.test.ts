@@ -4,7 +4,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { visibleWidth } from "@earendil-works/pi-tui";
-import type { TeamTaskView } from "../src/domain/team.ts";
+import type { TeamTaskView } from "../src/domain/team/index.ts";
 import { board, plainTheme, rec } from "./board-fixtures.ts";
 import { buildTeamRows, renderTeamScreen } from "../src/ui/view/team-screen.ts";
 import { createWorkspaceView } from "../src/ui/view/workspace-view.ts";

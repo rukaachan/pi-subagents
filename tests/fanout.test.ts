@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { fanoutAdmission } from "../src/domain/dispatch.ts";
+import { fanoutAdmission } from "../src/domain/policy/index.ts";
 
 describe("fan-out admission (closing silent leg loss)", () => {
 	it("accepts up to the live cap", () => {

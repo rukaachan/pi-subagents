@@ -6,7 +6,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, describe, it } from "node:test";
-import { compactionNote } from "../src/domain/activity-step.ts";
+import { compactionNote } from "../src/domain/run/index.ts";
 import { foldJournal } from "../src/telemetry/journal.ts";
 import { footerProgress } from "../src/telemetry/progress.ts";
 import { trackSession } from "../src/telemetry/track.ts";

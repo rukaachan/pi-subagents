@@ -2,9 +2,9 @@
  * pi-subagents: the vocabulary of one run.
  */
 
-import type { FailureFamily } from "./failure.ts";
-import type { SubagentConfig } from "./subagent/config.ts";
-import type { SubagentRunResult } from "./run-result.ts";
+import type { FailureFamily } from "../policy/index.ts";
+import type { SubagentConfig } from "../subagent/index.ts";
+import type { SubagentRunResult } from "../run/index.ts";
 
 export type TaskStatus = "running" | "done" | "error" | "stopped";
 export type RunKind = "foreground" | "background" | "alias" | "chain" | "parallel";

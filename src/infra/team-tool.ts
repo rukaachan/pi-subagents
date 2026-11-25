@@ -3,7 +3,7 @@
  */
 
 import { defineTool } from "@earendil-works/pi-coding-agent";
-import type { TeamCaller } from "../domain/team.ts";
+import type { TeamCaller } from "../domain/team/index.ts";
 import { renderTeamCall, renderTeamResult } from "./team-render.ts";
 import { runTeam } from "./team-tool-run.ts";
 import { PARAMETERS, type Params } from "./team-tool-schema.ts";

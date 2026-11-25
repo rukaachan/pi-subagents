@@ -9,8 +9,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createWriteToolDefinition } from "@earendil-works/pi-coding-agent";
 import type { ExtensionToolContext } from "@earendil-works/pi-coding-agent";
-import { parsePaths } from "../src/domain/subagent/paths.ts";
-import { registerTemp } from "../src/domain/temp.ts";
+import { parsePaths } from "../src/domain/subagent/index.ts";
+import { registerTemp } from "../src/domain/run/index.ts";
 import { loadSubagentFromContent } from "../src/infra/subagent-files.ts";
 import { guardPaths, isPathAllowed } from "../src/infra/tool-guard.ts";
 

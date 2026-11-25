@@ -22,11 +22,11 @@ import { createChildGateExtension } from "./child-gate.ts";
 import type { GateBlock } from "./child-gate.ts";
 import { contextNote } from "./child-context.ts";
 import { guardPaths } from "./tool-guard.ts";
-import { clampToolsForAutonomy } from "../domain/subagent/config.ts";
-import type { SubagentConfig } from "../domain/subagent/config.ts";
-import { planCodemode, withScriptRoute } from "../domain/subagent/codemode.ts";
-import { contractPrompt } from "../domain/subagent/contract.ts";
-import { taskPrompt } from "../domain/subagent/prompt.ts";
+import { clampToolsForAutonomy } from "../domain/subagent/index.ts";
+import type { SubagentConfig } from "../domain/subagent/index.ts";
+import { planCodemode, withScriptRoute } from "../domain/task/index.ts";
+import { contractPrompt } from "../domain/run/index.ts";
+import { taskPrompt } from "../domain/subagent/index.ts";
 
 // The host surface for codemode and MCP.
 type ChildExtensionHost = {

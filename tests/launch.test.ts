@@ -8,14 +8,14 @@ import {
 	parseLaunchArgs,
 	rosterFor,
 	unknownLegs,
-} from "../src/domain/launch.ts";
-import { TaskStore } from "../src/app/task-store.ts";
-import { MAX_LIVE_TASKS, newRecord } from "../src/app/task-record.ts";
+} from "../src/domain/policy/index.ts";
+import { TaskStore } from "../src/domain/task/index.ts";
+import { MAX_LIVE_TASKS, newRecord } from "../src/domain/task/index.ts";
 import { queuedLegCount, startLaunch, stopLaunchSchedulers } from "../src/app/launch.ts";
 import { discoverSubagents } from "../src/infra/subagent-files.ts";
-import { withTemps } from "../src/domain/temp.ts";
+import { withTemps } from "../src/domain/run/index.ts";
 import { footerProgress } from "../src/telemetry/progress.ts";
-import type { SubagentConfig } from "../src/domain/subagent/config.ts";
+import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 
 const sub: SubagentConfig = {
 	name: "explorer",

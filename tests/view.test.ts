@@ -24,9 +24,9 @@ import {
 } from "../src/ui/view/format.ts";
 import { subagentDetail, taskDetail } from "../src/ui/view/detail.ts";
 import { subagentRow, taskRow } from "../src/ui/view/rows.ts";
-import type { SubagentConfig } from "../src/domain/subagent/config.ts";
-import type { TaskRecord } from "../src/app/task-record.ts";
-import { newTaskId } from "../src/app/task-record.ts";
+import type { SubagentConfig } from "../src/domain/subagent/index.ts";
+import type { TaskRecord } from "../src/domain/task/index.ts";
+import { newTaskId } from "../src/domain/task/index.ts";
 
 function sub(over: Partial<SubagentConfig> = {}): SubagentConfig {
 	return {

@@ -14,7 +14,7 @@ import {
 import { beginTeamSession, joinTeam } from "../src/app/team-store.ts";
 import { restoreInto, serializeState } from "../src/app/persist.ts";
 import { InMemoryLedger } from "../src/app/ledger.ts";
-import { TaskStore } from "../src/app/task-store.ts";
+import { TaskStore } from "../src/domain/task/index.ts";
 import { encodeState, saveState } from "../src/infra/state-file.ts";
 
 describe("cold team mail survives reload", () => {

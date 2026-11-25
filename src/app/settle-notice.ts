@@ -4,8 +4,8 @@
 
 import { notifySettled } from "../telemetry/notify.ts";
 import { sweepMemberTasks } from "./team-sweep.ts";
-import { capDelivery } from "../domain/run-result.ts";
-import type { TaskRecord } from "./task-record.ts";
+import { capDelivery } from "../domain/run/index.ts";
+import type { TaskRecord } from "../domain/task/index.ts";
 
 /**
  * Send the one notice for a finished background run. The report rides along

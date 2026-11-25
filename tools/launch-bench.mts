@@ -5,11 +5,11 @@
 
 import { renderLegFull, renderRunReport } from "../src/ui/view/launch-report.ts";
 import type { LaunchLeg, LaunchRun } from "../src/app/launch.ts";
-import { TaskStore } from "../src/app/task-store.ts";
-import { MAX_LIVE_TASKS, newRecord } from "../src/app/task-record.ts";
+import { TaskStore } from "../src/domain/task/index.ts";
+import { MAX_LIVE_TASKS, newRecord } from "../src/domain/task/index.ts";
 import { startLaunch, stopLaunchSchedulers } from "../src/app/launch.ts";
 import { discoverSubagents } from "../src/infra/subagent-files.ts";
-import type { SubagentConfig } from "../src/domain/subagent/config.ts";
+import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 
 const BODY = "line of a subagent report\n".repeat(50);
 

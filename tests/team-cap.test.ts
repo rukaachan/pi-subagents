@@ -8,7 +8,7 @@ import {
 	teamMembers,
 	updateTask,
 } from "../src/app/team-store.ts";
-import { MAX_TEAM_MEMBERS } from "../src/domain/team.ts";
+import { MAX_TEAM_MEMBERS } from "../src/domain/team/index.ts";
 
 function seatTeam(): string[] {
 	const names: string[] = [];

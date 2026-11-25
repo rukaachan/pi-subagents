@@ -6,13 +6,13 @@ import {
 	getTempSubagents,
 	registerTemp,
 	withTemps,
-} from "../src/domain/temp.ts";
-import { newRecord } from "../src/app/task-record.ts";
-import { DEFAULT_TIMEOUT_SEC, effectiveBudget } from "../src/domain/subagent/budget.ts";
+} from "../src/domain/run/index.ts";
+import { newRecord } from "../src/domain/task/index.ts";
+import { DEFAULT_TIMEOUT_SEC, effectiveBudget } from "../src/domain/subagent/index.ts";
 import { taskDetail } from "../src/ui/view/detail.ts";
 import { taskRow } from "../src/ui/view/rows.ts";
-import type { SubagentConfig } from "../src/domain/subagent/config.ts";
-import type { SubagentDiscoveryResult } from "../src/domain/subagent/discovery.ts";
+import type { SubagentConfig } from "../src/domain/subagent/index.ts";
+import type { SubagentDiscoveryResult } from "../src/domain/subagent/index.ts";
 
 const disk = (names: string[]): SubagentDiscoveryResult => ({
 	subagents: names.map((name) => mkDisk(name)),

@@ -3,12 +3,12 @@
  */
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import type { SubagentConfig } from "../domain/subagent/config.ts";
-import { isTransientFailure } from "../domain/run-result.ts";
-import { isRunStopped } from "../domain/run-stop.ts";
+import type { SubagentConfig } from "../domain/subagent/index.ts";
+import { isTransientFailure } from "../domain/run/index.ts";
+import { isRunStopped } from "../domain/task/index.ts";
 import { journalWrite } from "../telemetry/journal.ts";
 import { cut } from "../telemetry/progress.ts";
-import { newTaskId } from "./task-record.ts";
+import { newTaskId } from "../domain/task/index.ts";
 import { liveStop } from "./live-runs.ts";
 import type { StoppableSession } from "./live-runs.ts";
 import { markStopped } from "./stop-row.ts";
@@ -17,8 +17,8 @@ import { announceSettle } from "./settle-notice.ts";
 import { sweepMemberTasks } from "./team-sweep.ts";
 import { runBackgroundAttempt, type AttemptResult } from "./background-attempt.ts";
 import { RetryPolicy, sleepUnlessStopped } from "./retry-policy.ts";
-import type { RunKind, TaskRecord } from "./task-record.ts";
-import type { TaskStore } from "./task-store.ts";
+import type { RunKind, TaskRecord } from "../domain/task/index.ts";
+import type { TaskStore } from "../domain/task/index.ts";
 
 export { resumeTask } from "./background-resume.ts";
 

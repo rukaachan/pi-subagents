@@ -7,7 +7,7 @@ import {
 	linkRun,
 	updateTask,
 } from "../src/app/team-store.ts";
-import { MAX_TEAM_RESULT } from "../src/domain/team.ts";
+import { MAX_TEAM_RESULT } from "../src/domain/team/index.ts";
 import { decodeTeam } from "../src/infra/state-team.ts";
 
 const lead = { name: "lead", lead: true };

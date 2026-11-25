@@ -8,7 +8,7 @@ import {
 	type TeamCaller,
 	type TeamFilters,
 	type TeamUpdate,
-} from "../domain/team.ts";
+} from "../domain/team/index.ts";
 import { UPDATE_ACTIONS, type Params } from "./team-tool-schema.ts";
 import { shutDown } from "./team-tool-gate.ts";
 import type { TeamApi } from "./team-tool-types.ts";

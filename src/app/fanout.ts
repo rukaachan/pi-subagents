@@ -4,16 +4,16 @@
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { discoverSubagents } from "../infra/subagent-files.ts";
-import { showValue } from "../domain/subagent/config.ts";
-import type { SubagentConfig } from "../domain/subagent/config.ts";
-import { fanoutAdmission } from "../domain/dispatch.ts";
-import { codemodeContentionNote, codemodeLegs } from "../domain/subagent/codemode.ts";
+import { showValue } from "../domain/subagent/index.ts";
+import type { SubagentConfig } from "../domain/subagent/index.ts";
+import { fanoutAdmission } from "../domain/policy/index.ts";
+import { codemodeContentionNote, codemodeLegs } from "../domain/task/index.ts";
 import { effectiveCodemodeWorkers } from "../infra/worker-pool.ts";
-import { withTemps } from "../domain/temp.ts";
+import { withTemps } from "../domain/run/index.ts";
 import { useFooterUI } from "../telemetry/progress.ts";
-import { MAX_LIVE_TASKS, newRunId } from "./task-record.ts";
-import { type TaskStore } from "./task-store.ts";
-import { applyRunOverrides, type RunOverrides } from "../domain/tiers.ts";
+import { MAX_LIVE_TASKS, newRunId } from "../domain/task/index.ts";
+import { type TaskStore } from "../domain/task/index.ts";
+import { applyRunOverrides, type RunOverrides } from "../domain/run/index.ts";
 import { readGlobalConfig, withGlobalConfig } from "./global-config.ts";
 import { launchBackground } from "./background.ts";
 import { unknownSubagentResult } from "./chain-task.ts";

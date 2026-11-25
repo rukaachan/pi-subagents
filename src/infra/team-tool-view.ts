@@ -2,7 +2,7 @@
  * pi-subagents: one board task per line, for tools and resolve output.
  */
 
-import type { TeamTaskView } from "../domain/team.ts";
+import type { TeamTaskView } from "../domain/team/index.ts";
 
 export function taskLine(view: TeamTaskView): string {
 	const task = view.task;

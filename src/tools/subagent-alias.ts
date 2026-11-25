@@ -2,31 +2,31 @@
  * pi-subagents: the subagent alias.
  */
 
-import type { RunOverrides } from "../domain/tiers.ts";
+import type { RunOverrides } from "../domain/run/index.ts";
 import { defineTool } from "@earendil-works/pi-coding-agent";
 import { runChainTask, unknownSubagentResult } from "../app/chain-task.ts";
 import { markKind } from "../app/ledger.ts";
 import { store } from "../app/live-store.ts";
 import { runSubagent } from "../app/run.ts";
-import { newRecord } from "../app/task-record.ts";
-import { parseBudget } from "../domain/subagent/budget.ts";
+import { newRecord } from "../domain/task/index.ts";
+import { parseBudget } from "../domain/subagent/index.ts";
 import { discoverSubagents } from "../infra/subagent-files.ts";
-import { withTemps } from "../domain/temp.ts";
+import { withTemps } from "../domain/run/index.ts";
 import { readGlobalConfig, withGlobalConfig } from "../app/global-config.ts";
 import {
 	applyRunOverrides,
 	overrideNote,
 	parseCodemodeOverride,
 	parseComplexity,
-} from "../domain/tiers.ts";
+} from "../domain/run/index.ts";
 import { subagentArgs } from "../infra/host-shim.ts";
 import { useFooterUI } from "../telemetry/progress.ts";
 import { newRunKey } from "../telemetry/track.ts";
 import { resultShell, toUsage, usageFooter } from "../ui/tool-results.ts";
-import { capDelivery } from "../domain/run-result.ts";
+import { capDelivery } from "../domain/run/index.ts";
 import { Text } from "@earendil-works/pi-tui";
 import { shortText } from "../ui/view/format.ts";
-import { DELEGATION_RULE } from "./task/meta.ts";
+import { DELEGATION_RULE } from "./task/index.ts";
 import { subagentAliasParameters } from "./subagent-alias-schema.ts";
 
 export const subagentAliasTool = defineTool({

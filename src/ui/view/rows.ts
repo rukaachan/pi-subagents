@@ -2,8 +2,8 @@
  * pi-subagents: one line per thing in a list.
  */
 
-import type { SubagentConfig } from "../../domain/subagent/config.ts";
-import type { TaskRecord } from "../../app/task-record.ts";
+import type { SubagentConfig } from "../../domain/subagent/index.ts";
+import type { TaskRecord } from "../../domain/task/index.ts";
 import { shortKey } from "./format.ts";
 import {
 	kindBadge,

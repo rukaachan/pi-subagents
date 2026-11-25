@@ -2,7 +2,7 @@
  * pi-subagents: refuse board changes from a run that already stopped.
  */
 
-import type { TeamCaller } from "../domain/team.ts";
+import type { TeamCaller } from "../domain/team/index.ts";
 import type { TeamApi } from "./team-tool-types.ts";
 
 export function shutDown(api: TeamApi, caller: TeamCaller): string | undefined {

@@ -2,7 +2,7 @@
  * pi-subagents: the optional `paths` fence for writes.
  */
 
-import { canonicalWorkspacePath } from "../workspace-path.ts";
+import { canonicalWorkspacePath } from "../policy/index.ts";
 
 export const MAX_PATHS = 20;
 

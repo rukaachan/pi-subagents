@@ -2,15 +2,15 @@
  * pi-subagents: checking a Task request before anything starts.
  */
 
-import { parseBudget } from "../../domain/subagent/budget.ts";
-import { parseReturn } from "../../domain/subagent/contract.ts";
+import { parseBudget } from "../../domain/subagent/index.ts";
+import { parseReturn } from "../../domain/run/index.ts";
 import {
 	applyRunOverrides,
 	overrideNote,
 	parseCodemodeOverride,
 	parseComplexity,
 	type RunOverrides,
-} from "../../domain/tiers.ts";
+} from "../../domain/run/index.ts";
 import { parallelNamesFrom } from "../../app/fanout.ts";
 import type { TaskParams } from "./schema.ts";
 import type { ToolResult } from "./types.ts";

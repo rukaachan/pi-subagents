@@ -3,7 +3,7 @@
  */
 
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import type { SubagentConfig } from "../../domain/subagent/config.ts";
+import type { SubagentConfig } from "../../domain/subagent/index.ts";
 import type { EditableField } from "../../infra/files.ts";
 import { FIELD_CHOICES } from "../../infra/files.ts";
 import { pickChoice, pickFromList } from "../picker.ts";

@@ -3,8 +3,8 @@
  */
 
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
-import type { SubagentBudget } from "./subagent/budget.ts";
-import type { SubagentConfig } from "./subagent/config.ts";
+import type { SubagentBudget } from "../subagent/index.ts";
+import type { SubagentConfig } from "../subagent/index.ts";
 
 export type Complexity = "light" | "medium" | "heavy";
 

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { failureHint, labelFailure, parseFailure } from "../src/domain/failure.ts";
+import { failureHint, labelFailure, parseFailure } from "../src/domain/policy/index.ts";
 import { foldJournal } from "../src/telemetry/journal-fold.ts";
 
 describe("failure families", () => {

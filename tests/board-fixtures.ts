@@ -2,8 +2,8 @@
  * Shared fixtures for the board tests.
  */
 import { buildBoard } from "../src/ui/view/board-model.ts";
-import type { TaskRecord } from "../src/app/task-record.ts";
-import type { SubagentConfig } from "../src/domain/subagent/config.ts";
+import type { TaskRecord } from "../src/domain/task/index.ts";
+import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 
 export function sub(name = "worker"): SubagentConfig {
 	return {

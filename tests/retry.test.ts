@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { isTransientFailure } from "../src/domain/run-result.ts";
+import { isTransientFailure } from "../src/domain/run/index.ts";
 
 describe("isTransientFailure", () => {
 	it("accepts provider and network failures", () => {

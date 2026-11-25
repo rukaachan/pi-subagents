@@ -4,9 +4,9 @@
 
 import type { Theme } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import type { FailureFamily } from "../../domain/failure.ts";
-import type { TaskRecord } from "../../app/task-record.ts";
-import { lastMessageAt } from "../../domain/task.ts";
+import type { FailureFamily } from "../../domain/policy/index.ts";
+import type { TaskRecord } from "../../domain/task/index.ts";
+import { lastMessageAt } from "../../domain/task/index.ts";
 import { shortText } from "./format.ts";
 
 export type BoardSection = "queued" | "running" | "done" | "stopped" | "failed";

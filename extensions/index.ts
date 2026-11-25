@@ -16,7 +16,7 @@ import {
 	setLeadInbox,
 	TEAM_MESSAGE_CUSTOM_TYPE,
 } from "../src/app/team-mail.ts";
-import { HYBRID_POLICY } from "../src/app/hybrid-policy.ts";
+import { HYBRID_POLICY } from "../src/domain/policy/index.ts";
 import { TEAM_LEAD_POLICY } from "../src/app/team-policy.ts";
 import { teamMessageTool, teamTool } from "../src/tools/team.ts";
 import { beginSession, store, stopPersistence } from "../src/app/live-store.ts";
@@ -28,7 +28,7 @@ import { liveCount } from "../src/app/live-runs.ts";
 import { scopeTasks } from "../src/app/task-scope.ts";
 import { applyCodemodeWorkerDefault } from "../src/infra/worker-pool.ts";
 import { readGlobalConfig } from "../src/app/global-config.ts";
-import { CODEMODE_WORKERS_DEFAULT } from "../src/domain/subagent/codemode.ts";
+import { CODEMODE_WORKERS_DEFAULT } from "../src/domain/task/index.ts";
 import { footerProgress } from "../src/telemetry/progress.ts";
 import { clearNotifySink, SETTLED_CUSTOM_TYPE, setNotifySink } from "../src/telemetry/notify.ts";
 import { registerSettledCard } from "../src/ui/view/settled-card.ts";

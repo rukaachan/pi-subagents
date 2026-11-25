@@ -18,9 +18,9 @@ import {
 } from "../src/infra/state-file.ts";
 import { restoreInto, serializeState } from "../src/app/persist.ts";
 import { InMemoryLedger } from "../src/app/ledger.ts";
-import { TaskStore } from "../src/app/task-store.ts";
-import { newTaskId, type TaskRecord } from "../src/app/task-record.ts";
-import type { SubagentConfig } from "../src/domain/subagent/config.ts";
+import { TaskStore } from "../src/domain/task/index.ts";
+import { newTaskId, type TaskRecord } from "../src/domain/task/index.ts";
+import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 
 function sub(over: Partial<SubagentConfig> = {}): SubagentConfig {
 	return {

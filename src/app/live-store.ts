@@ -3,7 +3,7 @@
  */
 import { dirname, resolve } from "node:path";
 import { ledger } from "./ledger.ts";
-import { TaskStore } from "./task-store.ts";
+import { TaskStore } from "../domain/task/index.ts";
 import { beginTeamSession, setTeamChangeHook } from "./team-store.ts";
 import {
 	attachPersistence,

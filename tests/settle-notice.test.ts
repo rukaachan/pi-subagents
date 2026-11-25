@@ -10,7 +10,7 @@ import {
 	taskList,
 	updateTask,
 } from "../src/app/team-store.ts";
-import type { TaskRecord } from "../src/domain/task.ts";
+import type { TaskRecord } from "../src/domain/task/index.ts";
 
 function record(over: Partial<TaskRecord> = {}): TaskRecord {
 	return {

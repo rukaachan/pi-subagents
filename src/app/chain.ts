@@ -3,7 +3,7 @@
  */
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import type { SubagentConfig } from "../domain/subagent/config.ts";
+import type { SubagentConfig } from "../domain/subagent/index.ts";
 import { trackSession } from "../telemetry/track.ts";
 import {
 	activeModelId,
@@ -11,20 +11,20 @@ import {
 	providerFailure,
 	snapshotHistory,
 	sumUsage,
-} from "../domain/run-result.ts";
+} from "../domain/run/index.ts";
 import { startSubagentSession } from "../infra/host-session.ts";
 import { withGateJournal } from "./child-gate-journal.ts";
 import { teamChildExtras } from "./team-child.ts";
 import { bindTeamMember } from "./team-mail.ts";
 import { sweepMemberTasks } from "./team-sweep.ts";
 import { ledger, markKind } from "./ledger.ts";
-import { newTaskId } from "./task-record.ts";
-import type { ChainStep, TaskRecord } from "./task-record.ts";
-import { TaskStore } from "./task-store.ts";
-import type { SubagentRunResult } from "../domain/run-result.ts";
+import { newTaskId } from "../domain/task/index.ts";
+import type { ChainStep, TaskRecord } from "../domain/task/index.ts";
+import { TaskStore } from "../domain/task/index.ts";
+import type { SubagentRunResult } from "../domain/run/index.ts";
 import { liveStop, type LiveStop, type StoppableSession } from "./live-runs.ts";
 import { markStopped } from "./stop-row.ts";
-import { RunStopped } from "../domain/run-stop.ts";
+import { RunStopped } from "../domain/task/index.ts";
 import { aggregateResult } from "./chain-result.ts";
 
 export interface ChainSpec {

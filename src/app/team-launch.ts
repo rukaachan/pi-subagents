@@ -9,8 +9,8 @@ import {
 	MAX_TEAM_MEMBERS,
 	MAX_TEAM_SUBJECT,
 	MAX_TEAM_TASKS,
-} from "../domain/team.ts";
-import { withTemps } from "../domain/temp.ts";
+} from "../domain/team/index.ts";
+import { withTemps } from "../domain/run/index.ts";
 import type { TeamLaunchInput, TeamLaunchLeg, TeamLaunchResult } from "../infra/team-tool-types.ts";
 import { startLaunch } from "./launch.ts";
 import {
@@ -22,7 +22,7 @@ import {
 	teamSummary,
 	updateTask,
 } from "./team-store.ts";
-import type { TaskStore } from "./task-store.ts";
+import type { TaskStore } from "../domain/task/index.ts";
 
 function cut(value: string, max: number): string {
 	if (value.length <= max) return value;

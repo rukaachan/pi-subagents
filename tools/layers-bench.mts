@@ -6,7 +6,7 @@ import { wrapTextWithAnsi } from "@earendil-works/pi-tui";
 import { transcriptEntries } from "../src/telemetry/transcript.ts";
 import { createSessionView } from "../src/ui/view/session-screen.ts";
 import { capRecord } from "../src/infra/state-file.ts";
-import type { TaskRecord } from "../src/domain/task.ts";
+import type { TaskRecord } from "../src/domain/task/index.ts";
 
 const WIDTH = 120;
 const HISTORY = 1500;

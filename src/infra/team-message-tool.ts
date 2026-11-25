@@ -3,7 +3,7 @@
  */
 
 import { defineTool } from "@earendil-works/pi-coding-agent";
-import type { TeamMessageApi } from "../domain/team-mail.ts";
+import type { TeamMessageApi } from "../domain/team/index.ts";
 import { PARAMETERS, type Params } from "./team-message-schema.ts";
 import { renderTeamMessageCall, renderTeamMessageResult } from "./team-render.ts";
 

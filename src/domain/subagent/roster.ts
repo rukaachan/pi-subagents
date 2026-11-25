@@ -2,7 +2,7 @@
  * pi-subagents: the smallest roster that fits the prompt.
  */
 
-import { DISPATCH_RULES } from "../dispatch.ts";
+import { DISPATCH_RULES } from "../policy/index.ts";
 import type { SubagentConfig } from "./config.ts";
 
 export interface RosterPick {

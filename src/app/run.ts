@@ -5,16 +5,16 @@
 import { trackSession } from "../telemetry/track.ts";
 import { footerProgress, type ProgressSnapshot } from "../telemetry/progress.ts";
 import { ledger } from "./ledger.ts";
-import type { SubagentRunResult } from "../domain/run-result.ts";
-import { type TaskRecord } from "./task-record.ts";
-import { applyReportBudget, effectiveBudget } from "../domain/subagent/budget.ts";
-import { type SubagentConfig } from "../domain/subagent/config.ts";
+import type { SubagentRunResult } from "../domain/run/index.ts";
+import { type TaskRecord } from "../domain/task/index.ts";
+import { applyReportBudget, effectiveBudget } from "../domain/subagent/index.ts";
+import { type SubagentConfig } from "../domain/subagent/index.ts";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { abandonedNote, installRunBudget } from "./guards/install.ts";
 import { annotateFailure, awaitWithHardStop, surfaceBudgetNotes } from "./guards/stop.ts";
 import { windDownSignal } from "./guards/wind.ts";
-import { runReport } from "../domain/run-report.ts";
-import { checkReturn } from "../domain/subagent/contract.ts";
+import { runReport } from "../domain/run/index.ts";
+import { checkReturn } from "../domain/run/index.ts";
 import { journalWrite } from "../telemetry/journal.ts";
 import {
 	activeModelId,
@@ -22,14 +22,14 @@ import {
 	recordFailure,
 	snapshotHistory,
 	sumUsage,
-} from "../domain/run-result.ts";
+} from "../domain/run/index.ts";
 import { startSubagentSession } from "../infra/host-session.ts";
 import { withGateJournal } from "./child-gate-journal.ts";
 import { teamChildExtras } from "./team-child.ts";
 import { bindTeamMember } from "./team-mail.ts";
 import { sweepMemberTasks } from "./team-sweep.ts";
 import { liveStop } from "./live-runs.ts";
-import { RunStopped, stoppedRowNote } from "../domain/run-stop.ts";
+import { RunStopped, stoppedRowNote } from "../domain/task/index.ts";
 
 export function runProgress(key: string): ProgressSnapshot | undefined {
 	return footerProgress.snapshot(key);

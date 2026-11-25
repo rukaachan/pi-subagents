@@ -4,9 +4,9 @@
 
 import { dirname, resolve } from "node:path";
 import type { InMemoryLedger } from "./ledger.ts";
-import type { TaskStore } from "./task-store.ts";
-import type { TaskRecord } from "../domain/task.ts";
-import { freezeRestored } from "../domain/task.ts";
+import type { TaskStore } from "../domain/task/index.ts";
+import type { TaskRecord } from "../domain/task/index.ts";
+import { freezeRestored } from "../domain/task/index.ts";
 import { restoreTeam, teamSnapshot } from "./team-store.ts";
 import { coldMailSnapshot, restoreColdMail } from "./team-mail.ts";
 import { releaseOrphanedTasks } from "./team-sweep.ts";

@@ -4,16 +4,16 @@
 
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { discoverSubagents } from "../infra/subagent-files.ts";
-import { withTemps } from "../domain/temp.ts";
+import { withTemps } from "../domain/run/index.ts";
 import {
 	findLaunchLeg,
 	parseOpenQuery,
 	parseReportQuery,
 	parseLaunchArgs,
 	rosterFor,
-} from "../domain/launch.ts";
+} from "../domain/policy/index.ts";
 import { latestLaunch, startLaunch, syncLegFailures } from "../app/launch.ts";
-import type { TaskStore } from "../app/task-store.ts";
+import type { TaskStore } from "../domain/task/index.ts";
 import { scopeTasks, type TaskScope } from "../app/task-scope.ts";
 import { openSessionView } from "./view/session-view.ts";
 import { renderRecordsReport, renderRunReport } from "./view/launch-report.ts";

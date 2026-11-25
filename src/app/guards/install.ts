@@ -4,7 +4,7 @@
 import { systemClock, turnInputTokens } from "./budget.ts";
 import type { BudgetClock, BudgetStop } from "./budget.ts";
 import { HARD_STOP_GRACE_MS, WIND_DOWN_SEC } from "./wind.ts";
-import type { SubagentBudget } from "../../domain/subagent/budget.ts";
+import type { SubagentBudget } from "../../domain/subagent/index.ts";
 
 export function abandonedNote(graceMs: number = HARD_STOP_GRACE_MS): string {
 	const secs = Math.max(1, Math.round(graceMs / 1000));

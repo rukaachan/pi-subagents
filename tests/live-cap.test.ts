@@ -10,8 +10,8 @@ import {
 	readGlobalConfig,
 	withGlobalConfig,
 } from "../src/app/global-config.ts";
-import type { SubagentConfig } from "../src/domain/subagent/config.ts";
-import { TaskStore } from "../src/app/task-store.ts";
+import type { SubagentConfig } from "../src/domain/subagent/index.ts";
+import { TaskStore } from "../src/domain/task/index.ts";
 
 function setup(globalBlock: unknown, projectBlock?: unknown) {
 	const root = mkdtempSync(join(tmpdir(), "pi-cap-"));

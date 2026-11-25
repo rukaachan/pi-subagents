@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { afterEach, describe, it } from "node:test";
 import { applyCodemodeWorkerDefault, effectiveCodemodeWorkers } from "../src/infra/worker-pool.ts";
-import { CODEMODE_WORKERS_DEFAULT } from "../src/domain/subagent/codemode.ts";
+import { CODEMODE_WORKERS_DEFAULT } from "../src/domain/task/index.ts";
 
 const KEY = "PI_CODEMODE_MAX_WORKERS";
 const saved = process.env[KEY];

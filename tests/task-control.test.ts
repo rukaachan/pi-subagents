@@ -5,7 +5,7 @@ import { store } from "../src/app/live-store.ts";
 import { registerLiveSession } from "../src/app/live-sessions.ts";
 import { registerLive, liveCount } from "../src/app/live-runs.ts";
 import { takeSteers } from "../src/app/steer-queue.ts";
-import type { TaskRecord } from "../src/domain/task.ts";
+import type { TaskRecord } from "../src/domain/task/index.ts";
 
 const ctx = {
 	cwd: "/tmp",

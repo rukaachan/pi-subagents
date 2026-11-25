@@ -3,7 +3,7 @@
  */
 
 import { taskList, teamMembers, teamSummary } from "../../app/team-store.ts";
-import { MAX_TEAM_TASKS } from "../../domain/team.ts";
+import { MAX_TEAM_TASKS } from "../../domain/team/index.ts";
 
 export function teamText(): string {
 	const summary = teamSummary();

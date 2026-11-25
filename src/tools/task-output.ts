@@ -11,8 +11,8 @@ import { toUsage } from "../ui/tool-results.ts";
 import { store } from "../app/live-store.ts";
 import { inTaskScope } from "../app/task-scope.ts";
 import { unknownTaskMessage } from "../app/removed-ids.ts";
-import { failureHint, labelFailure } from "../domain/failure.ts";
-import { capDelivery, MAX_DELIVERY_CHARS } from "../domain/run-result.ts";
+import { failureHint, labelFailure } from "../domain/policy/index.ts";
+import { capDelivery, MAX_DELIVERY_CHARS } from "../domain/run/index.ts";
 import { journalWrite } from "../telemetry/journal.ts";
 
 export const taskOutputTool = defineTool({

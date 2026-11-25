@@ -3,7 +3,7 @@
  */
 
 import { describeToolCall } from "./activity.ts";
-import { compactionNote, nestedStep } from "../domain/activity-step.ts";
+import { compactionNote, nestedStep } from "../domain/run/index.ts";
 import { journalWrite } from "./journal.ts";
 import { cut, footerProgress } from "./progress.ts";
 import { finishPayload, runFinishHook } from "./finish-hook.ts";

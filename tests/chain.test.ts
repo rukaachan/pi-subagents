@@ -12,9 +12,9 @@ import {
 	hasOverrides,
 	overrideNote,
 	parseComplexity,
-} from "../src/domain/tiers.ts";
-import type { SubagentConfig } from "../src/domain/subagent/config.ts";
-import type { TaskRecord } from "../src/app/task-record.ts";
+} from "../src/domain/run/index.ts";
+import type { SubagentConfig } from "../src/domain/subagent/index.ts";
+import type { TaskRecord } from "../src/domain/task/index.ts";
 import { chainStrip } from "../src/ui/view/rows.ts";
 
 function sub(name: string): SubagentConfig {

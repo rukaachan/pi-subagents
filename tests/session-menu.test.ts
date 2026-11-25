@@ -5,9 +5,9 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { initTheme } from "@earendil-works/pi-coding-agent";
 import { showTaskDetail } from "../src/ui/menu/task-list.ts";
-import type { TaskRecord } from "../src/app/task-record.ts";
-import type { TaskStore } from "../src/app/task-store.ts";
-import type { SubagentConfig } from "../src/domain/subagent/config.ts";
+import type { TaskRecord } from "../src/domain/task/index.ts";
+import type { TaskStore } from "../src/domain/task/index.ts";
+import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 
 const ESC = "\x1b";
 const ENTER = "\r";

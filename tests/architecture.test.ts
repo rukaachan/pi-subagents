@@ -2,13 +2,28 @@
  * Architecture guard: the shape this package claims.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { basename, dirname, join, relative } from "node:path";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 const root = new URL("..", import.meta.url).pathname;
 
 const MAX_FILE_LINES = 250;
+
+function folders(dir: string): string[] {
+	const out = [dir];
+	for (const entry of readdirSync(dir)) {
+		const full = join(dir, entry);
+		if (statSync(full).isDirectory()) out.push(...folders(full));
+	}
+	return out;
+}
+
+function sourcesIn(dir: string): string[] {
+	return readdirSync(dir)
+		.filter((entry) => entry.endsWith(".ts"))
+		.map((entry) => join(dir, entry));
+}
 
 function sources(dir: string): string[] {
 	const out: string[] = [];
@@ -140,6 +155,43 @@ describe("layer direction: dependencies point inward", () => {
 			}
 		}
 		assert.deepEqual(offenders, [], "the domain layer must stay pure");
+	});
+});
+
+describe("folder size: a bounded context fits in one screen", () => {
+	it("no folder holds more than seven sources", () => {
+		const offenders: string[] = [];
+		for (const dir of folders(join(root, "src"))) {
+			const count = sourcesIn(dir).filter((file) => basename(file) !== "index.ts").length;
+			if (count > 7) offenders.push(`${relative(root, dir)}: ${count} files`);
+		}
+		assert.deepEqual(offenders, []);
+	});
+
+	it("every folder with sources has an entry", () => {
+		const offenders: string[] = [];
+		for (const dir of folders(join(root, "src"))) {
+			const files = sourcesIn(dir);
+			if (files.length === 0) continue;
+			if (!files.some((file) => basename(file) === "index.ts")) {
+				offenders.push(relative(root, dir));
+			}
+		}
+		assert.deepEqual(offenders, []);
+	});
+
+	it("a cross-folder import goes through the target entry", () => {
+		const offenders: string[] = [];
+		for (const file of sources(join(root, "src"))) {
+			const from = dirname(relative(root, file));
+			for (const target of importsOf(file)) {
+				if (!target.startsWith("src/") || dirname(target) === from) continue;
+				if (basename(target) !== "index.ts") {
+					offenders.push(`${relative(root, file)} -> ${target}`);
+				}
+			}
+		}
+		assert.deepEqual(offenders, []);
 	});
 });
 

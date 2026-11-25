@@ -2,8 +2,8 @@
  * pi-subagents: the detail panes.
  */
 
-import type { SubagentConfig } from "../../domain/subagent/config.ts";
-import type { TaskRecord } from "../../app/task-record.ts";
+import type { SubagentConfig } from "../../domain/subagent/index.ts";
+import type { TaskRecord } from "../../domain/task/index.ts";
 import { formatElapsed } from "../../telemetry/progress.ts";
 import { kvTable, shortPath, shortText, sourceBadge, usageLine } from "./format.ts";
 import { chainStrip, parallelStrip } from "./rows.ts";

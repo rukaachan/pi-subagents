@@ -7,8 +7,8 @@ import {
 	renderRunReport,
 } from "../src/ui/view/launch-report.ts";
 import { syncLegFailures, type LaunchLeg, type LaunchRun } from "../src/app/launch.ts";
-import { newRecord } from "../src/app/task-record.ts";
-import type { SubagentConfig } from "../src/domain/subagent/config.ts";
+import { newRecord } from "../src/domain/task/index.ts";
+import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 
 function leg(over: Partial<LaunchLeg> = {}): LaunchLeg {
 	return {

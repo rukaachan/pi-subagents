@@ -5,7 +5,7 @@
 import { pickFromList } from "../picker.ts";
 import { subagentRowItems } from "./items.ts";
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import type { SubagentConfig } from "../../domain/subagent/config.ts";
+import type { SubagentConfig } from "../../domain/subagent/index.ts";
 import { runSubagentDetail } from "./detail.ts";
 
 export async function runListMenu(

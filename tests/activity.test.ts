@@ -9,7 +9,7 @@ import {
 	activityRows,
 	describeToolCall,
 } from "../src/telemetry/activity.ts";
-import { DETAIL_CHARS, RECENT_LIMIT } from "../src/domain/activity-step.ts";
+import { DETAIL_CHARS, RECENT_LIMIT } from "../src/domain/run/index.ts";
 
 describe("describeToolCall", () => {
 	it("names the argument that identifies the work", () => {

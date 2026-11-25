@@ -2,7 +2,7 @@
  * pi-subagents: which runs belong to this project and this Pi session.
  */
 
-import type { TaskRecord } from "../domain/task.ts";
+import type { TaskRecord } from "../domain/task/index.ts";
 
 export interface TaskScope {
 	cwd: string;

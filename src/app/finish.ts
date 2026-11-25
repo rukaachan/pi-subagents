@@ -4,13 +4,13 @@
 
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { discoverSubagents } from "../infra/subagent-files.ts";
-import { withTemps } from "../domain/temp.ts";
-import { pickRoster, type RosterPick } from "../domain/subagent/roster.ts";
-import { parseLaunchArgs, unknownLegs } from "../domain/launch.ts";
+import { withTemps } from "../domain/run/index.ts";
+import { pickRoster, type RosterPick } from "../domain/subagent/index.ts";
+import { parseLaunchArgs, unknownLegs } from "../domain/policy/index.ts";
 import { startLaunch, type LaunchRun } from "./launch.ts";
 import { readGlobalConfig } from "./global-config.ts";
-import { MAX_LIVE_TASKS } from "../domain/task.ts";
-import type { TaskStore } from "./task-store.ts";
+import { MAX_LIVE_TASKS } from "../domain/task/index.ts";
+import type { TaskStore } from "../domain/task/index.ts";
 
 const MAX_LEGS = 4;
 

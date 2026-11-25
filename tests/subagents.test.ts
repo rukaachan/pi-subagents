@@ -4,7 +4,7 @@ import {
 	clampToolsForAutonomy,
 	resolveToolPolicy,
 	type SubagentConfig,
-} from "../src/domain/subagent/config.ts";
+} from "../src/domain/subagent/index.ts";
 import { loadSubagentFromContent } from "../src/infra/subagent-files.ts";
 
 function sub(over: Partial<SubagentConfig>): SubagentConfig {

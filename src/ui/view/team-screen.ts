@@ -4,7 +4,7 @@
 
 import type { Theme } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import type { TeamTaskView } from "../../domain/team.ts";
+import type { TeamTaskView } from "../../domain/team/index.ts";
 import { shortText } from "./format.ts";
 import { hintFrame } from "./frame.ts";
 

@@ -4,7 +4,7 @@
 
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
-import { MAX_TEAM_TASKS } from "../domain/team.ts";
+import { MAX_TEAM_TASKS } from "../domain/team/index.ts";
 
 const UPDATE_ACTIONS = new Set<string>([
 	"claim",

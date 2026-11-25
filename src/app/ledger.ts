@@ -1,9 +1,9 @@
 /**
  * pi-subagents: spawn counts.
  */
-import type { RunKind, SpawnCounts } from "../domain/task.ts";
+import type { RunKind, SpawnCounts } from "../domain/task/index.ts";
 
-export type { SpawnCounts } from "../domain/task.ts";
+export type { SpawnCounts } from "../domain/task/index.ts";
 
 export interface RunLedger {
 	begin(subagentName: string): void;

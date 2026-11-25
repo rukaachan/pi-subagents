@@ -5,10 +5,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { readFileSync } from "node:fs";
 import { RemovedIds, removedTaskMessage, unknownTaskMessage } from "../src/app/removed-ids.ts";
-import { TaskStore } from "../src/app/task-store.ts";
+import { TaskStore } from "../src/domain/task/index.ts";
 import { InMemoryLedger } from "../src/app/ledger.ts";
-import type { TaskRecord } from "../src/domain/task.ts";
-import { stoppedRowNote } from "../src/domain/run-stop.ts";
+import type { TaskRecord } from "../src/domain/task/index.ts";
+import { stoppedRowNote } from "../src/domain/task/index.ts";
 import { stoppedSummary } from "../src/app/stop-all.ts";
 
 function row(taskId: string, status: TaskRecord["status"] = "running"): TaskRecord {

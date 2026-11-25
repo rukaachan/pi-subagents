@@ -2,11 +2,11 @@
  * pi-subagents: session-temporary subagents.
  */
 
-import type { SubagentBudget } from "./subagent/budget.ts";
-import type { SubagentConfig } from "./subagent/config.ts";
-import type { SubagentDiscoveryResult } from "./subagent/discovery.ts";
-import { parseBudget } from "./subagent/budget.ts";
-import { parsePaths } from "./subagent/paths.ts";
+import type { SubagentBudget } from "../subagent/index.ts";
+import type { SubagentConfig } from "../subagent/index.ts";
+import type { SubagentDiscoveryResult } from "../subagent/index.ts";
+import { parseBudget } from "../subagent/index.ts";
+import { parsePaths } from "../subagent/index.ts";
 
 export const MAX_TEMP_PROMPT_LINES = 20;
 export const MAX_TEMP_PROMPT_LINE_CHARS = 120;

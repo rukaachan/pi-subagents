@@ -18,8 +18,8 @@ import {
 	type TeamResult,
 	type TeamTaskView,
 	type TeamUpdate,
-} from "../domain/team.ts";
-import { updateTeamTask } from "../domain/team-update.ts";
+} from "../domain/team/index.ts";
+import { updateTeamTask } from "../domain/team/index.ts";
 import { resolveTaskOn, summarizeBoard, taskListOn } from "./team-read.ts";
 import { journalTeamTask } from "./team-journal.ts";
 

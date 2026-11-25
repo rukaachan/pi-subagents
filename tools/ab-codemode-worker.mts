@@ -77,7 +77,7 @@ async function runOne(
 	const pi = await import("@earendil-works/pi-coding-agent");
 	const { loadSubagentFromContent } = await import("../src/domain/subagent/frontmatter.ts");
 	const { startSubagentSession } = await import("../src/infra/host-session.ts");
-	const { sumUsage } = await import("../src/domain/run-result.ts");
+	const { sumUsage } = await import("../src/domain/run/run-result.ts");
 
 	const agentsDir = join(cwd, ".ab-agents");
 	writeFixture(agentsDir, { name: "ab-worker", file: "" }, bare);

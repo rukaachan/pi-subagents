@@ -2,10 +2,10 @@
  * pi-subagents: one row per run.
  */
 
-import type { RunKind, TaskRecord } from "../domain/task.ts";
-import type { SubagentConfig } from "../domain/subagent/config.ts";
+import type { RunKind, TaskRecord } from "./task.ts";
+import type { SubagentConfig } from "../subagent/index.ts";
 
-export { MAX_DONE_TASKS, MAX_LIVE_TASKS } from "../domain/task.ts";
+export { MAX_DONE_TASKS, MAX_LIVE_TASKS } from "./task.ts";
 export type {
 	ChainStep,
 	ParallelLeg,
@@ -13,7 +13,7 @@ export type {
 	SpawnCounts,
 	TaskRecord,
 	TaskStatus,
-} from "../domain/task.ts";
+} from "./task.ts";
 
 let seq = 0;
 
