@@ -28,6 +28,8 @@ describe("team child", () => {
 		assert.equal(child.tools[0]?.name, "AgentTeam");
 		assert.equal(child.tools[1]?.name, "AgentTeamMessage");
 		assert.match(child.prompt, /"worker"/);
+		assert.match(child.prompt, /Use the AgentTeam tool/);
+		assert.doesNotMatch(child.prompt, /AgentAgent/);
 		assert.match(child.prompt, /Claim|claim/);
 		const extras = agentTeamChildExtras("worker");
 		assert.ok(extras);

@@ -46,7 +46,7 @@ function rollback(tasks: readonly { taskId: string }[]): void {
 function legPrompt(taskId: string, prompt: string): string {
 	return [
 		`[agent-team] Board task ${taskId} is yours.`,
-		`Run AgentAgentTeam { action: "get", task_id: "${taskId}" }, claim it with its current revision, do the work, then complete it.`,
+		`Run AgentTeam { action: "get", task_id: "${taskId}" }, claim it with its current revision, do the work, then complete it.`,
 		"If it is blocked, or another task overlaps its scopes, report it to the lead instead of widening.",
 		prompt,
 	].join("\n\n");

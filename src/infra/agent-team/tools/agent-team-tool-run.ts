@@ -155,7 +155,7 @@ export async function runAgentTeam(
 	}
 	if (!api.active()) {
 		return fail(
-			'Agent team mode is off. Use /subagents agent-teams on for a manual board, or AgentAgentTeam { action: "start", prompt } to launch work.',
+			'Agent team mode is off. Use /subagents agent-teams on for a manual board, or AgentTeam { action: "start", prompt } to launch work.',
 		);
 	}
 	if (params.action === "create") {

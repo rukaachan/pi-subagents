@@ -69,7 +69,7 @@ export function joinAgentTeamChild(
 function agentTeamPrompt(member: string): string {
 	return [
 		`[agent-team] You are "${member}" on this session's shared agent team board.`,
-		"Use the AgentAgentTeam tool: list ready tasks, get one, claim it with its current revision, do the work, then complete it.",
+		"Use the AgentTeam tool: list ready tasks, get one, claim it with its current revision, do the work, then complete it.",
 		"Only the lead assigns or reassigns tasks. Files are shared; stay inside the task's write scopes. A claim is refused while an in-progress task overlaps your scopes; report the blocker to the lead instead of widening.",
 		"If you find work outside your task, report it in your final answer instead of doing it.",
 		"Use AgentTeamMessage to send a finding to a live teammate, or wait for one; the lead is a valid target.",
