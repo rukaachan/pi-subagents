@@ -18,6 +18,7 @@ export const MAX_AGENT_TEAM_RUN_ID = 128;
 export const MAX_AGENT_TEAM_ACCEPTANCE = 500;
 export const MAX_AGENT_TEAM_NOTE = 300;
 export const MAX_AGENT_TEAM_VERIFY_WITH = 64;
+export const MAX_AGENT_TEAM_QUESTION = 1_000;
 
 export type AgentTeamTaskStatus = "pending" | "in_progress" | "in_review" | "completed" | "deleted";
 export type AgentTeamRole = "worker" | "verifier" | "advisor";
