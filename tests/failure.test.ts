@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { failureHint, labelFailure, parseFailure } from "../src/domain/policy/index.ts";
-import { foldJournal } from "../src/telemetry/journal-fold.ts";
+import { foldJournal } from "../src/telemetry/journal/index.ts";
 
 describe("failure families", () => {
 	it("accepts the three names, case and space insensitive", () => {

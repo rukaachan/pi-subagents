@@ -11,7 +11,7 @@ import { restoreTeam, teamSnapshot } from "./team-store.ts";
 import { coldMailSnapshot, restoreColdMail } from "./team-mail.ts";
 import { releaseOrphanedTasks } from "./team-sweep.ts";
 import { findStateTask } from "../infra/state/index.ts";
-import { journalWrite } from "../telemetry/journal.ts";
+import { journalWrite } from "../telemetry/journal/index.ts";
 import {
 	capRecord,
 	defaultStatePath,

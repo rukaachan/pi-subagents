@@ -3,7 +3,7 @@
  */
 import { readFileSync, statSync } from "node:fs";
 import { defaultJournalPath } from "./journal-path.ts";
-import type { FailureFamily } from "../domain/policy/index.ts";
+import type { FailureFamily } from "../../domain/policy/index.ts";
 
 export interface JournalRun {
 	id: string;

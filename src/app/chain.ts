@@ -4,7 +4,7 @@
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { SubagentConfig } from "../domain/subagent/index.ts";
-import { trackSession } from "../telemetry/track.ts";
+import { trackSession } from "../telemetry/live/index.ts";
 import {
 	activeModelId,
 	lastText,

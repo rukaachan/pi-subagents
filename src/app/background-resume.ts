@@ -3,8 +3,8 @@
  */
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { footerProgress } from "../telemetry/progress.ts";
-import { trackSession } from "../telemetry/track.ts";
+import { footerProgress } from "../telemetry/live/index.ts";
+import { trackSession } from "../telemetry/live/index.ts";
 import { abandonedNote, installRunBudget } from "./guards/install.ts";
 import { activeModelId, providerFailure, snapshotHistory, sumUsage } from "../domain/run/index.ts";
 import { annotateFailure, awaitWithHardStop, surfaceBudgetNotes } from "./guards/stop.ts";

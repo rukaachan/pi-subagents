@@ -7,8 +7,8 @@ import type { TaskRecord } from "../../domain/task/index.ts";
 import { sumUsage } from "../../domain/run/index.ts";
 import { liveSession } from "../../app/live-sessions.ts";
 import { inModal } from "../../app/modal-depth.ts";
-import { formatElapsed, footerProgress } from "../../telemetry/progress.ts";
-import { transcriptEntries, type TranscriptEntry } from "../../telemetry/transcript.ts";
+import { formatElapsed, footerProgress } from "../../telemetry/live/index.ts";
+import { transcriptEntries, type TranscriptEntry } from "../../telemetry/live/index.ts";
 import { createSessionView } from "./session-screen.ts";
 import { shortText, taskStatusIcon } from "./format.ts";
 

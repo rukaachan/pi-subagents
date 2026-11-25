@@ -24,8 +24,8 @@ async function main(): Promise<void> {
 	const { liveCount } = await import("../src/app/live-runs.ts");
 	const { stopAllLiveRuns } = await import("../src/app/stop-all.ts");
 	const { store } = await import("../src/app/live-store.ts");
-	const { foldJournalFile } = await import("../src/telemetry/journal-fold.ts");
-	const { defaultJournalPath } = await import("../src/telemetry/journal-path.ts");
+	const { foldJournalFile } = await import("../src/telemetry/journal/journal-fold.ts");
+	const { defaultJournalPath } = await import("../src/telemetry/journal/journal-path.ts");
 	const { ledger } = await import("../src/app/ledger.ts");
 
 	const home = mkdtempSync(join(tmpdir(), "chain-stop-probe-"));

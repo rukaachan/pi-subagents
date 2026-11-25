@@ -9,7 +9,7 @@ import { ROUTE, isRoute } from "../src/ui/menu/constants.ts";
 import { subagentRowItems, taskRowItems, trashRowItems } from "../src/ui/menu/items.ts";
 import { modelRow, stepTitle, trashBase, trashRow } from "../src/ui/view/format.ts";
 import { recentSteps, sortTaskRows } from "../src/ui/menu/task-list.ts";
-import { footerProgress } from "../src/telemetry/progress.ts";
+import { footerProgress } from "../src/telemetry/live/index.ts";
 import type { TaskRecord } from "../src/domain/task/index.ts";
 import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 

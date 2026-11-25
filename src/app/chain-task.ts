@@ -5,7 +5,7 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { suggestSubagentName } from "../domain/subagent/index.ts";
 import type { SubagentConfig } from "../domain/subagent/index.ts";
-import { useFooterUI } from "../telemetry/progress.ts";
+import { useFooterUI } from "../telemetry/live/index.ts";
 import { MAX_LIVE_TASKS } from "../domain/task/index.ts";
 import { runChain } from "./chain.ts";
 import { isRunStopped, stoppedToolText } from "../domain/task/index.ts";

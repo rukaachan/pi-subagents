@@ -7,9 +7,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { performance } from "node:perf_hooks";
 import { readGlobalConfig } from "../src/app/global-config.ts";
-import { finishPayload, runFinishHook } from "../src/telemetry/finish-hook.ts";
-import { journalWrite } from "../src/telemetry/journal.ts";
-import { FooterProgress } from "../src/telemetry/progress.ts";
+import { finishPayload, runFinishHook } from "../src/telemetry/notify/index.ts";
+import { journalWrite } from "../src/telemetry/journal/index.ts";
+import { FooterProgress } from "../src/telemetry/live/index.ts";
 
 const payload = finishPayload({
 	task_id: "task-bench",

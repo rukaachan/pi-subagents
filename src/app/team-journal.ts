@@ -2,7 +2,7 @@
  * pi-subagents: one journal line per board write.
  */
 
-import { journalWrite } from "../telemetry/journal.ts";
+import { journalWrite } from "../telemetry/journal/index.ts";
 
 export interface TeamTaskEvent {
 	action: string;

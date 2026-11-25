@@ -5,7 +5,7 @@
 import { MAX_COLD_CHARS, MAX_COLD_MESSAGES } from "../domain/team/index.ts";
 import type { MailResult, TeamMessageApi, WaitOutcome } from "../domain/team/index.ts";
 import { LEAD_NAME } from "../domain/team/index.ts";
-import { journalWrite } from "../telemetry/journal.ts";
+import { journalWrite } from "../telemetry/journal/index.ts";
 import type { TaskStore } from "../domain/task/index.ts";
 import { teamMembers } from "./team-store.ts";
 import { clearWaits, MAX_WAIT_MS, waitForMember as waitCore } from "./team-wait.ts";

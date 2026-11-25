@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { foldJournal } from "../src/telemetry/journal-fold.ts";
+import { foldJournal } from "../src/telemetry/journal/index.ts";
 
 describe("run grouping", () => {
 	it("carries the run id from run_start", () => {

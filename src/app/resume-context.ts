@@ -2,7 +2,7 @@
  * pi-subagents: the context a resumed run gets, bounded and readable.
  */
 
-import { shapeMessages } from "../telemetry/transcript.ts";
+import { shapeMessages } from "../telemetry/live/index.ts";
 
 /** Same ceiling the resume prompt used before, now spent on whole entries. */
 export const RESUME_CONTEXT_CHARS = 20_000;

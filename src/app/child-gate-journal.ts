@@ -4,7 +4,7 @@
 
 import type { ChildExtras } from "../infra/host/index.ts";
 import type { GateBlock } from "../infra/guard/index.ts";
-import { journalWrite } from "../telemetry/journal.ts";
+import { journalWrite } from "../telemetry/journal/index.ts";
 
 /** Add the gate's journal sink to whatever extras a run already has. */
 export function withGateJournal(extras?: ChildExtras): ChildExtras {

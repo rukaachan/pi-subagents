@@ -4,7 +4,7 @@
 
 import type { ExtensionAPI, Theme } from "@earendil-works/pi-coding-agent";
 import { Box, Text } from "@earendil-works/pi-tui";
-import { SETTLED_CUSTOM_TYPE, type SettleDetails } from "../../telemetry/notify.ts";
+import { SETTLED_CUSTOM_TYPE, type SettleDetails } from "../../telemetry/notify/index.ts";
 
 type CardTheme = Pick<Theme, "fg" | "bold">;
 

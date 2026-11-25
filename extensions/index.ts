@@ -29,8 +29,12 @@ import { scopeTasks } from "../src/app/task-scope.ts";
 import { applyCodemodeWorkerDefault } from "../src/infra/host/index.ts";
 import { readGlobalConfig } from "../src/app/global-config.ts";
 import { CODEMODE_WORKERS_DEFAULT } from "../src/domain/task/index.ts";
-import { footerProgress } from "../src/telemetry/progress.ts";
-import { clearNotifySink, SETTLED_CUSTOM_TYPE, setNotifySink } from "../src/telemetry/notify.ts";
+import { footerProgress } from "../src/telemetry/live/index.ts";
+import {
+	clearNotifySink,
+	SETTLED_CUSTOM_TYPE,
+	setNotifySink,
+} from "../src/telemetry/notify/index.ts";
 import { registerSettledCard } from "../src/ui/view/settled-card.ts";
 
 export { restoredCount } from "../src/app/live-store.ts";

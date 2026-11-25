@@ -6,8 +6,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import assert from "node:assert/strict";
 import { after, beforeEach, describe, it, mock } from "node:test";
-import { foldJournal } from "../src/telemetry/journal.ts";
-import { trackSession } from "../src/telemetry/track.ts";
+import { foldJournal } from "../src/telemetry/journal/index.ts";
+import { trackSession } from "../src/telemetry/live/index.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "pi-gaps-"));
 const path = join(dir, "g.ndjson");

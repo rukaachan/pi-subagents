@@ -4,7 +4,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { cardLines, registerSettledCard } from "../src/ui/view/settled-card.ts";
-import type { SettleDetails } from "../src/telemetry/notify.ts";
+import type { SettleDetails } from "../src/telemetry/notify/index.ts";
 
 function plainTheme() {
 	return { fg: (_token: string, text: string) => text, bold: (text: string) => text };

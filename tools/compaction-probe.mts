@@ -23,8 +23,8 @@ async function main(): Promise<void> {
 	const pi = await import("@earendil-works/pi-coding-agent");
 	const { loadSubagentFromContent } = await import("../src/infra/files/subagent-files.ts");
 	const { startSubagentSession } = await import("../src/infra/host/host-session.ts");
-	const { trackSession } = await import("../src/telemetry/track.ts");
-	const { footerProgress } = await import("../src/telemetry/progress.ts");
+	const { trackSession } = await import("../src/telemetry/live/track.ts");
+	const { footerProgress } = await import("../src/telemetry/live/progress.ts");
 
 	const home = mkdtempSync(join(tmpdir(), "compaction-probe-"));
 	const work = mkdtempSync(join(tmpdir(), "compaction-work-"));

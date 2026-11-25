@@ -1,7 +1,7 @@
 import { beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { announceSettle } from "../src/app/settle-notice.ts";
-import { clearNotifySink, setNotifySink } from "../src/telemetry/notify.ts";
+import { clearNotifySink, setNotifySink } from "../src/telemetry/notify/index.ts";
 import {
 	beginTeamSession,
 	createTask,

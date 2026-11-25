@@ -3,7 +3,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { shapeMessages, streamText, transcriptEntries } from "../src/telemetry/transcript.ts";
+import { shapeMessages, streamText, transcriptEntries } from "../src/telemetry/live/index.ts";
 
 function kinds(messages: unknown[]): string[] {
 	return transcriptEntries(messages).map((e) => e.kind);

@@ -8,8 +8,8 @@ import { stopTask } from "./live-runs.ts";
 import { launchBackground } from "./background.ts";
 import { removedIds, unknownTaskMessage } from "./removed-ids.ts";
 import { queueSteer } from "./steer-queue.ts";
-import { cut } from "../telemetry/progress.ts";
-import { journalWrite } from "../telemetry/journal.ts";
+import { cut } from "../telemetry/live/index.ts";
+import { journalWrite } from "../telemetry/journal/index.ts";
 import type { TaskStore } from "../domain/task/index.ts";
 
 export type TaskAction = "steer" | "retry" | "stop";

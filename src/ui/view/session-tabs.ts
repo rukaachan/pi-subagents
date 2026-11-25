@@ -3,7 +3,7 @@
  */
 
 import type { Theme } from "@earendil-works/pi-coding-agent";
-import type { TranscriptEntry } from "../../telemetry/transcript.ts";
+import type { TranscriptEntry } from "../../telemetry/live/index.ts";
 
 export type SessionTab = "transcript" | "tools" | "errors";
 

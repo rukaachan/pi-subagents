@@ -4,8 +4,8 @@
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { SubagentConfig } from "../domain/subagent/index.ts";
-import { footerProgress } from "../telemetry/progress.ts";
-import { trackSession } from "../telemetry/track.ts";
+import { footerProgress } from "../telemetry/live/index.ts";
+import { trackSession } from "../telemetry/live/index.ts";
 import { abandonedNote, installRunBudget } from "./guards/install.ts";
 import {
 	activeModelId,
@@ -17,7 +17,7 @@ import {
 import { annotateFailure, awaitWithHardStop, surfaceBudgetNotes } from "./guards/stop.ts";
 import { runReport } from "../domain/run/index.ts";
 import { checkReturn } from "../domain/run/index.ts";
-import { journalWrite } from "../telemetry/journal.ts";
+import { journalWrite } from "../telemetry/journal/index.ts";
 import { startSubagentSession } from "../infra/host/index.ts";
 import { withGateJournal } from "./child-gate-journal.ts";
 import { teamChildExtras } from "./team-child.ts";

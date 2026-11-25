@@ -8,7 +8,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { foldJournal, STALE_AFTER_MS } from "../src/telemetry/journal.ts";
+import { foldJournal, STALE_AFTER_MS } from "../src/telemetry/journal/index.ts";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 

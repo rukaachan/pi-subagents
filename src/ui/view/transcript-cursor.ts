@@ -2,7 +2,7 @@
  * pi-subagents: incremental message-to-entry shaping for the viewer.
  */
 
-import { shapeMessages, type TranscriptEntry } from "../../telemetry/transcript.ts";
+import { shapeMessages, type TranscriptEntry } from "../../telemetry/live/index.ts";
 
 const MAX_ENTRIES = 400;
 const BODY_CHARS = 300_000;

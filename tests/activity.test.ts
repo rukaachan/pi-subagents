@@ -8,7 +8,7 @@ import {
 	activityLine,
 	activityRows,
 	describeToolCall,
-} from "../src/telemetry/activity.ts";
+} from "../src/telemetry/live/index.ts";
 import { DETAIL_CHARS, RECENT_LIMIT } from "../src/domain/run/index.ts";
 
 describe("describeToolCall", () => {

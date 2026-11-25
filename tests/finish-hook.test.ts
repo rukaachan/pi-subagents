@@ -4,7 +4,7 @@ import { once } from "node:events";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { finishPayload, MAX_COMMAND_CHARS, runFinishHook } from "../src/telemetry/finish-hook.ts";
+import { finishPayload, MAX_COMMAND_CHARS, runFinishHook } from "../src/telemetry/notify/index.ts";
 
 const payload = finishPayload({
 	task_id: "task-1",

@@ -5,7 +5,7 @@
 import type { LaunchLeg, LaunchRun } from "../../app/launch.ts";
 import type { TaskRecord } from "../../domain/task/index.ts";
 import type { ReportQuery } from "../../domain/policy/index.ts";
-import { footerProgress } from "../../telemetry/progress.ts";
+import { footerProgress } from "../../telemetry/live/index.ts";
 import { shortKey, shortText, taskStatusIcon, usageLine } from "./format.ts";
 
 const FULL_CHARS = 1500;

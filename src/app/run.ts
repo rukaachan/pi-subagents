@@ -2,8 +2,8 @@
  * pi-subagents: one foreground run.
  */
 
-import { trackSession } from "../telemetry/track.ts";
-import { footerProgress, type ProgressSnapshot } from "../telemetry/progress.ts";
+import { trackSession } from "../telemetry/live/index.ts";
+import { footerProgress, type ProgressSnapshot } from "../telemetry/live/index.ts";
 import { ledger } from "./ledger.ts";
 import type { SubagentRunResult } from "../domain/run/index.ts";
 import { type TaskRecord } from "../domain/task/index.ts";
@@ -15,7 +15,7 @@ import { annotateFailure, awaitWithHardStop, surfaceBudgetNotes } from "./guards
 import { windDownSignal } from "./guards/wind.ts";
 import { runReport } from "../domain/run/index.ts";
 import { checkReturn } from "../domain/run/index.ts";
-import { journalWrite } from "../telemetry/journal.ts";
+import { journalWrite } from "../telemetry/journal/index.ts";
 import {
 	activeModelId,
 	providerFailure,

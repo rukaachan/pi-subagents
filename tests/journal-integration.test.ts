@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { foldJournal } from "../src/telemetry/journal.ts";
+import { foldJournal } from "../src/telemetry/journal/index.ts";
 import { loadSubagentFromContent } from "../src/infra/files/index.ts";
 import { runSubagent } from "../src/app/run.ts";
 

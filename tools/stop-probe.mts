@@ -26,8 +26,8 @@ async function main(): Promise<void> {
 	const { store } = await import("../src/app/live-store.ts");
 	const { removedIds, unknownTaskMessage } = await import("../src/app/removed-ids.ts");
 	const { ledger } = await import("../src/app/ledger.ts");
-	const { foldJournalFile } = await import("../src/telemetry/journal-fold.ts");
-	const { defaultJournalPath } = await import("../src/telemetry/journal-path.ts");
+	const { foldJournalFile } = await import("../src/telemetry/journal/journal-fold.ts");
+	const { defaultJournalPath } = await import("../src/telemetry/journal/journal-path.ts");
 
 	const home = mkdtempSync(join(tmpdir(), "stop-probe-"));
 	const work = mkdtempSync(join(tmpdir(), "stop-work-"));

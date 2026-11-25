@@ -2,7 +2,7 @@
  * pi-subagents: the live streaming row, coalesced to 30 fps.
  */
 
-import { streamText, type TranscriptEntry } from "../../telemetry/transcript.ts";
+import { streamText, type TranscriptEntry } from "../../telemetry/live/index.ts";
 import type { LineCache } from "./line-cache.ts";
 
 const STREAM_MS = 33;

@@ -20,8 +20,8 @@ import {
 	parseComplexity,
 } from "../domain/run/index.ts";
 import { subagentArgs } from "../infra/host/index.ts";
-import { useFooterUI } from "../telemetry/progress.ts";
-import { newRunKey } from "../telemetry/track.ts";
+import { useFooterUI } from "../telemetry/live/index.ts";
+import { newRunKey } from "../telemetry/live/index.ts";
 import { resultShell, toUsage, usageFooter } from "../ui/tool-results.ts";
 import { capDelivery } from "../domain/run/index.ts";
 import { Text } from "@earendil-works/pi-tui";

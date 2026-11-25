@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { discoverSubagents } from "../src/infra/files/index.ts";
-import { findJournalRun, foldJournalFile } from "../src/telemetry/journal-fold.ts";
+import { findJournalRun, foldJournalFile } from "../src/telemetry/journal/index.ts";
 
 function scratch(): string {
 	const dir = mkdtempSync(join(tmpdir(), "pi-subagents-cache-"));

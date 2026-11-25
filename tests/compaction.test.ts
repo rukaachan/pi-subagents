@@ -7,9 +7,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, describe, it } from "node:test";
 import { compactionNote } from "../src/domain/run/index.ts";
-import { foldJournal } from "../src/telemetry/journal.ts";
-import { footerProgress } from "../src/telemetry/progress.ts";
-import { trackSession } from "../src/telemetry/track.ts";
+import { foldJournal } from "../src/telemetry/journal/index.ts";
+import { footerProgress } from "../src/telemetry/live/index.ts";
+import { trackSession } from "../src/telemetry/live/index.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "pi-compact-"));
 const path = join(dir, "c.ndjson");

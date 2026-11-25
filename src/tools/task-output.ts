@@ -5,7 +5,7 @@
 import { Type } from "typebox";
 import { defineTool } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
-import { footerProgress } from "../telemetry/progress.ts";
+import { footerProgress } from "../telemetry/live/index.ts";
 import { renderTaskOutputResult } from "../ui/view/task-output-result.ts";
 import { toUsage } from "../ui/tool-results.ts";
 import { store } from "../app/live-store.ts";
@@ -13,7 +13,7 @@ import { inTaskScope } from "../app/task-scope.ts";
 import { unknownTaskMessage } from "../app/removed-ids.ts";
 import { failureHint, labelFailure } from "../domain/policy/index.ts";
 import { capDelivery, MAX_DELIVERY_CHARS } from "../domain/run/index.ts";
-import { journalWrite } from "../telemetry/journal.ts";
+import { journalWrite } from "../telemetry/journal/index.ts";
 
 export const taskOutputTool = defineTool({
 	name: "TaskOutput",

@@ -4,7 +4,7 @@
 
 import type { Theme } from "@earendil-works/pi-coding-agent";
 import { Key, matchesKey } from "@earendil-works/pi-tui";
-import type { TranscriptEntry } from "../../telemetry/transcript.ts";
+import type { TranscriptEntry } from "../../telemetry/live/index.ts";
 import { createLineCache, entryLineStart, gutterWidth } from "./line-cache.ts";
 import { paintSession } from "./session-paint.ts";
 import { createLiveTail } from "./session-live.ts";

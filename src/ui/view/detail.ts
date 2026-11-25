@@ -4,7 +4,7 @@
 
 import type { SubagentConfig } from "../../domain/subagent/index.ts";
 import type { TaskRecord } from "../../domain/task/index.ts";
-import { formatElapsed } from "../../telemetry/progress.ts";
+import { formatElapsed } from "../../telemetry/live/index.ts";
 import { kvTable, shortPath, shortText, sourceBadge, usageLine } from "./format.ts";
 import { chainStrip, parallelStrip } from "./rows.ts";
 

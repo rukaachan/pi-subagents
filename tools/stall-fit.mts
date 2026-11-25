@@ -6,7 +6,7 @@
  *   npx tsx tools/stall-fit.mts [--path journal.ndjson]
  */
 
-import { defaultJournalPath, foldJournalFile } from "../src/telemetry/journal.ts";
+import { defaultJournalPath, foldJournalFile } from "../src/telemetry/journal/index.ts";
 
 const args = process.argv.slice(2);
 const pathIndex = args.indexOf("--path");

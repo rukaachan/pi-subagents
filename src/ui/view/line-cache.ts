@@ -4,7 +4,7 @@
 
 import type { Theme, ThemeColor } from "@earendil-works/pi-coding-agent";
 import { visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
-import type { TranscriptEntry, TranscriptKind } from "../../telemetry/transcript.ts";
+import type { TranscriptEntry, TranscriptKind } from "../../telemetry/live/index.ts";
 
 export const LABEL_MAX = 14;
 export const PREVIEW_LINES = 10;

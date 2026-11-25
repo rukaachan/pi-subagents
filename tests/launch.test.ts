@@ -14,7 +14,7 @@ import { MAX_LIVE_TASKS, newRecord } from "../src/domain/task/index.ts";
 import { queuedLegCount, startLaunch, stopLaunchSchedulers } from "../src/app/launch.ts";
 import { discoverSubagents } from "../src/infra/files/index.ts";
 import { withTemps } from "../src/domain/run/index.ts";
-import { footerProgress } from "../src/telemetry/progress.ts";
+import { footerProgress } from "../src/telemetry/live/index.ts";
 import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 
 const sub: SubagentConfig = {

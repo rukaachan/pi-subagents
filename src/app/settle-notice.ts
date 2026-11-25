@@ -2,7 +2,7 @@
  * pi-subagents: tell the parent that a background leg settled.
  */
 
-import { notifySettled } from "../telemetry/notify.ts";
+import { notifySettled } from "../telemetry/notify/index.ts";
 import { sweepMemberTasks } from "./team-sweep.ts";
 import { capDelivery } from "../domain/run/index.ts";
 import type { TaskRecord } from "../domain/task/index.ts";

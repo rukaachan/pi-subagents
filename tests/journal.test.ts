@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import assert from "node:assert/strict";
 import { after, describe, it } from "node:test";
-import { foldJournal, journalWrite, STALE_AFTER_MS } from "../src/telemetry/journal.ts";
+import { foldJournal, journalWrite, STALE_AFTER_MS } from "../src/telemetry/journal/index.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "pi-journal-unit-"));
 const path = join(dir, "j.ndjson");

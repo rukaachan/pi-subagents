@@ -5,8 +5,8 @@ import {
 	notifySettled,
 	setNotifySink,
 	settleMessage,
-} from "../src/telemetry/notify.ts";
-import type { SettleNotice } from "../src/telemetry/notify.ts";
+} from "../src/telemetry/notify/index.ts";
+import type { SettleNotice } from "../src/telemetry/notify/index.ts";
 
 const base: SettleNotice = {
 	taskId: "task_abc123",

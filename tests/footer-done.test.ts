@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { DONE_TTL_MS, FooterProgress } from "../src/telemetry/progress.ts";
+import { DONE_TTL_MS, FooterProgress } from "../src/telemetry/live/index.ts";
 
 function clock(start = 0) {
 	let t = start;

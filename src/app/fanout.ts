@@ -10,7 +10,7 @@ import { fanoutAdmission } from "../domain/policy/index.ts";
 import { codemodeContentionNote, codemodeLegs } from "../domain/task/index.ts";
 import { effectiveCodemodeWorkers } from "../infra/host/index.ts";
 import { withTemps } from "../domain/run/index.ts";
-import { useFooterUI } from "../telemetry/progress.ts";
+import { useFooterUI } from "../telemetry/live/index.ts";
 import { MAX_LIVE_TASKS, newRunId } from "../domain/task/index.ts";
 import { type TaskStore } from "../domain/task/index.ts";
 import { applyRunOverrides, type RunOverrides } from "../domain/run/index.ts";

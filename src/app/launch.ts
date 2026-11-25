@@ -11,7 +11,7 @@ import type { FailureFamily } from "../domain/policy/index.ts";
 import { unknownLegs } from "../domain/policy/index.ts";
 import { launchBackground } from "./background.ts";
 import { readGlobalConfig, withGlobalConfig } from "./global-config.ts";
-import { useFooterUI } from "../telemetry/progress.ts";
+import { useFooterUI } from "../telemetry/live/index.ts";
 import type { TaskRecord } from "../domain/task/index.ts";
 import type { TaskStore } from "../domain/task/index.ts";
 import { newRunId } from "../domain/task/index.ts";
