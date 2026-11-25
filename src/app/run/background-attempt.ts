@@ -13,6 +13,7 @@ import {
 	providerFailure,
 	snapshotHistory,
 	sumUsage,
+	usageEnd,
 } from "../../domain/run/index.ts";
 import { annotateFailure, awaitWithHardStop, surfaceBudgetNotes } from "../guards/index.ts";
 import { runReport } from "../../domain/run/index.ts";
@@ -149,6 +150,8 @@ export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptRe
 		stop({
 			status: "done",
 			reportChars: rec.result.text.length,
+			promptChars: prompt.length,
+			...usageEnd(rec.result.usage),
 			model: rec.result.model,
 			notes: rec.result.notes,
 		});
@@ -160,7 +163,12 @@ export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptRe
 		const message = why instanceof Error ? why.message : String(why);
 		rec.history = snapshotHistory(child.session);
 		rec.endedAt = Date.now();
-		stop({ status: "error", error: message });
+		stop({
+			status: "error",
+			error: message,
+			promptChars: prompt.length,
+			...usageEnd(rec.result?.usage),
+		});
 		return { ok: false, error: message, transient: isTransientFailure(message) };
 	} finally {
 		gate.open = false;

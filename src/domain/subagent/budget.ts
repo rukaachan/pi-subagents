@@ -17,6 +17,7 @@ export function effectiveBudget(budget: SubagentBudget | undefined): SubagentBud
 export const BUDGET_FIELDS = [
 	"maxTurns",
 	"maxInputTokens",
+	"maxCost",
 	"timeoutSec",
 	"maxReportChars",
 ] as const;
@@ -33,12 +34,13 @@ export function parseBudget(raw: unknown): SubagentBudget | undefined | string {
 			return `unknown budget field "${key}". Use ${BUDGET_FIELDS.join(", ")}.`;
 		}
 		const v = o[key];
-		if (typeof v === "number" && Number.isInteger(v) && v >= 0) {
+		const numeric = typeof v === "number" && Number.isFinite(v) && v >= 0;
+		if (numeric && (key === "maxCost" || Number.isInteger(v))) {
 			out[key as keyof SubagentBudget] = v;
 			continue;
 		}
 		if (v === undefined || v === null) continue;
-		return `invalid budget.${key} ${showValue(v)}. Use a non-negative integer (0 = off).`;
+		return `invalid budget.${key} ${showValue(v)}. Use a non-negative ${key === "maxCost" ? "number" : "integer"} (0 = off).`;
 	}
 	// `{ }` stays `{ }`.
 	if (Object.keys(out).length === 0) return {};

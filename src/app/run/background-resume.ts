@@ -11,6 +11,7 @@ import {
 	providerFailure,
 	snapshotHistory,
 	sumUsage,
+	usageEnd,
 } from "../../domain/run/index.ts";
 import { annotateFailure, awaitWithHardStop, surfaceBudgetNotes } from "../guards/index.ts";
 import { runReport } from "../../domain/run/index.ts";
@@ -175,6 +176,8 @@ export async function resumeTask(
 				stop({
 					status: "done",
 					reportChars: follow.result.text.length,
+					promptChars: prompt.length,
+					...usageEnd(follow.result.usage),
 					model: follow.result.model,
 					notes: follow.result.notes,
 				});
@@ -186,7 +189,12 @@ export async function resumeTask(
 				const why = annotateFailure(err, surfaceBudgetNotes(child.notes, budgetStop));
 				follow.history = snapshotHistory(child.session);
 				store.touch();
-				stop({ status: "error", error: why instanceof Error ? why.message : String(why) });
+				stop({
+					status: "error",
+					error: why instanceof Error ? why.message : String(why),
+					promptChars: prompt.length,
+					...usageEnd(follow.result?.usage),
+				});
 				throw why;
 			} finally {
 				gate.open = false;

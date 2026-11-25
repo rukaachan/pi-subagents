@@ -1,7 +1,7 @@
 /**
  * pi-subagents: the run guards.
  */
-import { systemClock, turnInputTokens } from "./budget.ts";
+import { systemClock, turnCost, turnInputTokens } from "./budget.ts";
 import type { BudgetClock, BudgetStop } from "./budget.ts";
 import { HARD_STOP_GRACE_MS, WIND_DOWN_SEC } from "./wind.ts";
 import type { SubagentBudget } from "../../domain/subagent/index.ts";
@@ -30,9 +30,11 @@ export function installRunBudget(
 	let inputAllowed =
 		budget?.maxInputTokens && budget.maxInputTokens > 0 ? budget.maxInputTokens : undefined;
 	const timeoutSec = budget?.timeoutSec && budget.timeoutSec > 0 ? budget.timeoutSec : undefined;
+	const costAllowed = budget?.maxCost && budget.maxCost > 0 ? budget.maxCost : undefined;
 	let completed = 0;
 	let turnsLeft = turnsAllowed;
 	let inputSeen = 0;
+	let costSeen = 0;
 	let timedOut = false;
 	let elapsedSec = 0;
 	let stalled = false;
@@ -122,6 +124,11 @@ export function installRunBudget(
 			inputAllowed -= turnInput;
 			if (inputAllowed <= 0) tripped = true;
 		}
+		const turnCostValue = turnCost(event);
+		if (costAllowed !== undefined && turnCostValue !== undefined) {
+			costSeen += turnCostValue;
+			if (costSeen >= costAllowed) tripped = true;
+		}
 		// A late timer must not extend the deadline: re-check the clock
 		// at every boundary so the cap holds even when the event loop
 		// was busy for longer than the remaining time.
@@ -138,9 +145,10 @@ export function installRunBudget(
 
 	const turnsSpent = () => turnsAllowed !== undefined && (turnsLeft ?? 1) <= 0;
 	const inputSpent = () => inputAllowed !== undefined && inputAllowed <= 0;
+	const costSpent = () => costAllowed !== undefined && costSeen >= costAllowed;
 	return {
-		spent: () => turnsSpent() || inputSpent() || timedOut || stalled,
-		fired: () => turnsSpent() || inputSpent() || timedOut || stalled,
+		spent: () => turnsSpent() || inputSpent() || costSpent() || timedOut || stalled,
+		fired: () => turnsSpent() || inputSpent() || costSpent() || timedOut || stalled,
 		whenFired: () => firedOnce,
 		windDown: (cb) => {
 			onWindDown = cb;
@@ -165,6 +173,15 @@ export function installRunBudget(
 			} else if (budget?.maxInputTokens && inputSeen === 0 && completed > 0) {
 				parts.push(
 					`input budget ${budget.maxInputTokens} idle: the provider reported no usage in ${completed} turn${completed === 1 ? "" : "s"}.`,
+				);
+			}
+			if (costSpent() && costAllowed !== undefined) {
+				parts.push(
+					`cost budget $${costAllowed} reached: run stopped after $${costSeen.toFixed(4)}.`,
+				);
+			} else if (costAllowed !== undefined && costSeen === 0 && completed > 0) {
+				parts.push(
+					`cost budget $${costAllowed} idle: the provider reported no cost in ${completed} turn${completed === 1 ? "" : "s"}.`,
 				);
 			}
 			return parts.length > 0 ? parts.join(" ") : null;

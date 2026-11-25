@@ -11,6 +11,7 @@ import {
 	providerFailure,
 	snapshotHistory,
 	sumUsage,
+	usageEnd,
 } from "../../domain/run/index.ts";
 import type { ChildDeps } from "../run/index.ts";
 import { withGateJournal } from "../guards/index.ts";
@@ -179,6 +180,8 @@ export function runChain(
 					stop({
 						status: "done",
 						reportChars: text.length,
+						promptChars: step.prompt.length,
+						...usageEnd(rec.result?.usage),
 						model: activeModelId(child.session),
 						notes: [...child.notes],
 					});
@@ -192,7 +195,12 @@ export function runChain(
 						live.unregister();
 						throw new RunStopped(live.why());
 					}
-					stop({ status: "error", error: err instanceof Error ? err.message : String(err) });
+					stop({
+						status: "error",
+						error: err instanceof Error ? err.message : String(err),
+						promptChars: step.prompt.length,
+						...usageEnd(rec.result?.usage),
+					});
 					throw err;
 				} finally {
 					gate.open = false;

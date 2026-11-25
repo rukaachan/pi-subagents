@@ -3,31 +3,7 @@
  */
 import { readFileSync, statSync } from "node:fs";
 import { defaultJournalPath } from "./journal-path.ts";
-import type { FailureFamily } from "../../domain/policy/index.ts";
-
-export interface JournalRun {
-	id: string;
-	label: string;
-	kind: string;
-	runId?: string;
-	startedAt: number;
-	endedAt?: number;
-	elapsedSec?: number;
-	/** `interrupted`: a stop request (Esc, reload, quit) ended the run. */
-	status: "running" | "done" | "error" | "interrupted";
-	turns: number;
-	tool?: string;
-	reportChars?: number;
-	model?: string;
-	notes?: string[];
-	error?: string;
-	failure?: FailureFamily;
-	compactions?: number;
-	gapMaxSec?: number;
-	gapOver60?: number;
-	recent?: { tool: string; detail?: string }[];
-	stale?: boolean;
-}
+import type { JournalRun } from "./journal-run.ts";
 
 export const STALE_AFTER_MS = 15 * 60 * 1000;
 
@@ -221,6 +197,10 @@ export function foldJournal(lines: string[]): JournalRun[] {
 					if (typeof ev.elapsedSec === "number") run.elapsedSec = ev.elapsedSec;
 					if (typeof ev.turns === "number") run.turns = ev.turns;
 					if (typeof ev.reportChars === "number") run.reportChars = ev.reportChars;
+					if (typeof ev.promptChars === "number") run.promptChars = ev.promptChars;
+					if (typeof ev.inputTokens === "number") run.inputTokens = ev.inputTokens;
+					if (typeof ev.outputTokens === "number") run.outputTokens = ev.outputTokens;
+					if (typeof ev.cost === "number") run.cost = ev.cost;
 					if (typeof ev.model === "string") run.model = ev.model;
 					if (Array.isArray(ev.notes)) run.notes = ev.notes.map(String);
 					if (typeof ev.error === "string") run.error = ev.error;

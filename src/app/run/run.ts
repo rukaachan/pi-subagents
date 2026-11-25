@@ -22,6 +22,7 @@ import {
 	recordFailure,
 	snapshotHistory,
 	sumUsage,
+	usageEnd,
 } from "../../domain/run/index.ts";
 import type { ChildDeps } from "./child-port.ts";
 import { withGateJournal } from "../guards/index.ts";
@@ -126,6 +127,8 @@ export async function runSubagent(
 		stop?.({
 			status: "done",
 			reportChars: result.text.length,
+			promptChars: task.length,
+			...usageEnd(result.usage),
 			model: result.model,
 			notes: result.notes,
 		});
@@ -156,7 +159,7 @@ export async function runSubagent(
 				: String(why);
 		ledger.finish(sub.name, "error");
 		sweepMemberTasks(teamKey, false, Date.now(), message);
-		stop?.({ status: "error", error: message });
+		stop?.({ status: "error", error: message, promptChars: task.length });
 		throw why;
 	} finally {
 		gate.open = false;

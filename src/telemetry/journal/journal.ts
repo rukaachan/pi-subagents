@@ -8,13 +8,8 @@ import type { JournalPort } from "./port.ts";
 export { JOURNAL_MAX_BYTES, type JournalEvent, defaultJournalPath } from "./journal-path.ts";
 export { fileJournal } from "./file.ts";
 export type { JournalPort } from "./port.ts";
-export {
-	STALE_AFTER_MS,
-	findJournalRun,
-	foldJournal,
-	foldJournalFile,
-	type JournalRun,
-} from "./journal-fold.ts";
+export { STALE_AFTER_MS, findJournalRun, foldJournal, foldJournalFile } from "./journal-fold.ts";
+export type { JournalRun } from "./journal-run.ts";
 
 let sink: JournalPort = fileJournal;
 

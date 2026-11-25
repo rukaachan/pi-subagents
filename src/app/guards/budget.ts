@@ -13,6 +13,16 @@ export function turnInputTokens(event: { type: string }): number | undefined {
 	return total > 0 ? total : undefined;
 }
 
+export function turnCost(event: { type: string }): number | undefined {
+	const cost = (
+		event as {
+			message?: { usage?: { cost?: number | { total?: number } } };
+		}
+	).message?.usage?.cost;
+	const total = typeof cost === "number" ? cost : cost?.total;
+	return typeof total === "number" && Number.isFinite(total) && total > 0 ? total : undefined;
+}
+
 export interface BudgetClock {
 	now(): number;
 	schedule(fn: () => void, ms: number): () => void;

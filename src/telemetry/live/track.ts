@@ -166,6 +166,10 @@ export function trackSession(
 				turns,
 				elapsedSec: Math.max(0, Math.round((Date.now() - startedAt) / 1000)),
 				...(final?.reportChars !== undefined ? { reportChars: final.reportChars } : {}),
+				...(final?.promptChars !== undefined ? { promptChars: final.promptChars } : {}),
+				...(final?.inputTokens !== undefined ? { inputTokens: final.inputTokens } : {}),
+				...(final?.outputTokens !== undefined ? { outputTokens: final.outputTokens } : {}),
+				...(final?.cost !== undefined ? { cost: final.cost } : {}),
 				...(final?.model ? { model: final.model } : {}),
 				...(final?.error ? { error: final.error } : {}),
 				...(final?.notes && final.notes.length > 0 ? { notes: final.notes } : {}),
@@ -197,6 +201,10 @@ export interface RunEndInfo {
 	/** `interrupted`: a stop request (Esc, reload, quit) killed the run. */
 	status: "done" | "error" | "interrupted";
 	reportChars?: number;
+	promptChars?: number;
+	inputTokens?: number;
+	outputTokens?: number;
+	cost?: number;
 	model?: string;
 	error?: string;
 	notes?: string[];

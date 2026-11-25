@@ -50,6 +50,8 @@ export interface SubagentBudget {
 	maxTurns?: number;
 	// Stop the run once summed input tokens pass this line.
 	maxInputTokens?: number;
+	// Stop the run once summed provider cost passes this line, in the provider currency.
+	maxCost?: number;
 	timeoutSec?: number;
 	maxReportChars?: number;
 }

@@ -72,6 +72,11 @@ export const taskParameters = Type.Object({
 							"Stop once summed prompt tokens (cached reads included) pass this line. 0 = off.",
 					}),
 				),
+				maxCost: Type.Optional(
+					Type.Number({
+						description: "Stop once the provider-reported cost passes this line. 0 = off.",
+					}),
+				),
 				maxReportChars: Type.Optional(
 					Type.Integer({ description: "Cut the returned report at this many characters" }),
 				),
@@ -119,6 +124,9 @@ export const taskParameters = Type.Object({
 							),
 							maxInputTokens: Type.Optional(
 								Type.Integer({ description: "Stop once summed input tokens pass this line" }),
+							),
+							maxCost: Type.Optional(
+								Type.Number({ description: "Stop once provider-reported cost passes this line" }),
 							),
 							maxReportChars: Type.Optional(
 								Type.Integer({ description: "Cut the returned report at this many characters" }),

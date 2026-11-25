@@ -56,6 +56,10 @@ export type JournalEvent =
 			turns: number;
 			elapsedSec: number;
 			reportChars?: number;
+			promptChars?: number;
+			inputTokens?: number;
+			outputTokens?: number;
+			cost?: number;
 			model?: string;
 			error?: string;
 			notes?: string[];

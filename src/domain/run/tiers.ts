@@ -73,6 +73,7 @@ export function overrideNote(o: RunOverrides): string {
 		const parts = [
 			b.maxTurns ? `${b.maxTurns} turns` : null,
 			b.maxInputTokens ? `${b.maxInputTokens} in-tok` : null,
+			b.maxCost ? `$${b.maxCost} cost` : null,
 			b.timeoutSec ? `${b.timeoutSec}s timeout` : null,
 			b.maxReportChars ? `${b.maxReportChars} chars` : null,
 		].filter((x): x is string => x !== null);
