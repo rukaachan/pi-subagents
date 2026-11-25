@@ -81,15 +81,15 @@ Coverage percentages are not the gate; one real-host path per driver is.
 `npm run coverage` prints the numbers, and the e2e child process is not
 merged into them, so this table is the claim that matters:
 
-| driver                                            | real proof                                                               |
-| ------------------------------------------------- | ------------------------------------------------------------------------ |
-| `src/app/run/run.ts` foreground                   | `tools/live-smoke.mts` (real provider), `tools/e2e/chain.test.ts` abort  |
-| `src/app/run/background.ts` + `background-attempt.ts` | `tools/e2e/recovery.test.ts` stop-then-resume, live smoke task       |
-| `src/app/run/background-resume.ts`                | `tools/e2e/recovery.test.ts` resume, live smoke resume                   |
-| `src/app/chain/chain.ts`                          | `tools/e2e/chain.test.ts` chain, `tools/e2e/recovery.test.ts` chain stop |
-| `src/app/chain/fanout.ts`                         | `tools/e2e/chain.test.ts` two parallel legs                              |
-| `src/app/team/run/team-launch.ts`                 | `tools/e2e/team-launch.test.ts`, live smoke team start                   |
-| `src/app/team/board/team-run.ts`                  | `tools/e2e/team.test.ts` claim, complete, reload                         |
+| driver                                                | real proof                                                               |
+| ----------------------------------------------------- | ------------------------------------------------------------------------ |
+| `src/app/run/run.ts` foreground                       | `tools/live-smoke.mts` (real provider), `tools/e2e/chain.test.ts` abort  |
+| `src/app/run/background.ts` + `background-attempt.ts` | `tools/e2e/recovery.test.ts` stop-then-resume, live smoke task           |
+| `src/app/run/background-resume.ts`                    | `tools/e2e/recovery.test.ts` resume, live smoke resume                   |
+| `src/app/chain/chain.ts`                              | `tools/e2e/chain.test.ts` chain, `tools/e2e/recovery.test.ts` chain stop |
+| `src/app/chain/fanout.ts`                             | `tools/e2e/chain.test.ts` two parallel legs                              |
+| `src/app/team/run/team-launch.ts`                     | `tools/e2e/team-launch.test.ts`, live smoke team start                   |
+| `src/app/team/board/team-run.ts`                      | `tools/e2e/team.test.ts` claim, complete, reload                         |
 
 Retry has its own proof: `tools/e2e/retry.test.ts` runs a real Pi process
 against a fake provider that answers 429 once and asserts the `retry`

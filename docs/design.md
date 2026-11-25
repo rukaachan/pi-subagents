@@ -95,15 +95,15 @@ result looks had to be read past chain scheduling. Then `src/` itself was
 one flat folder of 20 files, and the biggest of them was 646 lines.
 Both were split, with no logic change:
 
-| folder                | owns                                |
-| --------------------- | ----------------------------------- |
+| folder                | owns                                     |
+| --------------------- | ---------------------------------------- |
 | `extensions/index.ts` | wiring only: one runtime + registrations |
-| `src/app/`            | use-cases, ports, one runtime       |
-| `src/domain/`         | rules, vocabulary, tool contracts   |
-| `src/infra/`          | disk and host adapters              |
-| `src/telemetry/`      | journal, live progress, notify      |
-| `src/ui/`             | commands, menu, views               |
-| `src/tools/`          | tool factories                      |
+| `src/app/`            | use-cases, ports, one runtime            |
+| `src/domain/`         | rules, vocabulary, tool contracts        |
+| `src/infra/`          | disk and host adapters                   |
+| `src/telemetry/`      | journal, live progress, notify           |
+| `src/ui/`             | commands, menu, views                    |
+| `src/tools/`          | tool factories                           |
 
 `runChainTask` and `runParallelTask` take `ChildDeps`, the child-session
 port, and the composition root in `src/app/runtime.ts` owns the store,
@@ -136,13 +136,13 @@ name-based import is ever added, the map should expose only the entry
 
 ### Architecture decisions (v0.16)
 
-| decision | why | proof |
-| --- | --- | --- |
-| Bounded contexts: at most seven sources per folder, every folder has an `index.ts`, and a cross-folder import uses that entry | A folder a reader can hold in one screen has one job; the entry is the only public surface, so a move cannot leak a private file. | `tests/architecture.test.ts` |
-| Four ports: `TaskStorePort`, `StatePort`, `ChildSessionPort`, `JournalPort` | `domain`, `app`, `infra`, and `telemetry` point inward. `TaskStore` implements the store port; `fileState`, `hostChild`, and `fileJournal` are the adapters. | `tests/architecture.test.ts`, `tests/journal-port.test.ts` |
-| One composition root: `createSessionRuntime({ child, state })` | The global `store` is gone. Drivers take `ChildDeps`; tools and commands are factories over the runtime, so each test builds its own. | `tests/session-state.test.ts`, the tool tests |
-| Swappable journal sink: `setJournal(port)`; `fileJournal` is the default | Tests record events without a file; the entry installs the file adapter once. The file rotates at 2 MB (`JOURNAL_MAX_BYTES`), and the fold reads the last 20,000 lines. | `tests/journal-port.test.ts`, e2e journal assertions |
-| Delegation economics: optional `run_end` fields, `report:handoff`, `maxCost` | Prompt and usage are measured where the driver has them; a missing value stays `n/a` instead of a fake zero. `maxCost` is opt-in and honest when the provider reports 0. | `tests/handoff-report.test.ts`, `tests/budget-cost.test.ts` |
+| decision                                                                                                                      | why                                                                                                                                                                      | proof                                                       |
+| ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| Bounded contexts: at most seven sources per folder, every folder has an `index.ts`, and a cross-folder import uses that entry | A folder a reader can hold in one screen has one job; the entry is the only public surface, so a move cannot leak a private file.                                        | `tests/architecture.test.ts`                                |
+| Four ports: `TaskStorePort`, `StatePort`, `ChildSessionPort`, `JournalPort`                                                   | `domain`, `app`, `infra`, and `telemetry` point inward. `TaskStore` implements the store port; `fileState`, `hostChild`, and `fileJournal` are the adapters.             | `tests/architecture.test.ts`, `tests/journal-port.test.ts`  |
+| One composition root: `createSessionRuntime({ child, state })`                                                                | The global `store` is gone. Drivers take `ChildDeps`; tools and commands are factories over the runtime, so each test builds its own.                                    | `tests/session-state.test.ts`, the tool tests               |
+| Swappable journal sink: `setJournal(port)`; `fileJournal` is the default                                                      | Tests record events without a file; the entry installs the file adapter once. The file rotates at 2 MB (`JOURNAL_MAX_BYTES`), and the fold reads the last 20,000 lines.  | `tests/journal-port.test.ts`, e2e journal assertions        |
+| Delegation economics: optional `run_end` fields, `report:handoff`, `maxCost`                                                  | Prompt and usage are measured where the driver has them; a missing value stays `n/a` instead of a fake zero. `maxCost` is opt-in and honest when the provider reports 0. | `tests/handoff-report.test.ts`, `tests/budget-cost.test.ts` |
 
 ## Mission control (v0.14)
 
