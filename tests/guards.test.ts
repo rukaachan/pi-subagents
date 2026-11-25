@@ -3,7 +3,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { installRunBudget } from "../src/app/guards/install.ts";
+import { installRunBudget } from "../src/app/guards/index.ts";
 import { DEFAULT_TIMEOUT_SEC, effectiveBudget, parseBudget } from "../src/domain/subagent/index.ts";
 import { applyRunOverrides } from "../src/domain/run/index.ts";
 

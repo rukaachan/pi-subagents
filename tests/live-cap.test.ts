@@ -9,7 +9,7 @@ import {
 	parseLiveCap,
 	readGlobalConfig,
 	withGlobalConfig,
-} from "../src/app/global-config.ts";
+} from "../src/app/session/index.ts";
 import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 import { TaskStore } from "../src/domain/task/index.ts";
 

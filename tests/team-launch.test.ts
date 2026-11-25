@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { beginTeamSession, teamEnabled } from "../src/app/team-store.ts";
-import { startTeamLaunch } from "../src/app/team-launch.ts";
+import { beginTeamSession, teamEnabled } from "../src/app/team/board/index.ts";
+import { startTeamLaunch } from "../src/app/team/run/index.ts";
 import { MAX_TEAM_MEMBERS } from "../src/domain/team/index.ts";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 

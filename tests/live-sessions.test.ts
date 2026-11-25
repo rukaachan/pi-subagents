@@ -3,7 +3,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { liveSession, liveSessionCount, registerLiveSession } from "../src/app/live-sessions.ts";
+import { liveSession, liveSessionCount, registerLiveSession } from "../src/app/live/index.ts";
 
 describe("live sessions", () => {
 	it("finds a registered session until it is dropped", () => {

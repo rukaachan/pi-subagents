@@ -3,7 +3,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { inTaskScope, scopeTasks } from "../src/app/task-scope.ts";
+import { inTaskScope, scopeTasks } from "../src/app/session/index.ts";
 import { rec } from "./board-fixtures.ts";
 
 const scope = { cwd: "/repo", sessionId: "s1" };

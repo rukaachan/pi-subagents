@@ -6,7 +6,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { performance } from "node:perf_hooks";
-import { readGlobalConfig } from "../src/app/global-config.ts";
+import { readGlobalConfig } from "../src/app/session/index.ts";
 import { finishPayload, runFinishHook } from "../src/telemetry/notify/index.ts";
 import { journalWrite } from "../src/telemetry/journal/index.ts";
 import { FooterProgress } from "../src/telemetry/live/index.ts";

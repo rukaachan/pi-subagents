@@ -2,7 +2,7 @@
  * pi-subagents: delegate, finish, and team run reports.
  */
 
-import type { LaunchLeg, LaunchRun } from "../../app/launch.ts";
+import type { LaunchLeg, LaunchRun } from "../../app/launch/index.ts";
 import type { TaskRecord } from "../../domain/task/index.ts";
 import type { ReportQuery } from "../../domain/policy/index.ts";
 import { footerProgress } from "../../telemetry/live/index.ts";

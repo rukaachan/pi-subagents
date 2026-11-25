@@ -4,7 +4,7 @@
 
 import { copyToClipboard, type ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { pickFromList } from "../picker.ts";
-import { inModal } from "../../app/modal-depth.ts";
+import { inModal } from "../../app/stop/index.ts";
 import { taskRowItems } from "./items.ts";
 import { chainStrip } from "../view/rows.ts";
 import { taskStatusIcon } from "../view/format.ts";
@@ -18,7 +18,7 @@ import { activityLine, activityRows } from "../../telemetry/live/index.ts";
 import { ROUTE } from "./constants.ts";
 import type { TaskRecord } from "../../domain/task/index.ts";
 import { TaskStore } from "../../domain/task/index.ts";
-import { scopeTasks } from "../../app/task-scope.ts";
+import { scopeTasks } from "../../app/session/index.ts";
 import type { ActivityStep } from "../../domain/run/index.ts";
 import type { LiveRunInfo } from "../view/detail.ts";
 
@@ -139,7 +139,7 @@ export async function showTaskDetail(
 		if (next !== "Resume with follow-up") return;
 		const follow = await inModal(() => ctx.ui.input(`Follow-up for ${rec.subagentName}`, ""));
 		if (!follow) return;
-		const { resumeTask } = await import("../../app/background.ts");
+		const { resumeTask } = await import("../../app/run/background.ts");
 		const r = await resumeTask(store, rec.taskId, rec.subagentName, follow, ctx);
 		if ("error" in r) ctx.ui.notify(r.error, "error");
 		else ctx.ui.notify(`Resumed as ${r.taskId}.`, "info");

@@ -4,12 +4,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { readFileSync } from "node:fs";
-import { RemovedIds, removedTaskMessage, unknownTaskMessage } from "../src/app/removed-ids.ts";
+import { RemovedIds, removedTaskMessage, unknownTaskMessage } from "../src/app/stop/index.ts";
 import { TaskStore } from "../src/domain/task/index.ts";
-import { InMemoryLedger } from "../src/app/ledger.ts";
+import { InMemoryLedger } from "../src/app/session/index.ts";
 import type { TaskRecord } from "../src/domain/task/index.ts";
 import { stoppedRowNote } from "../src/domain/task/index.ts";
-import { stoppedSummary } from "../src/app/stop-all.ts";
+import { stoppedSummary } from "../src/app/stop/index.ts";
 
 function row(taskId: string, status: TaskRecord["status"] = "running"): TaskRecord {
 	return {

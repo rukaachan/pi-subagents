@@ -8,7 +8,7 @@ import {
 	joinTeam,
 	teamApi,
 	updateTask,
-} from "../src/app/team-store.ts";
+} from "../src/app/team/board/index.ts";
 import { createTeamTool } from "../src/infra/team/tools/index.ts";
 
 function call(

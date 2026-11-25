@@ -4,7 +4,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { type SubagentConfig } from "../src/domain/subagent/index.ts";
-import { installRunBudget } from "../src/app/guards/install.ts";
+import { installRunBudget } from "../src/app/guards/index.ts";
 
 describe("stall watchdog: silence is the failure, not slowness", () => {
 	type Listener = (event: { type: string }) => void;

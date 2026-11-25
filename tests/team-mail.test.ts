@@ -7,7 +7,7 @@ import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 import type { TaskRecord } from "../src/domain/task/index.ts";
 import { newRecord } from "../src/domain/task/index.ts";
 import { TaskStore } from "../src/domain/task/index.ts";
-import { beginTeamSession, enableTeam, joinTeam } from "../src/app/team-store.ts";
+import { beginTeamSession, enableTeam, joinTeam } from "../src/app/team/board/index.ts";
 import {
 	bindTeamMail,
 	bindTeamMember,
@@ -15,7 +15,7 @@ import {
 	sendTeamMessage,
 	setLeadInbox,
 	waitForMember,
-} from "../src/app/team-mail.ts";
+} from "../src/app/team/channel/index.ts";
 
 const sub: SubagentConfig = {
 	name: "worker",

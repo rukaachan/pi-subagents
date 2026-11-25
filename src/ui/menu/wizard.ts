@@ -15,7 +15,7 @@ import {
 } from "../../infra/files/index.ts";
 import { pickChoice, pickFromList } from "../picker.ts";
 import { pickModel, pickTools } from "./wizard-fields.ts";
-import { inModal } from "../../app/modal-depth.ts";
+import { inModal } from "../../app/stop/index.ts";
 import { shortPath, shortText, stepTitle } from "../view/format.ts";
 
 export async function runCreateWizard(

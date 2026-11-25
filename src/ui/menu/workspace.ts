@@ -3,9 +3,9 @@
  */
 
 import { copyToClipboard, type ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import { inModal } from "../../app/modal-depth.ts";
-import { liveSession } from "../../app/live-sessions.ts";
-import { liveMember } from "../../app/team-mail.ts";
+import { inModal } from "../../app/stop/index.ts";
+import { liveSession } from "../../app/live/index.ts";
+import { liveMember } from "../../app/team/channel/index.ts";
 import { MAX_TEAM_TASKS } from "../../domain/team/index.ts";
 import {
 	disableTeam,
@@ -13,11 +13,11 @@ import {
 	taskList,
 	teamEnabled,
 	teamSummary,
-} from "../../app/team-store.ts";
-import { retryTask, steerTask, stopTaskById } from "../../app/task-actions.ts";
-import { linkedRun } from "../../app/team-run.ts";
-import { startFinish } from "../../app/finish.ts";
-import { scopeTasks, type TaskScope } from "../../app/task-scope.ts";
+} from "../../app/team/board/index.ts";
+import { retryTask, steerTask, stopTaskById } from "../../app/run/index.ts";
+import { linkedRun } from "../../app/team/board/index.ts";
+import { startFinish } from "../../app/launch/index.ts";
+import { scopeTasks, type TaskScope } from "../../app/session/index.ts";
 import type { TaskStore } from "../../domain/task/index.ts";
 import { buildBoard, type BoardRow } from "../view/board-model.ts";
 import { taskRow } from "../view/rows.ts";

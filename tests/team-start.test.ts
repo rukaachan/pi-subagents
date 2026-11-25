@@ -1,6 +1,6 @@
 import { beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { beginTeamSession, enableTeam, teamApi, teamEnabled } from "../src/app/team-store.ts";
+import { beginTeamSession, enableTeam, teamApi, teamEnabled } from "../src/app/team/board/index.ts";
 import { createTeamTool } from "../src/infra/team/tools/index.ts";
 
 function call(

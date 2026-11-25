@@ -7,7 +7,7 @@ import type { SubagentConfig } from "../../domain/subagent/index.ts";
 import type { EditableField } from "../../infra/files/index.ts";
 import { FIELD_CHOICES } from "../../infra/files/index.ts";
 import { pickChoice, pickFromList } from "../picker.ts";
-import { inModal } from "../../app/modal-depth.ts";
+import { inModal } from "../../app/stop/index.ts";
 import { modelRow } from "../view/format.ts";
 
 export function currentFieldValue(sub: SubagentConfig, field: EditableField): string {

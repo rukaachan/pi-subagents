@@ -1,6 +1,6 @@
 import { beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { beginTeamSession, createTask, enableTeam, taskList } from "../src/app/team-store.ts";
+import { beginTeamSession, createTask, enableTeam, taskList } from "../src/app/team/board/index.ts";
 import { MAX_TEAM_TASKS } from "../src/domain/team/index.ts";
 
 beforeEach(() => {

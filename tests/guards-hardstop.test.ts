@@ -3,8 +3,8 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { abandonedNote, installRunBudget } from "../src/app/guards/install.ts";
-import { awaitWithHardStop } from "../src/app/guards/stop.ts";
+import { abandonedNote, installRunBudget } from "../src/app/guards/index.ts";
+import { awaitWithHardStop } from "../src/app/guards/index.ts";
 
 const noop = (): void => undefined;
 type Deferred = { promise: Promise<void>; fire: () => void };

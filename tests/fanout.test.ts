@@ -29,7 +29,7 @@ describe("fan-out admission (closing silent leg loss)", () => {
 		// The fan-out driver lives in src/app/fanout.ts; the invariant follows it.
 		const text = await (
 			await import("node:fs/promises")
-		).readFile(new URL("../src/app/fanout.ts", import.meta.url), "utf8");
+		).readFile(new URL("../src/app/chain/fanout.ts", import.meta.url), "utf8");
 		assert.doesNotMatch(text, /\(queued, cap/, "the fake queued id is gone");
 		assert.match(text, /notStarted\.push/, "non-started legs are named, not faked");
 		assert.match(text, /fanoutAdmission\(names\.length/, "the cap check runs before any launch");

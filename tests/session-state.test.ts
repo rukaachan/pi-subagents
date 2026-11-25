@@ -6,8 +6,8 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { beginSession, store, stopPersistence } from "../src/app/live-store.ts";
-import { archivedTask } from "../src/app/persist.ts";
+import { beginSession, store, stopPersistence } from "../src/app/session/index.ts";
+import { archivedTask } from "../src/app/session/index.ts";
 import { rec } from "./board-fixtures.ts";
 
 const home = process.env.HOME;

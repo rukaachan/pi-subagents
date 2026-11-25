@@ -1,7 +1,7 @@
 import { beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { beginTeamSession, createTask, linkRun } from "../src/app/team-store.ts";
-import { linkedRun } from "../src/app/team-run.ts";
+import { beginTeamSession, createTask, linkRun } from "../src/app/team/board/index.ts";
+import { linkedRun } from "../src/app/team/board/index.ts";
 import { TaskStore } from "../src/domain/task/index.ts";
 import { rec } from "./board-fixtures.ts";
 

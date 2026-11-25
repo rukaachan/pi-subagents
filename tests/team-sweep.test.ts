@@ -7,8 +7,8 @@ import {
 	joinTeam,
 	taskList,
 	updateTask,
-} from "../src/app/team-store.ts";
-import { releaseOrphanedTasks, sweepMemberTasks } from "../src/app/team-sweep.ts";
+} from "../src/app/team/board/index.ts";
+import { releaseOrphanedTasks, sweepMemberTasks } from "../src/app/team/board/index.ts";
 
 function claimed(): void {
 	enableTeam();

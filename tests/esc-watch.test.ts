@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { readFileSync } from "node:fs";
 import { matchesKey } from "@earendil-works/pi-tui";
-import { watchEscapeKey } from "../src/app/esc-watch.ts";
+import { watchEscapeKey } from "../src/app/stop/index.ts";
 
 /** The host's own UI port, cut down to what the watcher touches. */
 function fakeUI() {

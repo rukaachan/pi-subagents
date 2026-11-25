@@ -6,7 +6,7 @@ import {
 	getTask,
 	linkRun,
 	updateTask,
-} from "../src/app/team-store.ts";
+} from "../src/app/team/board/index.ts";
 import { MAX_TEAM_RESULT } from "../src/domain/team/index.ts";
 import { decodeTeam } from "../src/infra/state/index.ts";
 

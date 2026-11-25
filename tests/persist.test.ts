@@ -16,8 +16,8 @@ import {
 	STATE_VERSION,
 	type PersistedState,
 } from "../src/infra/state/index.ts";
-import { restoreInto, serializeState } from "../src/app/persist.ts";
-import { InMemoryLedger } from "../src/app/ledger.ts";
+import { restoreInto, serializeState } from "../src/app/session/index.ts";
+import { InMemoryLedger } from "../src/app/session/index.ts";
 import { TaskStore } from "../src/domain/task/index.ts";
 import { newTaskId, type TaskRecord } from "../src/domain/task/index.ts";
 import type { SubagentConfig } from "../src/domain/subagent/index.ts";

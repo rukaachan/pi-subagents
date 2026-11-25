@@ -11,7 +11,7 @@ import {
 	parseComplexity,
 	type RunOverrides,
 } from "../../domain/run/index.ts";
-import { parallelNamesFrom } from "../../app/fanout.ts";
+import { parallelNamesFrom } from "../../app/chain/index.ts";
 import type { TaskParams } from "./schema.ts";
 import type { ToolResult } from "./types.ts";
 

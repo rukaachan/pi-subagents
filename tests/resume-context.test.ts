@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { resumeContext, resumePrompt, RESUME_CONTEXT_CHARS } from "../src/app/resume-context.ts";
+import { resumeContext, resumePrompt, RESUME_CONTEXT_CHARS } from "../src/app/retry/index.ts";
 
 function user(text: string) {
 	return { role: "user", content: text };

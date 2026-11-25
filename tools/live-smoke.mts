@@ -9,13 +9,13 @@ import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadSubagentFromContent } from "../src/infra/files/index.ts";
-import { launchBackground, resumeTask } from "../src/app/background.ts";
-import { startTeamLaunch } from "../src/app/team-launch.ts";
-import { steerTask } from "../src/app/task-actions.ts";
-import { liveSession } from "../src/app/live-sessions.ts";
+import { launchBackground, resumeTask } from "../src/app/run/index.ts";
+import { startTeamLaunch } from "../src/app/team/run/index.ts";
+import { steerTask } from "../src/app/run/index.ts";
+import { liveSession } from "../src/app/live/index.ts";
 import { TaskStore } from "../src/domain/task/index.ts";
-import { bindTeamMail, clearTeamMail } from "../src/app/team-mail.ts";
-import { stopAllLiveRuns } from "../src/app/stop-all.ts";
+import { bindTeamMail, clearTeamMail } from "../src/app/team/channel/index.ts";
+import { stopAllLiveRuns } from "../src/app/stop/index.ts";
 
 const modelId = process.env.PI_IT_MODEL?.trim() ?? "";
 if (process.env.PI_IT_LIVE !== "1" || !modelId) {

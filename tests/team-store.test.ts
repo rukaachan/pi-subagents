@@ -15,8 +15,8 @@ import {
 	teamSummary,
 	taskList,
 	updateTask,
-} from "../src/app/team-store.ts";
-import { beginSession, stopPersistence } from "../src/app/live-store.ts";
+} from "../src/app/team/board/index.ts";
+import { beginSession, stopPersistence } from "../src/app/session/index.ts";
 import { createTeamTool } from "../src/infra/team/tools/index.ts";
 
 function call(

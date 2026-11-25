@@ -3,7 +3,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { installRunBudget } from "../src/app/guards/install.ts";
+import { installRunBudget } from "../src/app/guards/index.ts";
 
 describe("installRunBudget: the timeout guards, turn/token caps stay opt-in", () => {
 	type Listener = (event: { type: string; message?: { usage?: Record<string, number> } }) => void;

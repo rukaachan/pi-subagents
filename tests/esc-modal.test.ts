@@ -5,8 +5,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { pickFromList } from "../src/ui/picker.ts";
 import type { PickHost } from "../src/ui/picker-types.ts";
-import { watchEscapeKey } from "../src/app/esc-watch.ts";
-import { inModal, isModalOpen, modalDepth } from "../src/app/modal-depth.ts";
+import { watchEscapeKey } from "../src/app/stop/index.ts";
+import { inModal, isModalOpen, modalDepth } from "../src/app/stop/index.ts";
 
 const ESC = "\x1b";
 

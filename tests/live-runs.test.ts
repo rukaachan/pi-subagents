@@ -9,7 +9,7 @@ import {
 	liveStop,
 	registerLive,
 	stopLiveRuns,
-} from "../src/app/live-runs.ts";
+} from "../src/app/live/index.ts";
 import { RunStopped, isRunStopped, stoppedToolText } from "../src/domain/task/index.ts";
 
 function fakeSession() {

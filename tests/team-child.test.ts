@@ -6,8 +6,8 @@ import {
 	enableTeam,
 	taskList,
 	teamApi,
-} from "../src/app/team-store.ts";
-import { joinTeamChild, teamChildExtras } from "../src/app/team-child.ts";
+} from "../src/app/team/board/index.ts";
+import { joinTeamChild, teamChildExtras } from "../src/app/team/channel/index.ts";
 import { createTeamTool } from "../src/infra/team/tools/index.ts";
 
 beforeEach(() => {

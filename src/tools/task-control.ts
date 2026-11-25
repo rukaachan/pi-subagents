@@ -5,10 +5,10 @@
 import { Type } from "typebox";
 import { defineTool } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
-import { store } from "../app/live-store.ts";
-import { inTaskScope } from "../app/task-scope.ts";
-import { retryTask, steerTask, stopTaskById, type ActionResult } from "../app/task-actions.ts";
-import { unknownTaskMessage } from "../app/removed-ids.ts";
+import { store } from "../app/session/index.ts";
+import { inTaskScope } from "../app/session/index.ts";
+import { retryTask, steerTask, stopTaskById, type ActionResult } from "../app/run/index.ts";
+import { unknownTaskMessage } from "../app/stop/index.ts";
 import { shortText } from "../ui/view/format.ts";
 
 export const taskControlTool = defineTool({

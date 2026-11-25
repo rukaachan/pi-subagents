@@ -20,12 +20,12 @@ Read every file you are given, one by one, and never stop early.
 async function main(): Promise<void> {
 	const pi = await import("@earendil-works/pi-coding-agent");
 	const { loadSubagentFromContent } = await import("../src/infra/files/subagent-files.ts");
-	const { launchBackground } = await import("../src/app/background.ts");
-	const { liveCount, liveLabels } = await import("../src/app/live-runs.ts");
-	const { stopAllLiveRuns } = await import("../src/app/stop-all.ts");
-	const { store } = await import("../src/app/live-store.ts");
-	const { removedIds, unknownTaskMessage } = await import("../src/app/removed-ids.ts");
-	const { ledger } = await import("../src/app/ledger.ts");
+	const { launchBackground } = await import("../src/app/run/background.ts");
+	const { liveCount, liveLabels } = await import("../src/app/live/live-runs.ts");
+	const { stopAllLiveRuns } = await import("../src/app/stop/stop-all.ts");
+	const { store } = await import("../src/app/session/live-store.ts");
+	const { removedIds, unknownTaskMessage } = await import("../src/app/stop/removed-ids.ts");
+	const { ledger } = await import("../src/app/session/ledger.ts");
 	const { foldJournalFile } = await import("../src/telemetry/journal/journal-fold.ts");
 	const { defaultJournalPath } = await import("../src/telemetry/journal/journal-path.ts");
 

@@ -2,7 +2,7 @@
  * pi-subagents: the /subagents finish start notice.
  */
 
-import type { LaunchLeg } from "../../app/launch.ts";
+import type { LaunchLeg } from "../../app/launch/index.ts";
 import type { RosterPick } from "../../domain/subagent/index.ts";
 
 const MAX_ROWS = 8;

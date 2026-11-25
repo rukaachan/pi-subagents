@@ -1,10 +1,10 @@
 import { afterEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { taskControlTool } from "../src/tools/task-control.ts";
-import { store } from "../src/app/live-store.ts";
-import { registerLiveSession } from "../src/app/live-sessions.ts";
-import { registerLive, liveCount } from "../src/app/live-runs.ts";
-import { takeSteers } from "../src/app/steer-queue.ts";
+import { store } from "../src/app/session/index.ts";
+import { registerLiveSession } from "../src/app/live/index.ts";
+import { registerLive, liveCount } from "../src/app/live/index.ts";
+import { takeSteers } from "../src/app/live/index.ts";
 import type { TaskRecord } from "../src/domain/task/index.ts";
 
 const ctx = {

@@ -4,15 +4,15 @@
 
 import type { RunOverrides } from "../domain/run/index.ts";
 import { defineTool } from "@earendil-works/pi-coding-agent";
-import { runChainTask, unknownSubagentResult } from "../app/chain-task.ts";
-import { markKind } from "../app/ledger.ts";
-import { store } from "../app/live-store.ts";
-import { runSubagent } from "../app/run.ts";
+import { runChainTask, unknownSubagentResult } from "../app/chain/index.ts";
+import { markKind } from "../app/session/index.ts";
+import { store } from "../app/session/index.ts";
+import { runSubagent } from "../app/run/index.ts";
 import { newRecord } from "../domain/task/index.ts";
 import { parseBudget } from "../domain/subagent/index.ts";
 import { discoverSubagents } from "../infra/files/index.ts";
 import { withTemps } from "../domain/run/index.ts";
-import { readGlobalConfig, withGlobalConfig } from "../app/global-config.ts";
+import { readGlobalConfig, withGlobalConfig } from "../app/session/index.ts";
 import {
 	applyRunOverrides,
 	overrideNote,

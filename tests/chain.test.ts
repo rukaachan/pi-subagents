@@ -6,7 +6,7 @@ import {
 	stepPrompt,
 	MAX_PRIOR_REPORT,
 	type ChainSpec,
-} from "../src/app/chain.ts";
+} from "../src/app/chain/index.ts";
 import {
 	applyRunOverrides,
 	hasOverrides,

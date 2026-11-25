@@ -10,10 +10,10 @@ import {
 	coldMailSnapshot,
 	MAX_COLD_MESSAGES,
 	sendTeamMessage,
-} from "../src/app/team-mail.ts";
-import { beginTeamSession, joinTeam } from "../src/app/team-store.ts";
-import { restoreInto, serializeState } from "../src/app/persist.ts";
-import { InMemoryLedger } from "../src/app/ledger.ts";
+} from "../src/app/team/channel/index.ts";
+import { beginTeamSession, joinTeam } from "../src/app/team/board/index.ts";
+import { restoreInto, serializeState } from "../src/app/session/index.ts";
+import { InMemoryLedger } from "../src/app/session/index.ts";
 import { TaskStore } from "../src/domain/task/index.ts";
 import { encodeState, saveState } from "../src/infra/state/index.ts";
 

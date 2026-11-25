@@ -9,25 +9,25 @@ import { taskControlTool } from "../src/tools/task-control.ts";
 import { subagentAliasTool } from "../src/tools/subagent-alias.ts";
 import { registerSubagentsCommand } from "../src/ui/command.ts";
 import { registerDelegateCommand } from "../src/ui/delegate-command.ts";
-import { teamEnabled } from "../src/app/team-store.ts";
+import { teamEnabled } from "../src/app/team/board/index.ts";
 import {
 	bindTeamMail,
 	clearTeamMail,
 	setLeadInbox,
 	TEAM_MESSAGE_CUSTOM_TYPE,
-} from "../src/app/team-mail.ts";
+} from "../src/app/team/channel/index.ts";
 import { HYBRID_POLICY } from "../src/domain/policy/index.ts";
-import { TEAM_LEAD_POLICY } from "../src/app/team-policy.ts";
+import { TEAM_LEAD_POLICY } from "../src/app/team/run/index.ts";
 import { teamMessageTool, teamTool } from "../src/tools/team.ts";
-import { beginSession, store, stopPersistence } from "../src/app/live-store.ts";
-import { reportStateError } from "../src/app/persist.ts";
-import { stopAllLiveRuns } from "../src/app/stop-all.ts";
-import { queuedLegCount, stopLaunchSchedulers } from "../src/app/launch.ts";
-import { watchEscapeKey } from "../src/app/esc-watch.ts";
-import { liveCount } from "../src/app/live-runs.ts";
-import { scopeTasks } from "../src/app/task-scope.ts";
+import { beginSession, store, stopPersistence } from "../src/app/session/index.ts";
+import { reportStateError } from "../src/app/session/index.ts";
+import { stopAllLiveRuns } from "../src/app/stop/index.ts";
+import { queuedLegCount, stopLaunchSchedulers } from "../src/app/launch/index.ts";
+import { watchEscapeKey } from "../src/app/stop/index.ts";
+import { liveCount } from "../src/app/live/index.ts";
+import { scopeTasks } from "../src/app/session/index.ts";
 import { applyCodemodeWorkerDefault } from "../src/infra/host/index.ts";
-import { readGlobalConfig } from "../src/app/global-config.ts";
+import { readGlobalConfig } from "../src/app/session/index.ts";
 import { CODEMODE_WORKERS_DEFAULT } from "../src/domain/task/index.ts";
 import { footerProgress } from "../src/telemetry/live/index.ts";
 import {
@@ -37,7 +37,7 @@ import {
 } from "../src/telemetry/notify/index.ts";
 import { registerSettledCard } from "../src/ui/view/settled-card.ts";
 
-export { restoredCount } from "../src/app/live-store.ts";
+export { restoredCount } from "../src/app/session/index.ts";
 
 export default function (pi: ExtensionAPI) {
 	const boot = readGlobalConfig(process.cwd());

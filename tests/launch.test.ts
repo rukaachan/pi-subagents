@@ -11,7 +11,7 @@ import {
 } from "../src/domain/policy/index.ts";
 import { TaskStore } from "../src/domain/task/index.ts";
 import { MAX_LIVE_TASKS, newRecord } from "../src/domain/task/index.ts";
-import { queuedLegCount, startLaunch, stopLaunchSchedulers } from "../src/app/launch.ts";
+import { queuedLegCount, startLaunch, stopLaunchSchedulers } from "../src/app/launch/index.ts";
 import { discoverSubagents } from "../src/infra/files/index.ts";
 import { withTemps } from "../src/domain/run/index.ts";
 import { footerProgress } from "../src/telemetry/live/index.ts";

@@ -12,9 +12,9 @@ import {
 	parseLaunchArgs,
 	rosterFor,
 } from "../domain/policy/index.ts";
-import { latestLaunch, startLaunch, syncLegFailures } from "../app/launch.ts";
+import { latestLaunch, startLaunch, syncLegFailures } from "../app/launch/index.ts";
 import type { TaskStore } from "../domain/task/index.ts";
-import { scopeTasks, type TaskScope } from "../app/task-scope.ts";
+import { scopeTasks, type TaskScope } from "../app/session/index.ts";
 import { openSessionView } from "./view/session-view.ts";
 import { renderRecordsReport, renderRunReport } from "./view/launch-report.ts";
 

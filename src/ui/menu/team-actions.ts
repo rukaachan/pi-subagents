@@ -4,9 +4,9 @@
 
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import type { TeamTaskView, TeamUpdate } from "../../domain/team/index.ts";
-import { inModal } from "../../app/modal-depth.ts";
-import { startTeamLaunch } from "../../app/team-launch.ts";
-import { createTask, getTask, teamMembers, updateTask } from "../../app/team-store.ts";
+import { inModal } from "../../app/stop/index.ts";
+import { startTeamLaunch } from "../../app/team/run/index.ts";
+import { createTask, getTask, teamMembers, updateTask } from "../../app/team/board/index.ts";
 import type { TaskStore } from "../../domain/task/index.ts";
 import { pickFromList } from "../picker.ts";
 import { shortText } from "../view/format.ts";

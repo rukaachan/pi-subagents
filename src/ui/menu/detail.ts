@@ -5,7 +5,7 @@
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import type { SubagentConfig } from "../../domain/subagent/index.ts";
 import type { EditableField } from "../../infra/files/index.ts";
-import { ledger } from "../../app/ledger.ts";
+import { ledger } from "../../app/session/index.ts";
 import { discoverSubagents } from "../../infra/files/index.ts";
 import {
 	BUDGET_EDIT_FIELDS,
@@ -22,7 +22,7 @@ import { currentFieldValue, pickModel, pickTools } from "./wizard-fields.ts";
 import { pickChoice, pickFromList } from "../picker.ts";
 import { subagentDetail } from "../view/detail.ts";
 import { shortPath } from "../view/format.ts";
-import { inModal } from "../../app/modal-depth.ts";
+import { inModal } from "../../app/stop/index.ts";
 
 export async function runEditFlow(
 	ctx: ExtensionCommandContext,

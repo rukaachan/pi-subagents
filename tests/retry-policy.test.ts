@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { RetryPolicy, retryAfterMs, sleepUnlessStopped } from "../src/app/retry-policy.ts";
+import { RetryPolicy, retryAfterMs, sleepUnlessStopped } from "../src/app/retry/index.ts";
 
 function policy(random = 0.5, now = () => 0): RetryPolicy {
 	return new RetryPolicy({ now, random: () => random });
@@ -96,7 +96,7 @@ describe("stop-aware retry sleep", () => {
 	});
 
 	it("settles in a bare process where no other handle keeps the loop alive", () => {
-		const module = fileURLToPath(new URL("../src/app/retry-policy.ts", import.meta.url));
+		const module = fileURLToPath(new URL("../src/app/retry/retry-policy.ts", import.meta.url));
 		const script = `import { sleepUnlessStopped } from "${module}";
 const ok = await sleepUnlessStopped(40, () => false, 10);
 console.log("RESULT", ok);`;

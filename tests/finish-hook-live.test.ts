@@ -22,7 +22,7 @@ describe("a real run fires the finish hook", () => {
 		async () => {
 			const pi = await import("@earendil-works/pi-coding-agent");
 			const { loadSubagentFromContent } = await import("../src/infra/files/subagent-files.ts");
-			const { runSubagent } = await import("../src/app/run.ts");
+			const { runSubagent } = await import("../src/app/run/run.ts");
 
 			const cfg = loadSubagentFromContent(
 				[

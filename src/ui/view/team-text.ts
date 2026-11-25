@@ -2,7 +2,7 @@
  * pi-subagents: the plain-text team board.
  */
 
-import { taskList, teamMembers, teamSummary } from "../../app/team-store.ts";
+import { taskList, teamMembers, teamSummary } from "../../app/team/board/index.ts";
 import { MAX_TEAM_TASKS } from "../../domain/team/index.ts";
 
 export function teamText(): string {

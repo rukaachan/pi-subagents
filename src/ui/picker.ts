@@ -5,7 +5,7 @@
 import type { ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Container, Key, Spacer, Text, matchesKey } from "@earendil-works/pi-tui";
 import { KEY_DOWN, KEY_UP, buildPicker, fitDescriptions, titleBlock } from "./picker-render.ts";
-import { inModal } from "../app/modal-depth.ts";
+import { inModal } from "../app/stop/index.ts";
 import type { PickHost, PickItem, PickOptions } from "./picker-types.ts";
 
 export type { PickHost, PickItem, PickOptions };

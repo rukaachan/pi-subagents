@@ -79,7 +79,7 @@ describe("codemode worker pool", () => {
 		// lives in src/app/fanout.ts; the invariant follows it.
 		const text = await (
 			await import("node:fs/promises")
-		).readFile(new URL("../src/app/fanout.ts", import.meta.url), "utf8");
+		).readFile(new URL("../src/app/chain/fanout.ts", import.meta.url), "utf8");
 		assert.match(
 			text,
 			/codemodeContentionNote\(coders, effectiveCodemodeWorkers\(\)\)/,

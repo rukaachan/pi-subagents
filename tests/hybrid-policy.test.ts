@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { HYBRID_POLICY } from "../src/domain/policy/index.ts";
-import { TEAM_LEAD_POLICY } from "../src/app/team-policy.ts";
+import { TEAM_LEAD_POLICY } from "../src/app/team/run/index.ts";
 import { DELEGATION_RULE } from "../src/tools/task/index.ts";
 
 describe("hybrid policy", () => {

@@ -3,14 +3,14 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { installRunBudget } from "../src/app/guards/install.ts";
-import { annotateFailure } from "../src/app/guards/stop.ts";
+import { installRunBudget } from "../src/app/guards/index.ts";
+import { annotateFailure } from "../src/app/guards/index.ts";
 import {
 	WIND_DOWN_SEC,
 	windDownNote,
 	windDownPrompt,
 	windDownSignal,
-} from "../src/app/guards/wind.ts";
+} from "../src/app/guards/index.ts";
 
 describe("wind-down: ask for a summary before the axe falls", () => {
 	type Listener = (event: { type: string }) => void;

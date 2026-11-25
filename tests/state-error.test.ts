@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { attachPersistence, reportStateError, SAVE_DEBOUNCE_MS } from "../src/app/persist.ts";
-import { InMemoryLedger } from "../src/app/ledger.ts";
+import { attachPersistence, reportStateError, SAVE_DEBOUNCE_MS } from "../src/app/session/index.ts";
+import { InMemoryLedger } from "../src/app/session/index.ts";
 import { TaskStore } from "../src/domain/task/index.ts";
 
 function wait(ms: number): Promise<void> {

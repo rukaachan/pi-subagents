@@ -6,11 +6,11 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { aliasEnabled, readGlobalConfig, withGlobalConfig } from "../src/app/global-config.ts";
+import { aliasEnabled, readGlobalConfig, withGlobalConfig } from "../src/app/session/index.ts";
 import { applyRunOverrides } from "../src/domain/run/index.ts";
 import type { SubagentConfig } from "../src/domain/subagent/index.ts";
 import { subagentAliasTool } from "../src/tools/subagent-alias.ts";
-import { chainConfigs } from "../src/app/chain-task.ts";
+import { chainConfigs } from "../src/app/chain/index.ts";
 
 const sub = (over: Partial<SubagentConfig> = {}): SubagentConfig => ({
 	name: "probe",
@@ -157,9 +157,9 @@ describe("every launch path applies the policy", () => {
 	const root = new URL("..", import.meta.url).pathname;
 	const paths = [
 		"src/tools/task/execute.ts",
-		"src/app/fanout.ts",
-		"src/app/chain-task.ts",
-		"src/app/background-resume.ts",
+		"src/app/chain/fanout.ts",
+		"src/app/chain/chain-task.ts",
+		"src/app/run/background-resume.ts",
 		"src/tools/subagent-alias.ts",
 	];
 	it("reads and applies it, so no path silently keeps the file value", () => {

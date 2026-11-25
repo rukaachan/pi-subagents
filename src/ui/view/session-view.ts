@@ -5,8 +5,8 @@
 import { copyToClipboard, type ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import type { TaskRecord } from "../../domain/task/index.ts";
 import { sumUsage } from "../../domain/run/index.ts";
-import { liveSession } from "../../app/live-sessions.ts";
-import { inModal } from "../../app/modal-depth.ts";
+import { liveSession } from "../../app/live/index.ts";
+import { inModal } from "../../app/stop/index.ts";
 import { formatElapsed, footerProgress } from "../../telemetry/live/index.ts";
 import { transcriptEntries, type TranscriptEntry } from "../../telemetry/live/index.ts";
 import { createSessionView } from "./session-screen.ts";

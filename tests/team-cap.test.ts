@@ -7,7 +7,7 @@ import {
 	joinTeam,
 	teamMembers,
 	updateTask,
-} from "../src/app/team-store.ts";
+} from "../src/app/team/board/index.ts";
 import { MAX_TEAM_MEMBERS } from "../src/domain/team/index.ts";
 
 function seatTeam(): string[] {

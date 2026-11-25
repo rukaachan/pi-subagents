@@ -1,6 +1,6 @@
 import { beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { announceSettle } from "../src/app/settle-notice.ts";
+import { announceSettle } from "../src/app/live/index.ts";
 import { clearNotifySink, setNotifySink } from "../src/telemetry/notify/index.ts";
 import {
 	beginTeamSession,
@@ -9,7 +9,7 @@ import {
 	joinTeam,
 	taskList,
 	updateTask,
-} from "../src/app/team-store.ts";
+} from "../src/app/team/board/index.ts";
 import type { TaskRecord } from "../src/domain/task/index.ts";
 
 function record(over: Partial<TaskRecord> = {}): TaskRecord {
