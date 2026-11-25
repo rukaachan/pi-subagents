@@ -88,8 +88,8 @@ merged into them, so this table is the claim that matters:
 | `src/app/run/background-resume.ts`                    | `tools/e2e/recovery.test.ts` resume, live smoke resume                   |
 | `src/app/chain/chain.ts`                              | `tools/e2e/chain.test.ts` chain, `tools/e2e/recovery.test.ts` chain stop |
 | `src/app/chain/fanout.ts`                             | `tools/e2e/chain.test.ts` two parallel legs                              |
-| `src/app/team/run/team-launch.ts`                     | `tools/e2e/team-launch.test.ts`, live smoke team start                   |
-| `src/app/team/board/team-run.ts`                      | `tools/e2e/team.test.ts` claim, complete, reload                         |
+| `src/app/agent-team/run/agent-team-launch.ts`         | `tools/e2e/agent-team-launch.test.ts`, live smoke agent-team start       |
+| `src/app/agent-team/board/agent-team-run.ts`          | `tools/e2e/agent-team.test.ts` claim, complete, reload                   |
 
 Retry has its own proof: `tools/e2e/retry.test.ts` runs a real Pi process
 against a fake provider that answers 429 once and asserts the `retry`
@@ -124,15 +124,15 @@ cap. A provider that reports `0` leaves the guard idle and the note says
 `cost budget N idle: the provider reported no cost in N turns.`
 `tests/budget-cost.test.ts` covers cost 12 at cap 10 and cost 0 at cap 10.
 
-## Team board state
+## Agent-team board state
 
-The team board is persisted with the rows, in the same per-session
-`s-<hash>.json`: a `team` field with `teamId`, `enabled`, `nextId`,
-tasks, and member names. A team change calls the same store touch as a
+The agent team board is persisted with the rows, in the same per-session
+`s-<hash>.json`: an `agentTeam` field with `agentTeamId`, `enabled`, `nextId`,
+tasks, and member names. An agent team change calls the same store touch as a
 row change, so one debounced writer flushes both. `/reload` restores
 the board before the first prompt; a new Pi session starts empty.
 
-Reading is validated row by row (`src/infra/state-team.ts`): a bad
+Reading is validated row by row (`src/infra/state/state-agent-team.ts`): a bad
 task id, revision, status, or timestamp drops that task, duplicate ids
 drop, text is capped, and `nextId` is raised above the highest surviving
 task so a new id can never collide. The last-attempt fields
@@ -142,7 +142,7 @@ a blocker reference still resolves; a task that still blocks a live task
 cannot be deleted until that dependency is cleared. Caps: 128 live tasks,
 32 members, 2,000-character descriptions, and 20 scopes or blockers per
 task. Idle members are evicted; a 33rd join is refused when all 32 own live
-tasks, and a start takes at most 32 legs. The Team list and TEAM tab show the
+tasks, and a start takes at most 32 legs. The board list and AGENT TEAM tab show the
 whole board, up to 128 tasks.
 
 A member name is tied to the run that created it, so a retried
@@ -163,14 +163,14 @@ with the blocking task id, scope, and owner. Pending and completed tasks
 reserve nothing; a task with no scopes locks nothing. This is a board
 reservation, not a filesystem sandbox: `bash` still writes anywhere.
 
-`Team { action: "resolve" }` is the read-only escape. It is lead-only,
+`AgentTeam { action: "resolve" }` is the read-only escape. It is lead-only,
 takes `task_id`, and returns each blocker's revision, status, owner, and
-reserved scope. `team-store.ts` computes the hits with `scopeConflicts`
-and the tool adds `isLive` from `team-mail.ts`; the result suggests a
+reserved scope. `agent-team-store.ts` computes the hits with `scopeConflicts`
+and the tool adds `isLive` from `agent-team-mail.ts`; the result suggests a
 release when the owner is cold, or a narrower scope when it is live. It
-never mutates, and it works while team mode is off.
+never mutates, and it works while agent team mode is off.
 
-`updateTeamTask` retries once when an intent-only action (claim,
+`updateAgentTeamTask` retries once when an intent-only action (claim,
 release, complete, reopen, reassign, delete) arrives with a stale
 revision; `edit` and `blocked_by` rewrites never retry because they
 carry a whole new value. The result carries `retriedFrom`, and the tool
@@ -180,40 +180,40 @@ The board does not start anyone. Restoring a pending task is history,
 not a queue: no agent wakes because a task exists. The lead delegates
 with `Task`, and the settle card still owns the wake.
 
-`Team { action: "start", prompt, roster? }` is lead-only and always
+`AgentTeam { action: "start", prompt, roster? }` is lead-only and always
 launches. It handles the request before the active gate, validates the
-prompt, then calls `startTeamLaunch` in `src/app/team-launch.ts`. That
-function validates the roster and cap, turns team mode on if it was off,
+prompt, then calls `startAgentTeamLaunch` in `src/app/agent-team/run/agent-team-launch.ts`. That
+function validates the roster and cap, turns agent team mode on if it was off,
 creates one board task per leg (subject, full description, write scopes
 from that subagent's `paths`), builds one child prompt naming the task id,
-and calls `startLaunch(store, "team", names, prompt, ctx, { promptFor })`.
+and calls `startLaunch(store, "agent-team", names, prompt, ctx, { promptFor })`.
 A leg without `paths` is unscoped; the report says parallel edits can
 collide. The existing queue owns the live cap. If task creation fails
 partway, the created tasks are deleted and a board that was off is turned
 back off. A stopped run leaves queued tasks pending; delete them from the
-TEAM tab. A child tool has no `launch` callback and returns a clear error.
-The enable-only path is the UI switch (`/subagents team on`, `t`), which
-calls the store directly without starting workers. The Team schema is
+AGENT TEAM tab. A child tool has no `launch` callback and returns a clear error.
+The enable-only path is the UI switch (`/subagents agent-teams on`, `t`), which
+calls the store directly without starting workers. The AgentTeam schema is
 exercised with the local fake provider in e2e. `npm run smoke:live` is the
 manual real-provider check (`PI_IT_LIVE=1` and `PI_IT_MODEL`); it never runs
 in CI.
 
-## Team tools and messages
+## Agent-AgentTeam tools and messages
 
-`Team` and `TeamMessage` use one flat `Type.Object` each, with
-`StringEnum` actions from `@earendil-works/pi-ai`. The Team action list
+`AgentTeam` and `AgentTeamMessage` use one flat `Type.Object` each, with
+`StringEnum` actions from `@earendil-works/pi-ai`. The AgentTeam action list
 now begins `start`, `status`, `list`, `get`, `resolve`, ... and ends
 `delete`; only `action` is required. `prompt` (required) and `roster`
 (optional) are the fields for `start`. The flat shape avoids a top-level
 `anyOf`; the handler checks the required field for the chosen action.
 This is the provider-safe path, not a per-provider fallback.
 
-`src/app/team-mail.ts` keeps a map of member name to run id and steer
+`src/app/agent-team/channel/agent-team-mail.ts` keeps a map of member name to run id and steer
 function, bound after the child session starts and removed in the run's
 `finally`. `send` steers a live child or calls the lead inbox set in
 `extensions/index.ts`. A known cold member gets a session queue
 (`MAX_COLD_MESSAGES = 8`, `MAX_COLD_CHARS = 8_000`), flushed by
-`bindTeamMember`; a full queue is refused, never silently dropped. The
+`bindAgentTeamMember`; a full queue is refused, never silently dropped. The
 queue is saved with the board (`coldMail`) and restored before the first
 prompt, so `/reload` keeps it; unknown members are dropped. A member that
 never rejoins never reads it.
@@ -225,10 +225,10 @@ Settle, timeout, or error deletes that exact edge. A known cold member
 whose run row is settled still returns its report; a cold row still
 marked running fails with `no live process`. A chain member is bound
 without a run id and `wait` says why. The journal records
-`team_message` with from/to/chars/queued, never the text. Messages are
+`agent_team_message` with from/to/chars/queued, never the text. Messages are
 capped at 2,000 characters.
 
-Every board write also journals one `team_task` line:
+Every board write also journals one `agent_team_task` line:
 `{ action, taskId, revision, actor, ok, error? }`. It never carries the
 subject, description, or result text. A refused compare-and-set records
 the revision the board is on, so a stale `expected_revision` is visible
@@ -250,7 +250,7 @@ with `/mcp`; a child cannot open a browser.
 
 Costs and limits:
 
-- One connection per live leg per server. A 12-leg team with one MCP server
+- One connection per live leg per server. A 12-leg agent team with one MCP server
   opens 12 child connections.
 - `mcp` is refused below `medium`, with `codemode: off`, and with `paths`.
   MCP tools are not path-fenced, and the child's path guard does not inspect

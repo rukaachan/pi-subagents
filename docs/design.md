@@ -15,14 +15,14 @@ pi-subagents/
 │   ├── domain/         # pure rules and vocabulary. no fs, no host calls
 │   │   ├── task/       #   row shape, store port, tool contracts
 │   │   ├── run/        #   usage, report, tiers
-│   │   ├── team/       #   board, mail, scope, sweep
+│   │   ├── agent-team/ #   board, mail, scope, sweep
 │   │   ├── subagent/   #   config, budget, discovery, codemode
-│   │   └── policy/     #   delegation rule, task meta, team policy
+│   │   └── policy/     #   delegation rule, task meta, agent-team policy
 │   ├── infra/          # adapters: disk and host
 │   │   ├── state/      #   state file, validation, fileState
 │   │   ├── host/       #   child sessions, usage, hostChild
 │   │   ├── files/      #   subagent .md files, trash
-│   │   ├── team/       #   tools, message schema/render
+│   │   ├── agent-team/ #   tools, message schema/render
 │   │   └── guard/      #   child gate
 │   ├── telemetry/      # sinks
 │   │   ├── journal/    #   port, file sink, fold, handoff
@@ -37,7 +37,7 @@ pi-subagents/
 │   │   ├── retry/      #   retry policy
 │   │   ├── stop/       #   stop all, stopped rows
 │   │   ├── live/       #   live sessions and runs
-│   │   ├── team/       #   board, channel, run
+│   │   ├── agent-team/ #   board, channel, run
 │   │   └── guards/     #   budget, wind-down, hard stop
 │   ├── ui/             # presentation
 │   │   ├── commands/   #   /subagents, /delegate
@@ -160,16 +160,16 @@ The UI grew without adding a second source of truth: `TaskRecord` and
 - `src/app/task-actions.ts` owns steer, stop, and retry. `TaskControl`
   and the board keys both call it, so a key cannot drift from the tool.
 - v4 keeps one `/subagents` surface: `workspace-screen.ts` inserts the
-  RUNS | TEAM tab line above the existing board renderer, and
-  `team-screen.ts` draws the board rows. `menu/workspace.ts` owns the
-  modal loop; `team-actions.ts` owns create/edit/assign/claim/release/
+  RUNS │ AGENT TEAM tab line above the existing board renderer, and
+  `agent-team-screen.ts` draws the board rows. `menu/workspace.ts` owns the
+  modal loop; `agent-team-actions.ts` owns create/edit/assign/claim/release/
   complete/delete/start/finish. Every mutation re-reads the revision;
   no edit is retried silently.
 - `src/app/hybrid-policy.ts` is injected as
   `systemPromptOptions.sections.pi_subagents_hybrid` on every lead turn.
-  It names the ladder; the model chooses. `Team { action: "start", prompt }`
-  is lead-only and launches one worker per leg; it also turns team mode on.
-  The UI `/subagents team on` is the enable-only path. Team start creates
+  It names the ladder; the model chooses. `AgentTeam { action: "start", prompt }`
+  is lead-only and launches one worker per leg; it also turns agent team mode on.
+  The UI `/subagents agent-teams on` is the enable-only path. AgentTeam start creates
   one board task per leg, seeds its write scopes from that subagent's `paths`,
   and reuses the `startLaunch` queue.
 - Wake on settle is one message, once. `announceSettle` marks
@@ -238,7 +238,7 @@ judgment calls stay recorded so the next reader can dispute them.
 | 2603.18000 AgentFactory                | reject (for now) | Executable subagent accumulation adds a code-generation surface with no repeated-task defect measured.                                                                                                                                                       |
 | 2510.02669 AutoMaAS                    | reject (for now) | Architecture search optimises a roster already capped; no evidence our shape is wrong.                                                                                                                                                                       |
 | Claude SubagentStop / Codex /subagents | adopt            | A finished leg needs a visible signal: the footer keeps `✓`, `✗`, or `⊘` for 8 s, newest three plus `+N`, and an optional `finishHook` command gets one JSON line. User settings or a trusted project only (research/claude-code-hooks.txt).                 |
-| Claude agent teams                     | adapt            | v0.15 kept the parent as messenger; Team v2 adds a bounded peer channel and named wait; Team v3 adds a session cold queue, persisted with the board, and a read-only scope resolver; still no cold resume.                                                   |
+| Claude agent teams                     | adapt            | v0.15 kept the parent as messenger; AgentTeam v2 adds a bounded peer channel and named wait; AgentTeam v3 adds a session cold queue, persisted with the board, and a read-only scope resolver; still no cold resume.                                         |
 | DeepSeek agent teams                   | adapt            | The lead is the root session, not a new agent; teammates are ordinary legs. CAS board, scope reservations, peer messages, named wait, and a read-only conflict resolver. `research/deepseek-agent-teams.md`.                                                 |
 | Codex [agents] live cap                | adopt            | `max_concurrent_threads_per_session` is configurable there; `liveCap` now matches it (1–64, default 12), and the codemode pool follows at load.                                                                                                              |
 
@@ -261,7 +261,7 @@ The second adoption is the finish signal. Old `FooterProgress.finish()`
 deleted the entry, so a finished leg simply vanished and the caller had to
 poll. The footer now keeps a per-leg token for 8 s (`✓` done, `✗` error,
 `⊘` stopped), shows the newest three and `+N`, and clips at 64 columns. A
-six-leg team start capture showed `✓ tester 2s · ⇄ 5 live · …` while the rest
+six-leg agent-team start capture showed `✓ tester 2s · ⇄ 5 live · …` while the rest
 ran, then `✓ planner 3s · ✓ explorer 3s +4`; the count dropped as tokens
 aged out. `finish` is idempotent and the prune timer is unref'd, so a
 finished run never holds the process open (research/claude-code-hooks.txt).
@@ -296,7 +296,7 @@ step attribution is still too weak to trust (2503.13657, 2505.00212).
 The sixth adoption is `liveCap`. The 12-leg ceiling was duplicated in the
 scheduler, the error text, and the codemode default. Settings now accept
 1–64, each run resolves it once, and the codemode pool follows at load.
-A six-leg team start with `liveCap: 2` printed `2 started · 4 queued`, drained
+A six-leg agent-team start with `liveCap: 2` printed `2 started · 4 queued`, drained
 in order, and wrote six hook lines. Nothing here is 100x: the live cap is
 one settings read (0.11–0.12 ms, 4–5 ns after resolution) and the hot path is
 unchanged (paint 0.34 ms, shape 0.40 ms, save 0.03 ms in `bench:layers`).

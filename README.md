@@ -80,15 +80,15 @@ Ask Pi: "Use the subagent `reviewer` on the last commit." The model calls
 `Task` with `subagent_type`, `description`, and `prompt`.
 
 ```text
-/subagents          # mission control: RUNS and TEAM tabs
+/subagents          # mission control: RUNS and AGENT TEAM tabs
 /subagents list     # files
 /subagents new      # create one (10-step wizard)
 /subagents tasks    # live and done runs
 /subagents trash    # restore a deleted file
-/subagents team     # open the TEAM tab
-/subagents team on  # let new Task legs join the shared board
-/subagents team off # stop new joins; keep the board
-/subagents team <prompt> [@a,@b]  # one task and one worker per leg
+/subagents agent-teams     # open the AGENT TEAM tab
+/subagents agent-teams on  # let new Task legs join the shared board
+/subagents agent-teams off # stop new joins; keep the board
+/subagents agent-teams <prompt> [@a,@b]  # one task and one worker per leg
 /subagents finish <prompt> [@a,@b] # smallest matched roster (max 4)
 /delegate <prompt>  # one prompt on explorer + worker
 /delegate reports   # compact status of the latest delegate
@@ -98,14 +98,21 @@ Ask Pi: "Use the subagent `reviewer` on the last commit." The model calls
 ```
 
 The lead follows one ladder: local work, then one `Task`, then
-`/delegate` (or a parallel Task pair), then a team when work is shared or
-has blockers. `Team { action: "start", prompt }` creates one board task
+`/delegate` (or a parallel Task pair), then an agent team when work is shared or
+has blockers. `AgentTeam { action: "start", prompt }` creates one board task
 and one worker per leg for broad independent fan-out. The policy is a
 prompt, not a hidden router.
 
-Migration: `/team` → `/subagents team` (or the TEAM tab);
+Migration: `/team` → `/subagents agent-teams` (or the AGENT TEAM tab);
 `/finish` → `/subagents finish` (or `f`). `/delegate` is unchanged.
-Team fan-out now lives at `/subagents team <prompt>`.
+Agent-team fan-out now lives at `/subagents agent-teams <prompt>`.
+
+Restart Pi after upgrading: the old `Team` tool is now `AgentTeam`, and
+`TeamMessage` is now `AgentTeamMessage`. The command is `/subagents agent-teams`;
+`/subagents team` and `/subagents agent-team` still work as aliases. Run
+`node --experimental-strip-types tools/migrate-agent-team.mts --write` once to
+rename the saved state and journal keys. The default is a dry run, `--verify`
+reports leftovers, and backups stay beside each file.
 
 Open a run's transcript with `/subagents tasks` → **Open session**, or
 `/delegate open <name>` for one delegate leg. Live runs stream the answer as it is
@@ -121,19 +128,19 @@ the transcript with a literal, case-insensitive phrase (`n`/`N` step,
 the header shows `3/12`). While any leg is
 live, `/subagents` opens mission control: queued, running, done and
 failed runs, grouped by run, with `enter` open, `s` steer, `x` stop, `r`
-retry, `c` copy, and `f` finish. `tab` switches to the TEAM tab, where
-`t` toggles team mode, `n` creates, `e` edits, `a` assigns, `c` claims,
-`r` releases, `x` completes, `d` deletes, `s` starts a team, and `o`
+retry, `c` copy, and `f` finish. `tab` switches to the AGENT TEAM tab, where
+`t` toggles agent team mode, `n` creates, `e` edits, `a` assigns, `c` claims,
+`r` releases, `x` completes, `d` deletes, `s` starts an agent team, and `o`
 opens the run linked to the selected task. A completed task keeps its
 result (2,000 characters) and the detail pane shows both.
 Pi's own footer shows `⇄` live progress; each settled leg posts one card
 with its report behind `ctrl+o`.
 
-Delegate legs and team starts are background parallel runs. Past the
+Delegate legs and agent-team starts are background parallel runs. Past the
 live cap (default 12, `liveCap` 1–64) they wait in a queue and start as
 slots free; nothing is dropped. Name legs with `@explorer,@tester` to
-narrow a run. Team start creates one board task per leg, so a stopped run
-leaves its queued tasks pending; delete them in the TEAM tab. Delegate
+narrow a run. AgentTeam start creates one board task per leg, so a stopped run
+leaves its queued tasks pending; delete them in the AGENT TEAM tab. Delegate
 reports are one line per leg by default and cap at 200 rows; a 1000-leg
 board sends about 13 KB instead of 1.4 MB.
 
@@ -158,7 +165,7 @@ paths: [src, docs]  # optional: workspace-relative; outside, absolute, and symli
 ```
 
 `promptPrefix` is a fixed one-liner (≤400 chars) placed before every task
-that subagent receives; the six starters ship one — `/subagents team <prompt>`, `Task`, each parallel leg, every chain
+that subagent receives; the six starters ship one — `/subagents agent-teams <prompt>`, `Task`, each parallel leg, every chain
 step, and resumes. It carries durable framing, never task-specific steps.
 
 `only` (or omitted) gives scripting alone, `on` adds it beside normal
@@ -225,21 +232,21 @@ grace.
   those lines; only the final contiguous block counts, and missing fields
   auto-label the run `verification`.
 - **Fan-out** — `parallel[]`, up to the live cap (default 12).
-- **Team start / Delegate** — `/subagents team <prompt>` creates one board task
+- **AgentTeam start / Delegate** — `/subagents agent-teams <prompt>` creates one board task
   and one worker per leg; each task inherits its subagent's `paths` as write
   scopes, and an unscoped leg warns. `/delegate` runs explorer + worker. Legs
   past the live cap wait in a queue.
 - **Finish** — `/subagents finish <prompt>` (or `f` in RUNS) picks the
   smallest matched roster (max 4, never above `liveCap`).
-- **Teams** — `/subagents team on` or the TEAM tab opens a shared
-  board. `Team { action: "start", prompt }` also creates one task and one
+- **Agent teams** — `/subagents agent-teams on` or the AGENT TEAM tab opens a shared
+  board. `AgentTeam { action: "start", prompt }` also creates one task and one
   worker per leg. Every leg launched with `Task` joins under a unique name,
-  can list/claim/complete tasks, message a teammate, and wait for a named
+  can list/claim/complete tasks, message an agent teammate, and wait for a named
   run. Write scopes reserve paths while a task is in progress; a
-  read-only `Team resolve` names the blocker, and a bounded session
+  read-only `AgentTeam resolve` names the blocker, and a bounded session
   queue holds mail for a finished member. Tasks remember why they came
   back. Tasks survive `/reload`; ready tasks never start an agent.
-- **Mission control** — one `/subagents` surface with RUNS and TEAM tabs,
+- **Mission control** — one `/subagents` surface with RUNS and AGENT TEAM tabs,
   native footer progress, settled cards, and viewer tabs.
 - **TaskControl** — `steer`, `stop`, and `retry` a task from the model or
   the board (`s`, `x`, `r`).
@@ -280,13 +287,13 @@ npm ci
 npm run check   # format, lint, typecheck, tests
 npm run arch    # architecture tests only
 npm run coverage      # line/branch/function coverage, no gate
-PI_IT_LIVE=1 PI_IT_MODEL=provider/model npm run smoke:live  # real Task/Team/steer/resume
+PI_IT_LIVE=1 PI_IT_MODEL=provider/model npm run smoke:live  # real Task/AgentTeam/steer/resume
 npm run bench:launch   # local render and admission timings
 npm run bench:layers  # viewer paint, streaming, and state save
 npm run bench:finish  # roster pick latency over the six starters
 PI_DELEGATE_E2E=1 npm run e2e:delegate # real RPC run (spends model calls)
 npm run e2e           # real model delegate probe (spends model calls)
-npm run e2e:fixtures  # full forced-answer suite: team start, delegate, defaults, chain, parallel, abort
+npm run e2e:fixtures  # full forced-answer suite: agent-team start, delegate, defaults, chain, parallel, abort
 ```
 
 Pi loads the extension with jiti, so there is no build step. `npm run

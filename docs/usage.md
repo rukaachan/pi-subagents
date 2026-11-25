@@ -24,7 +24,7 @@ System prompt body. Cannot be empty.
 | tools            | Omit = all. Or `read-only`, `edit`, `execute`. Or a list of Pi tool IDs. `tools: all` is rejected.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | paths            | Optional write fence: one workspace-relative folder, a comma list, or a YAML list. Absolute roots, parent roots, and symlink escapes are refused. `write` and `edit` refuse any path outside it. `bash` and `powershell` are switched off while the fence is on, because a shell can write anywhere. Omit = no fence.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | autonomy         | `inherit` (default), `off`, `low`, `medium`, `high`. This is enforced, not a note: `off` and `low` are read-only (no shell, edit, write, or MCP); `medium` removes shell; `high` keeps shell unless `paths` is set. The table below is the exact policy.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| promptPrefix     | One line (≤400 chars) put in front of every task this subagent gets, then a blank line, then `Task: <prompt>`. The six starters ship one. It is applied where the child session is prompted, so team start, `Task`, `parallel` legs, every chain step, and resumes all see their own subagent's prefix. Use it for durable framing ("cite file:line", "run the checks before reporting"), not for steps that belong to one task. Blank means none. Invalid or over 400 chars = error, subagent skipped.                                                                                                                                                                                                                                                                                                                                                        |
+| promptPrefix     | One line (≤400 chars) put in front of every task this subagent gets, then a blank line, then `Task: <prompt>`. The six starters ship one. It is applied where the child session is prompted, so agent-team start, `Task`, `parallel` legs, every chain step, and resumes all see their own subagent's prefix. Use it for durable framing ("cite file:line", "run the checks before reporting"), not for steps that belong to one task. Blank means none. Invalid or over 400 chars = error, subagent skipped.                                                                                                                                                                                                                                                                                                                                                  |
 | codemode         | Omitted = the run gets pi's codemode tool and the model sees it **alone**: every read, search, edit and command runs inside a script (one script can batch many calls per turn, Promise.allSettled). `only` says the same out loud, `true` keeps pi's default (the scripting tool beside the ordinary tools), `false` (or `off`) means no scripting at all, and `on` is the alias of `true`. A `Task` call may override the file for one run with `codemode: off                                                                                                                                                                                                                                                                                                                                                                                               | on  | only`. The grant adds no capability: scripts reach the session's own tools only, so a read-only list stays read-only in every mode. A prompt that never mentions scripts gets the route appended. |
 | budget           | `{ timeoutSec, maxTurns, maxInputTokens, maxCost, maxReportChars }`. `timeoutSec` is the wall-clock ceiling and the only guard that needs nothing from the provider, so it binds on a hung request too; the starters ship `maxTurns: 0`, `maxInputTokens: 0`, and `maxCost: 0` (off) and rely on it. The turn, token, and cost caps abort the stream and note it when a paid lane asks for them; `maxCost` reads the provider-reported cost and accepts a fractional cap. When the provider reports 0, the guard stays idle and says so. `maxReportChars` cuts the returned text with an explicit `[truncated: …]` marker. A stopped run keeps the text it produced and only falls back to a `[cut short]` report — ceiling plus last steps — when it never spoke. The editor changes one cap at a time.                                                       |
 | budget opt-out   | `{ }` reaches the run as `{ }`: `parseBudget` used to fold an empty block into `undefined`, which is what an _absent_ block means, so the documented opt-out was silently dropped and the starter's caps stayed on. Absence still means "use the defaults".                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
@@ -127,16 +127,16 @@ again.
 ## Use
 
 ```
-/subagents             # mission control: RUNS and TEAM tabs (opens with no runs)
+/subagents             # mission control: RUNS and AGENT TEAM tabs (opens with no runs)
 /subagents list        # the subagent files (detail + Edit/Delete)
 /subagents explorer    # open one subagent (detail + Edit/Delete/Back)
 /subagents new         # 10-step wizard: home, name, starter, desc, model, tools, level, autonomy, codemode, timeout
 /subagents tasks       # live and done runs with use + cost
 /subagents trash       # trashed files; restore from the picker
-/subagents team        # open the TEAM tab
-/subagents team on     # whole session becomes a team; new legs join
-/subagents team off    # stop new legs from joining; keep the board
-/subagents team <prompt> [@a,@b]  # team start: one task and one worker per leg
+/subagents agent-teams        # open the AGENT TEAM tab
+/subagents agent-teams on     # whole session becomes an agent team; new legs join
+/subagents agent-teams off    # stop new legs from joining; keep the board
+/subagents agent-teams <prompt> [@a,@b]  # agent-team start: one task and one worker per leg
 /subagents finish <prompt> [@a,@b] # smallest matched roster (max 4), background
 /delegate <prompt>     # one prompt on explorer + worker
 /delegate @a,@b <prompt> # a named pair
@@ -147,28 +147,35 @@ again.
 ```
 
 The lead reads one hybrid policy on every turn: local work first, then one
-`Task`, then `/delegate` (or a parallel Task pair), then a team when work
-is shared or has blockers. `Team { action: "start", prompt }` creates one
+`Task`, then `/delegate` (or a parallel Task pair), then an agent team when work
+is shared or has blockers. `AgentTeam { action: "start", prompt }` creates one
 board task and one worker per leg for broad independent fan-out. The
 policy is a prompt; there is no hidden router.
 
 ### Migration note
 
-The v4 surface is breaking on purpose; there are no aliases.
+The v4 surface is breaking on purpose, except the command aliases below.
 
-- `/team` → `/subagents team` (or the TEAM tab)
-- team fan-out → `/subagents team <prompt> [@a,@b]`
-- `/team on|off` → `/subagents team on|off` (or `t` in TEAM)
+- old tool `Team` → `AgentTeam`; `TeamMessage` → `AgentTeamMessage`
+- restart Pi after upgrading so the new tool names load
+- `/team` → `/subagents agent-teams` (or the AGENT TEAM tab)
+- `/subagents team` and `/subagents agent-team` still work as aliases
+- agent-team fan-out → `/subagents agent-teams <prompt> [@a,@b]`
+- `/team on|off` → `/subagents agent-teams on|off` (or `t` in AGENT TEAM)
 - `/finish` → `/subagents finish` (or `f` in RUNS)
 
-`/delegate` is unchanged.
+Saved state and the journal use the new names (`agentTeam`, `agentTeamId`,
+`agent_team_task`, `agent_team_message`). Run
+`node --experimental-strip-types tools/migrate-agent-team.mts --write` once to
+rewrite old files; it is a dry run by default, `--verify` reports leftovers,
+and it keeps a `.pre-agent-team.bak` beside each file. `/delegate` is unchanged.
 
 ### Inside a run
 
 `/subagents tasks` → a run → **Open session** reads the child's
 transcript full screen: your task, its messages, each tool call, and
 each tool result. `/delegate open <name|task-id>` opens the same view for
-one delegate leg. A team leg is a board task; use `TaskOutput` for
+one delegate leg. An agent-team leg is a board task; use `TaskOutput` for
 its report. A live run
 repaints as it works, including the assistant text still being written
 (`▍` marks the end), so you see the answer stream instead of waiting
@@ -186,15 +193,15 @@ closes the viewer.
 `/subagents` opens mission control even when nothing runs. The RUNS tab
 shows queued, running, done, stopped and failed runs, grouped by run. Keys:
 `↑↓` move, `enter` open, `s` steer, `x` stop, `r` retry, `c` copy,
-`f` finish, `tab` switch to TEAM, `esc` back. The footer lists only the
+`f` finish, `tab` switch to AGENT TEAM, `esc` back. The footer lists only the
 keys that work for the selected row, so a done row does not advertise
 steer or retry. On a wide terminal the right pane shows the selected
 run's last three steps, says `waiting for the first step` before any
 arrive, and pins that row's keys to its bottom line. Failed runs stay
 collapsed beside stopped runs; the title still counts them, and `e` shows
 or hides both. The
-Team tab shows one row per board task and keeps every board action:
-`t` team on/off (also shown as `(t)` beside the counts),
+AGENT TEAM tab shows one row per board task and keeps every board action:
+`t` agent team on/off (also shown as `(t)` beside the counts),
 `n` new, `e` edit, `a` assign, `c` claim, `r` release, `x` complete,
 `d` delete, `s` start, `enter` detail, `o` opens the run linked to the
 task. The detail pane shows `run <id>` and the task result; a task the
@@ -224,11 +231,11 @@ collapse into a single "… N earlier entries hidden" row. Bodies stay
 whole, including newlines, so long tool output is readable instead of
 flattened.
 
-Team legs are ordinary parallel runs, and each one owns a board
+Agent-team legs are ordinary parallel runs, and each one owns a board
 task. The host keeps `liveCap` legs live (default 12), so a larger roster
 is queued instead of dropped: finished legs free a slot and the next one
 starts. A stopped run leaves its queued tasks pending; delete them in the
-TEAM tab. The TEAM tab is the team's report surface: each task carries
+AGENT TEAM tab. The AGENT TEAM tab is the agent team's report surface: each task carries
 its status, owner, revision, scopes, and last error.
 `/delegate reports` keeps the compact one-line-per-leg report (state,
 elapsed, turns, tokens, cost), capped at 200 rows. Drill into a delegate
@@ -242,11 +249,11 @@ never makes a script wait for a free worker.
 not started instead of being dropped silently; the cap never rises above
 `liveCap`. The `f` key asks for the same prompt in RUNS.
 
-`/subagents team <prompt>` with no roster uses every discovered subagent,
-creates one task per leg, and enables team mode if it was off. `/delegate` with
+`/subagents agent-teams <prompt>` with no roster uses every discovered subagent,
+creates one task per leg, and enables agent team mode if it was off. `/delegate` with
 no names uses `explorer` and `worker`; name a pair to replace them.
-Delegate keeps its own latest run for `reports`; a team run is read on
-the TEAM tab.
+Delegate keeps its own latest run for `reports`; an agent-team run is read on
+the AGENT TEAM tab.
 
 Measured (`npm run bench:launch`, local):
 
@@ -262,14 +269,14 @@ settled in 2–4 s, and a 271-char compact report.
 
 `npm run e2e` runs the real-model delegate probe and spends calls.
 `PI_IT_LIVE=1 PI_IT_MODEL=provider/model npm run smoke:live` checks one
-Task, one Team start, one steer, one resume, and one gated `bash` call
+Task, one AgentTeam start, one steer, one resume, and one gated `bash` call
 against a real provider;
 it is manual/nightly and never a CI gate. `npm run coverage` prints Node's
 line, branch, and function coverage without a percentage gate.
 `npm run e2e:fixtures` copies fixtures into a temp home, starts a local
-fake provider, and checks team start admission, the queue, hook lines, failure
+fake provider, and checks agent-team start admission, the queue, hook lines, failure
 labels, chain, parallel, abort, and the shipped defaults
-(`/subagents team <prompt>` with no roster runs all six starters; `/delegate`
+(`/subagents agent-teams <prompt>` with no roster runs all six starters; `/delegate`
 runs explorer and worker). It spends no model calls
 and leaves your real home alone.
 
@@ -289,7 +296,7 @@ you pick. A `promptPrefix` is quoted on write, so a colon or a `#` in the text
 cannot break the frontmatter.
 
 The bare command opens mission control even when nothing runs. RUNS
-lists live and finished runs; a pick opens that run. TEAM is always one
+lists live and finished runs; a pick opens that run. AGENT TEAM is always one
 tab away. When nothing runs, RUNS says so and names the commands that
 manage files; it never shows a file list on its own. Ask for
 `/subagents list` when you want that list.
@@ -320,43 +327,43 @@ Ask Pi to delegate:
 Use the subagent `explorer` to map the auth code.
 ```
 
-## Teams
+## Agent teams
 
-A team is this session and its subagents. The Pi session is the **lead**;
+An agent team is this session and its subagents. The Pi session is the **lead**;
 there is no separate lead agent to start. The lead launches work with
-`Team { action: "start", prompt, roster? }`, or you can enable a manual
-board from the TEAM tab, `t`, or:
+`AgentTeam { action: "start", prompt, roster? }`, or you can enable a manual
+board from the AGENT TEAM tab, `t`, or:
 
 ```text
-/subagents team on
+/subagents agent-teams on
 ```
 
 Now the lead creates tasks on a shared board, delegates with the ordinary
-`Task` tool, and every new leg joins the team under a unique name
-(`worker`, `worker-2`, ...). The child session gets `Team` and
-`TeamMessage` plus a short coordination block in its prompt. Simple one-job
-runs stay non-team.
+`Task` tool, and every new leg joins the agent team under a unique name
+(`worker`, `worker-2`, ...). The child session gets `AgentTeam` and
+`AgentTeamMessage` plus a short coordination block in its prompt. Simple one-job
+runs stay outside the agent team.
 
 Workflow:
 
-1. Lead: `Team { action: "create", subject, description, write_scopes? }`.
+1. Lead: `AgentTeam { action: "create", subject, description, write_scopes? }`.
 2. Lead: `Task { subagent_type, description, prompt, run_in_background: true }`.
-3. Teammate: `Team { action: "list", ready: true }`, then
-   `Team { action: "claim", task_id, expected_revision }`.
+3. Teammate: `AgentTeam { action: "list", ready: true }`, then
+   `AgentTeam { action: "claim", task_id, expected_revision }`.
 4. Teammate does the work. To hand a fact to another teammate:
-   `TeamMessage { action: "send", to: "worker-2", text }`. A live member
+   `AgentTeamMessage { action: "send", to: "worker-2", text }`. A live member
    gets it on its next turn; a known finished member gets a bounded session
-   queue. To wait for a named run: `TeamMessage { action: "wait", to: "worker-2" }`
+   queue. To wait for a named run: `AgentTeamMessage { action: "wait", to: "worker-2" }`
    (120s cap). A finished member's last run still answers if its row remains.
 5. Teammate completes:
-   `Team { action: "complete", task_id, expected_revision, result? }`.
+   `AgentTeam { action: "complete", task_id, expected_revision, result? }`.
    The result is trimmed and capped at 2,000 characters; the board keeps
    it and the detail pane shows it. A leg started by
-   `Team { action: "start" }` also links its run, so `o` opens that
-   transcript from the TEAM tab.
-6. Lead reads the board (`/subagents team` or
-   `Team { action: "status" }`) and waits for the settle cards, or calls
-   `TeamMessage { action: "wait", to }` for a named run.
+   `AgentTeam { action: "start" }` also links its run, so `o` opens that
+   transcript from the AGENT TEAM tab.
+6. Lead reads the board (`/subagents agent-teams` or
+   `AgentTeam { action: "status" }`) and waits for the settle cards, or calls
+   `AgentTeamMessage { action: "wait", to }` for a named run.
 
 Every mutation carries the revision it read. A stale revision on an
 intent-only action (claim, release, complete, reopen, reassign, delete)
@@ -374,7 +381,7 @@ progress it reserves those paths on the board: a claim, a reassign, or
 an in-progress scope edit that overlaps another in-progress task is
 refused and names the blocker. Pending and completed tasks reserve
 nothing, and a task with no scopes locks nothing. On a refusal the lead
-can run `Team { action: "resolve", task_id }`. It is read-only: it names
+can run `AgentTeam { action: "resolve", task_id }`. It is read-only: it names
 each blocker, owner, revision, scope, and whether the owner is live, then
 suggests a release or a narrower scope. The lead still makes the change.
 This is a board reservation, not a filesystem sandbox: `bash` can still
@@ -393,29 +400,29 @@ delegates, and a finished leg still wakes the lead with its report. Use
 `TaskOutput` for the report, or `TaskControl` to steer/stop/retry.
 
 For broad independent fan-out, the lead calls
-`Team { action: "start", prompt, roster? }`, or you can use
-`/subagents team <prompt>`. It creates one board task and one worker per leg,
-turns team mode on if it was off, and reuses the live-cap queue. Each task
+`AgentTeam { action: "start", prompt, roster? }`, or you can use
+`/subagents agent-teams <prompt>`. It creates one board task and one worker per leg,
+turns agent team mode on if it was off, and reuses the live-cap queue. Each task
 inherits its subagent's `paths` as `write_scopes`; a leg without `paths` is
 unscoped, and the report warns that parallel edits can collide. A stopped
-run leaves queued tasks pending; delete them in the TEAM tab.
+run leaves queued tasks pending; delete them in the AGENT TEAM tab.
 
 The board lives in the same per-session state file as runs, so
 `/reload` keeps tasks, revisions, owners, and member names.
-`/subagents team off` keeps the board and lets a claimed task finish; it
+`/subagents agent-teams off` keeps the board and lets a claimed task finish; it
 only stops new legs from joining. A new Pi session starts empty. Limits: 128 live tasks,
 128 rows per list, 2,000 characters per description, 20 blockers and 20
 scopes per task, and 32 members. Idle members are evicted; a 33rd join is
 refused when all 32 own live tasks, and a start takes at most 32 legs.
 
-While team mode is on, the lead's system prompt gets a short policy
+While agent team mode is on, the lead's system prompt gets a short policy
 section: plan, create tasks, split write scopes, delegate, then wait.
-Only the lead spawns; a teammate cannot delegate further.
+Only the lead spawns; an agent teammate cannot delegate further.
 
-`TeamMessage` sends to a live member first. A known finished member gets
+`AgentTeamMessage` sends to a live member first. A known finished member gets
 a bounded session queue (8 messages or 8,000 characters): the send result
 says `queued`, and the queue flushes when that member rejoins or is
-retried. The queue is saved with the team board, so `/reload` keeps it; a member
+retried. The queue is saved with the agent team board, so `/reload` keeps it; a member
 that never rejoins never reads it. A chain member can receive a message
 but cannot be waited on, because a chain has no per-step run row.
 Messages are capped at 2,000 characters; the journal records `from`,
