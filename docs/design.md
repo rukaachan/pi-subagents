@@ -13,51 +13,38 @@ pi-subagents/
 │   └── index.ts        # wiring only: tools + commands
 ├── src/
 │   ├── domain/         # pure rules and vocabulary. no fs, no host calls
-│   │   ├── subagent/   #   config, budget, frontmatter, discovery, codemode,
-│   │   │               #   contract, roster, paths
-│   │   ├── task.ts     #   the row shape every layer names
-│   │   ├── team.ts     #   the shared board: tasks, views, limits
-│   │   ├── team-update.ts # compare-and-set transitions
-│   │   ├── team-scope.ts  # write-scope reservations
-│   │   ├── team-mail.ts   # live/cold message + wait graph
-│   │   ├── team-sweep.ts  # free tasks a dead run still owned
-│   │   ├── dispatch.ts #   nameless-dispatch rule table
-│   │   ├── tiers.ts    #   complexity -> model and tool policy
-│   │   ├── temp.ts     #   session-temp subagents
-│   │   ├── run-result.ts  # usage, text, history of a finished run
-│   │   └── run-report.ts  # the report a run hands back
+│   │   ├── task/       #   row shape, store port, tool contracts
+│   │   ├── run/        #   usage, report, tiers
+│   │   ├── team/       #   board, mail, scope, sweep
+│   │   ├── subagent/   #   config, budget, discovery, codemode
+│   │   └── policy/     #   delegation rule, task meta, team policy
 │   ├── infra/          # adapters: disk and host
-│   │   ├── files.ts, trash.ts, subagent-files.ts  # the .md files
-│   │   ├── state-file.ts    # the state file format
-│   │   ├── state-validate.ts, state-steps.ts  # validate disk records
-│   │   ├── state-team.ts    # validate the persisted board
-│   │   ├── team-tool.ts, team-tool-types.ts, team-tool-run.ts
-│   │   ├── team-tool-schema.ts, team-render.ts
-│   │   ├── team-message-tool.ts, team-message-schema.ts
-│   │   ├── child-gate.ts    # block a child's destructive tool calls
-│   │   ├── child-context.ts  # one-line cost of loaded AGENTS.md
-│   │   └── host-session.ts, host-shim.ts, host-usage.ts
-│   ├── telemetry/      # sinks: journal, progress, activity, per-run tracking
-│   ├── app/            # orchestration: drivers, store, ledger, guards
-│   │   ├── guards/     #   budget, wind-down, hard stop, install
-│   │   ├── run.ts, background.ts, chain.ts, chain-task.ts, fanout.ts
-│   │   ├── task-store.ts, task-record.ts, ledger.ts, persist.ts
-│   │   ├── task-actions.ts, settle-notice.ts, background-attempt.ts
-│   │   ├── team-store.ts, team-read.ts, team-journal.ts  # board, views, audit
-│   │   ├── team-run.ts     # resolve the run a board task points at
-│   │   ├── team-child.ts, team-policy.ts  # child join
-│   │   ├── team-sweep.ts, team-mail.ts  # settle sweep + messages/wait graph
-│   │   ├── team-launch.ts   # team start: one board task per worker
-│   │   ├── finish.ts       # smallest matched roster, max 4
-│   │   ├── hybrid-policy.ts # local -> Task -> delegate -> team start
-│   │   └── steer-queue.ts, live-runs.ts, live-sessions.ts
-│   ├── ui/             # presentation: picker, menu, rows, result shells
-│   │   ├── command.ts      #   /subagents + list/new/tasks/trash/team/finish
-│   │   ├── delegate-command.ts #   /delegate
-│   │   ├── menu/workspace.ts, team-actions.ts # mission-control loop + board actions
-│   │   └── view/       #   workspace, team, board, tabs, session view, search
-│   └── tools/          # the tool definitions the host registers
-│       └── task/       #   schema, pick, validate, execute
+│   │   ├── state/      #   state file, validation, fileState
+│   │   ├── host/       #   child sessions, usage, hostChild
+│   │   ├── files/      #   subagent .md files, trash
+│   │   ├── team/       #   tools, message schema/render
+│   │   └── guard/      #   child gate
+│   ├── telemetry/      # sinks
+│   │   ├── journal/    #   port, file sink, fold, handoff
+│   │   ├── live/       #   progress, per-run tracking
+│   │   └── notify/     #   finish hook
+│   ├── app/            # use-cases and ports
+│   │   ├── runtime.ts  #   createSessionRuntime, AppDeps
+│   │   ├── session/    #   ledger, persist, state port, scope
+│   │   ├── run/        #   foreground, background, resume, child port
+│   │   ├── chain/      #   chain, fanout
+│   │   ├── launch/     #   queue, finish
+│   │   ├── retry/      #   retry policy
+│   │   ├── stop/       #   stop all, stopped rows
+│   │   ├── live/       #   live sessions and runs
+│   │   ├── team/       #   board, channel, run
+│   │   └── guards/     #   budget, wind-down, hard stop
+│   ├── ui/             # presentation
+│   │   ├── commands/   #   /subagents, /delegate
+│   │   ├── menu/       #   root wizard, board actions
+│   │   └── view/       #   text, board, session, workspace, run
+│   └── tools/          # tool factories over the runtime
+│       └── task/       #   schema, pick, plan, execute
 ├── tests/              # one file per concern, all under 250 lines
 └── subagents/          # starter subagents, copy to ~/.pi/agent/subagents/
 ```
@@ -110,24 +97,30 @@ Both were split, with no logic change:
 
 | folder                | owns                                |
 | --------------------- | ----------------------------------- |
-| `extensions/index.ts` | the tool definitions and the wiring |
-| `src/app/`            | drivers, store, ledger, guards      |
-| `src/domain/`         | the rules and the vocabulary        |
+| `extensions/index.ts` | wiring only: one runtime + registrations |
+| `src/app/`            | use-cases, ports, one runtime       |
+| `src/domain/`         | rules, vocabulary, tool contracts   |
 | `src/infra/`          | disk and host adapters              |
-| `src/telemetry/`      | journal, progress, activity         |
-| `src/ui/`             | picker, menu, rows, result shells   |
-| `src/tools/`          | the tool definitions                |
+| `src/telemetry/`      | journal, live progress, notify      |
+| `src/ui/`             | commands, menu, views               |
+| `src/tools/`          | tool factories                      |
 
-`runChainTask` and `runParallelTask` now take the `TaskStore` as a
-parameter instead of reaching for a module-level singleton, which is
-what made moving them possible: the dependency is visible at the call
-site.
+`runChainTask` and `runParallelTask` take `ChildDeps`, the child-session
+port, and the composition root in `src/app/runtime.ts` owns the store,
+the state port, and the session lifecycle. `createSessionRuntime({ child:
+hostChild, state: fileState })` returns `{ deps, store, begin, stop,
+statePath, restored }`; the six tools are factories over it, and
+`extensions/index.ts` builds exactly one runtime. The dependency is
+visible at every call site, so a test can build its own runtime instead
+of importing a module-level singleton.
 
 `tests/architecture.test.ts` holds the claims instead of trusting them:
 no `src/` module may import `extensions/`, the entry may not own the
 drivers, no import cycle may exist among `src/` modules, no layer may
 import a layer above it, the domain layer may not reach the disk or the
-host at runtime, and no file may cross 250 lines. Those checks found
+host at runtime, no folder with sources may hold more than seven of them
+without an entry, no cross-folder import may bypass that entry, and no
+file may cross 250 lines. Those checks found
 real defects on their first runs: an import cycle
 (`src/tasks.ts` imported `SubagentRunResult` from `src/runner.ts` while
 `runner.ts` imported the store from `tasks.ts` — it erased at runtime, so
@@ -140,6 +133,16 @@ the directory in place, so there are no package consumers to fence off.
 Inside the repo, tests and tools import `src/` by relative path. If a
 name-based import is ever added, the map should expose only the entry
 (`extensions/index.ts`), `./subagents/*.md`, and `package.json`.
+
+### Architecture decisions (v0.16)
+
+| decision | why | proof |
+| --- | --- | --- |
+| Bounded contexts: at most seven sources per folder, every folder has an `index.ts`, and a cross-folder import uses that entry | A folder a reader can hold in one screen has one job; the entry is the only public surface, so a move cannot leak a private file. | `tests/architecture.test.ts` |
+| Four ports: `TaskStorePort`, `StatePort`, `ChildSessionPort`, `JournalPort` | `domain`, `app`, `infra`, and `telemetry` point inward. `TaskStore` implements the store port; `fileState`, `hostChild`, and `fileJournal` are the adapters. | `tests/architecture.test.ts`, `tests/journal-port.test.ts` |
+| One composition root: `createSessionRuntime({ child, state })` | The global `store` is gone. Drivers take `ChildDeps`; tools and commands are factories over the runtime, so each test builds its own. | `tests/session-state.test.ts`, the tool tests |
+| Swappable journal sink: `setJournal(port)`; `fileJournal` is the default | Tests record events without a file; the entry installs the file adapter once. The file rotates at 2 MB (`JOURNAL_MAX_BYTES`), and the fold reads the last 20,000 lines. | `tests/journal-port.test.ts`, e2e journal assertions |
+| Delegation economics: optional `run_end` fields, `report:handoff`, `maxCost` | Prompt and usage are measured where the driver has them; a missing value stays `n/a` instead of a fake zero. `maxCost` is opt-in and honest when the provider reports 0. | `tests/handoff-report.test.ts`, `tests/budget-cost.test.ts` |
 
 ## Mission control (v0.14)
 

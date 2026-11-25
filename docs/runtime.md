@@ -83,18 +83,46 @@ merged into them, so this table is the claim that matters:
 
 | driver                                            | real proof                                                               |
 | ------------------------------------------------- | ------------------------------------------------------------------------ |
-| `src/app/run.ts` foreground                       | `tools/live-smoke.mts` (real provider), `tools/e2e/chain.test.ts` abort  |
-| `src/app/background.ts` + `background-attempt.ts` | `tools/e2e/recovery.test.ts` stop-then-resume, live smoke task           |
-| `src/app/background-resume.ts`                    | `tools/e2e/recovery.test.ts` resume, live smoke resume                   |
-| `src/app/chain.ts`                                | `tools/e2e/chain.test.ts` chain, `tools/e2e/recovery.test.ts` chain stop |
-| `src/app/fanout.ts`                               | `tools/e2e/chain.test.ts` two parallel legs                              |
-| `src/app/team-launch.ts`                          | `tools/e2e/team-launch.test.ts`, live smoke team start                   |
-| `src/app/team-run.ts`                             | `tools/e2e/team.test.ts` claim, complete, reload                         |
+| `src/app/run/run.ts` foreground                   | `tools/live-smoke.mts` (real provider), `tools/e2e/chain.test.ts` abort  |
+| `src/app/run/background.ts` + `background-attempt.ts` | `tools/e2e/recovery.test.ts` stop-then-resume, live smoke task       |
+| `src/app/run/background-resume.ts`                | `tools/e2e/recovery.test.ts` resume, live smoke resume                   |
+| `src/app/chain/chain.ts`                          | `tools/e2e/chain.test.ts` chain, `tools/e2e/recovery.test.ts` chain stop |
+| `src/app/chain/fanout.ts`                         | `tools/e2e/chain.test.ts` two parallel legs                              |
+| `src/app/team/run/team-launch.ts`                 | `tools/e2e/team-launch.test.ts`, live smoke team start                   |
+| `src/app/team/board/team-run.ts`                  | `tools/e2e/team.test.ts` claim, complete, reload                         |
 
 Retry has its own proof: `tools/e2e/retry.test.ts` runs a real Pi process
 against a fake provider that answers 429 once and asserts the `retry`
 journal line. A live 429 would need a streaming proxy in front of a paid
 provider; no measured defect justifies that cost.
+
+## Delegation economics
+
+`run_end` now carries `promptChars`, `inputTokens`, `outputTokens`, and
+`cost` when the driver has them. The fields are optional: old journal
+lines and providers that report no usage stay honest instead of showing
+zero.
+
+`npm run report:handoff` folds the journal into one row per subagent:
+
+```text
+subagent  runs  done  error  stop  p50 turns  p50 in  p50 chars  chars/1k  no usage
+explorer  2     2     0      0     3          2000    1000       500       0
+```
+
+That demo journal holds two explorer runs (2,000 median input tokens,
+1,000 median report chars). The formula is
+`round(sum(reportChars) / sum(inputTokens) * 1000)`; `p50` is the median,
+rounded for an even count. `no usage` counts runs without `inputTokens`,
+so an old journal prints `n/a` and a positive count instead of a fake
+zero. The real 295-run journal predates these fields, and its report says
+so.
+
+`budget.maxCost` is opt-in (`0` = off). `turnCost()` reads
+`message.usage.cost`; the guard trips when the summed cost reaches the
+cap. A provider that reports `0` leaves the guard idle and the note says
+`cost budget N idle: the provider reported no cost in N turns.`
+`tests/budget-cost.test.ts` covers cost 12 at cap 10 and cost 0 at cap 10.
 
 ## Team board state
 
