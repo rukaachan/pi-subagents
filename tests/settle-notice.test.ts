@@ -3,13 +3,13 @@ import assert from "node:assert/strict";
 import { announceSettle } from "../src/app/live/index.ts";
 import { clearNotifySink, setNotifySink } from "../src/telemetry/notify/index.ts";
 import {
-	beginTeamSession,
+	beginAgentTeamSession,
 	createTask,
-	enableTeam,
-	joinTeam,
+	enableAgentTeam,
+	joinAgentTeam,
 	taskList,
 	updateTask,
-} from "../src/app/team/board/index.ts";
+} from "../src/app/agent-team/board/index.ts";
 import type { TaskRecord } from "../src/domain/task/index.ts";
 
 function record(over: Partial<TaskRecord> = {}): TaskRecord {
@@ -42,9 +42,9 @@ function record(over: Partial<TaskRecord> = {}): TaskRecord {
 }
 
 function claim(): void {
-	beginTeamSession("s1");
-	enableTeam();
-	joinTeam("worker", "run-a");
+	beginAgentTeamSession("s1");
+	enableAgentTeam();
+	joinAgentTeam("worker", "run-a");
 	createTask({ subject: "one", description: "" });
 	updateTask(
 		{ taskId: "task-1", expectedRevision: 1, action: "claim" },

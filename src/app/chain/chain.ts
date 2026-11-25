@@ -15,9 +15,9 @@ import {
 } from "../../domain/run/index.ts";
 import type { ChildDeps } from "../run/index.ts";
 import { withGateJournal } from "../guards/index.ts";
-import { teamChildExtras } from "../team/child/index.ts";
-import { bindTeamMember } from "../team/channel/index.ts";
-import { sweepMemberTasks } from "../team/board/index.ts";
+import { agentTeamChildExtras } from "../agent-team/child/index.ts";
+import { bindAgentTeamMember } from "../agent-team/channel/index.ts";
+import { sweepMemberTasks } from "../agent-team/board/index.ts";
 import { ledger, markKind } from "../session/index.ts";
 import { newTaskId } from "../../domain/task/index.ts";
 import type { ChainStep, TaskRecord } from "../../domain/task/index.ts";
@@ -114,11 +114,11 @@ export function runChain(
 				store.touch();
 				const runId = `${taskId}-${step.idx}`;
 				const gate = { open: true };
-				const team = teamChildExtras(sub.name, runId, gate);
-				const child = await deps.child.create(sub, cwd, ctx, withGateJournal(team));
-				const unbindMail = team
-					? bindTeamMember(
-							team.member,
+				const agentTeam = agentTeamChildExtras(sub.name, runId, gate);
+				const child = await deps.child.create(sub, cwd, ctx, withGateJournal(agentTeam));
+				const unbindMail = agentTeam
+					? bindAgentTeamMember(
+							agentTeam.member,
 							sub.name,
 							(text) => {
 								void child.session.steer(text).catch(() => {});

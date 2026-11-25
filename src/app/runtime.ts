@@ -4,7 +4,7 @@
 import { dirname, resolve } from "node:path";
 import { TaskStore } from "../domain/task/index.ts";
 import type { TaskStorePort } from "../domain/task/index.ts";
-import { beginTeamSession, setTeamChangeHook } from "./team/board/index.ts";
+import { beginAgentTeamSession, setAgentTeamChangeHook } from "./agent-team/board/index.ts";
 import type { ChildSessionPort } from "./run/index.ts";
 import {
 	attachPersistence,
@@ -83,10 +83,10 @@ export function createSessionRuntime(input: RuntimeDeps): SessionRuntime {
 		stop();
 		store.clear();
 		ledger.restore({});
-		beginTeamSession(sessionId ?? "local");
+		beginAgentTeamSession(sessionId ?? "local");
 		statePath = sessionFile(cwd, sessionId);
 		restoredRows = restoreIntoCurrent(cwd, sessionId);
-		setTeamChangeHook(() => store.touch());
+		setAgentTeamChangeHook(() => store.touch());
 		detach = attachPersistence(store, ledger, deps.state, statePath, onError);
 	}
 

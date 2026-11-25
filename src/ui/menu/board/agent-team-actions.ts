@@ -1,0 +1,192 @@
+/**
+ * pi-subagents: Agent team tab actions.
+ */
+
+import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import type { AppDeps } from "../../../app/index.ts";
+import type { AgentTeamTaskView, AgentTeamUpdate } from "../../../domain/agent-team/index.ts";
+import { inModal } from "../../../app/stop/index.ts";
+import { startAgentTeamLaunch } from "../../../app/agent-team/run/index.ts";
+import {
+	createTask,
+	getTask,
+	agentTeamMembers,
+	updateTask,
+} from "../../../app/agent-team/board/index.ts";
+import type { TaskStorePort } from "../../../domain/task/index.ts";
+import { pickFromList } from "../../index.ts";
+import { shortText } from "../../view/text/index.ts";
+import type { WorkspaceAction } from "../../view/workspace/index.ts";
+
+function notice(ctx: ExtensionCommandContext, text: string, kind: "info" | "error" = "info"): void {
+	ctx.ui.notify(text, kind);
+}
+
+async function input(
+	ctx: ExtensionCommandContext,
+	title: string,
+	value = "",
+): Promise<string | undefined> {
+	return inModal(() => ctx.ui.input(title, value));
+}
+
+function scopesOf(value: string): string[] {
+	return value
+		.split(",")
+		.map((scope) => scope.trim())
+		.filter(Boolean);
+}
+
+function taskOf(ctx: ExtensionCommandContext, taskId: string): AgentTeamTaskView | undefined {
+	const view = getTask(taskId);
+	if (!view) notice(ctx, `Unknown task "${taskId}".`, "error");
+	return view;
+}
+
+function update(
+	ctx: ExtensionCommandContext,
+	view: AgentTeamTaskView,
+	action: AgentTeamUpdate["action"],
+	extra: Partial<AgentTeamUpdate> = {},
+): void {
+	const result = updateTask(
+		{ taskId: view.task.id, expectedRevision: view.task.revision, action, ...extra },
+		{ name: "lead", lead: true },
+	);
+	notice(
+		ctx,
+		result.ok ? `${action} · ${result.task.id}` : result.error,
+		result.ok ? "info" : "error",
+	);
+}
+
+async function createFlow(ctx: ExtensionCommandContext): Promise<void> {
+	const subject = await input(ctx, "Task subject");
+	if (!subject) return;
+	const description = (await input(ctx, "Description (optional)")) ?? "";
+	const scopes = await input(ctx, "Write scopes, comma-separated (optional)");
+	if (scopes === undefined) return;
+	const result = createTask({ subject, description, writeScopes: scopesOf(scopes) });
+	notice(
+		ctx,
+		result.ok ? `Created ${result.task.id}.` : result.error,
+		result.ok ? "info" : "error",
+	);
+}
+
+async function editFlow(ctx: ExtensionCommandContext, taskId: string): Promise<void> {
+	const view = taskOf(ctx, taskId);
+	if (!view) return;
+	const subject = await input(ctx, "Task subject", view.task.subject);
+	if (subject === undefined) return;
+	const description = await input(ctx, "Description", view.task.description);
+	if (description === undefined) return;
+	const scopes = await input(ctx, "Write scopes, comma-separated", view.task.writeScopes.join(","));
+	if (scopes === undefined) return;
+	update(ctx, view, "edit", {
+		subject,
+		description,
+		writeScopes: scopesOf(scopes),
+	});
+}
+
+async function assignFlow(ctx: ExtensionCommandContext, taskId: string): Promise<void> {
+	const view = taskOf(ctx, taskId);
+	if (!view) return;
+	const members = agentTeamMembers().map((member) => member.name);
+	const owner = await pickFromList(ctx, {
+		title: `Assign ${taskId}`,
+		subtitle: "lead can assign any known member",
+		items: [
+			...members.map((name) => ({ value: name, label: name })),
+			{ value: "", label: "(unassign)" },
+		],
+	});
+	if (owner === undefined) return;
+	update(ctx, view, "reassign", { owner });
+}
+
+async function confirmDelete(ctx: ExtensionCommandContext, view: AgentTeamTaskView): Promise<void> {
+	const ok = await inModal(() =>
+		ctx.ui.confirm("Delete task?", `${view.task.id} · ${shortText(view.task.subject, 60)}`),
+	);
+	if (ok) update(ctx, view, "delete");
+}
+
+async function startFlow(
+	ctx: ExtensionCommandContext,
+	store: TaskStorePort,
+	deps: AppDeps,
+): Promise<void> {
+	const prompt = await input(ctx, "Agent team prompt");
+	if (!prompt) return;
+	const raw = await input(ctx, "Roster (comma-separated, blank = all)");
+	if (raw === undefined) return;
+	const roster = raw
+		.split(/[\s,]+/)
+		.map((name) => name.replace(/^@/, "").trim())
+		.filter(Boolean);
+	const result = await startAgentTeamLaunch(
+		store,
+		{ prompt, ...(roster.length ? { roster } : {}) },
+		ctx,
+		deps,
+	);
+	if (!result.ok) {
+		notice(ctx, result.error, "error");
+		return;
+	}
+	const rows = result.tasks.map((leg) => `${leg.name} — ${leg.taskId}`).join(" · ");
+	const warning =
+		result.warnings && result.warnings.length > 0 ? `\nWarning: ${result.warnings.join(" ")}` : "";
+	notice(
+		ctx,
+		`AgentTeam started · ${result.started} started${result.queued ? ` · ${result.queued} queued` : ""}\n${rows}${warning}`,
+	);
+}
+
+function detailText(view: AgentTeamTaskView): string {
+	const task = view.task;
+	return [
+		`${task.id} [${task.status}] rev ${task.revision} · ${task.subject}`,
+		`owner: ${task.owner ?? "unowned"} · scopes: ${task.writeScopes.join(",") || "none"}`,
+		view.blockedByOpen.length ? `blocked by: ${view.blockedByOpen.join(",")}` : "",
+		task.lastError ? `last ${task.lastOwner ?? "run"}: ${task.lastError}` : "",
+		task.description || "(no description)",
+	]
+		.filter(Boolean)
+		.join("\n");
+}
+
+async function detailFlow(ctx: ExtensionCommandContext, taskId: string): Promise<void> {
+	const view = taskOf(ctx, taskId);
+	if (view) notice(ctx, detailText(view));
+}
+
+export async function runAgentTeamAction(
+	action: WorkspaceAction,
+	ctx: ExtensionCommandContext,
+	store: TaskStorePort,
+	deps: AppDeps,
+): Promise<void> {
+	if (action.kind === "agent-team-new") return createFlow(ctx);
+	if (action.kind === "agent-team-edit") return editFlow(ctx, action.taskId);
+	if (action.kind === "agent-team-assign") return assignFlow(ctx, action.taskId);
+	if (
+		action.kind === "agent-team-claim" ||
+		action.kind === "agent-team-release" ||
+		action.kind === "agent-team-complete"
+	) {
+		const view = taskOf(ctx, action.taskId);
+		if (!view) return;
+		const verb = action.kind.replace("agent-team-", "") as AgentTeamUpdate["action"];
+		return update(ctx, view, verb);
+	}
+	if (action.kind === "agent-team-delete") {
+		const view = taskOf(ctx, action.taskId);
+		if (view) await confirmDelete(ctx, view);
+		return;
+	}
+	if (action.kind === "agent-team-detail") return detailFlow(ctx, action.taskId);
+	if (action.kind === "agent-team-start") return startFlow(ctx, store, deps);
+}

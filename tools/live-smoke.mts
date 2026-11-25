@@ -10,13 +10,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadSubagentFromContent } from "../src/infra/files/index.ts";
 import { launchBackground, resumeTask } from "../src/app/run/index.ts";
-import { startTeamLaunch } from "../src/app/team/run/index.ts";
+import { startAgentTeamLaunch } from "../src/app/agent-team/run/index.ts";
 import { steerTask } from "../src/app/run/index.ts";
 import { liveSession } from "../src/app/live/index.ts";
 import { createSessionRuntime } from "../src/app/index.ts";
 import { hostChild } from "../src/infra/host/index.ts";
 import { fileState } from "../src/infra/state/index.ts";
-import { bindTeamMail, clearTeamMail } from "../src/app/team/channel/index.ts";
+import { bindAgentTeamMail, clearAgentTeamMail } from "../src/app/agent-team/channel/index.ts";
 import { stopAllLiveRuns } from "../src/app/stop/index.ts";
 
 const modelId = process.env.PI_IT_MODEL?.trim() ?? "";
@@ -112,8 +112,8 @@ if (typeof gated === "string") throw new Error(gated);
 const sessionRuntime = createSessionRuntime({ child: hostChild, state: fileState });
 const store = sessionRuntime.store;
 const deps = sessionRuntime.deps;
-bindTeamMail(store);
-clearTeamMail();
+bindAgentTeamMail(store);
+clearAgentTeamMail();
 try {
 	const taskId = launchBackground(
 		store,
@@ -128,7 +128,7 @@ try {
 	assert.match(await waitDone(store, taskId, "task"), /LIVE_TASK_OK/);
 	console.log("task: LIVE_TASK_OK");
 
-	const startedTeam = await startTeamLaunch(
+	const startedAgentTeam = await startAgentTeamLaunch(
 		store,
 		{
 			prompt: "Reply with exactly LIVE_TEAM_OK. Do not call any tool.",
@@ -137,9 +137,9 @@ try {
 		ctx,
 		deps,
 	);
-	assert.equal(startedTeam.ok, true, startedTeam.ok ? "" : startedTeam.error);
-	if (!startedTeam.ok) throw new Error(startedTeam.error);
-	const legId = startedTeam.tasks[0]?.runId;
+	assert.equal(startedAgentTeam.ok, true, startedAgentTeam.ok ? "" : startedAgentTeam.error);
+	if (!startedAgentTeam.ok) throw new Error(startedAgentTeam.error);
+	const legId = startedAgentTeam.tasks[0]?.runId;
 	assert.ok(legId, "team leg has a run row");
 	if (legId) assert.match(await waitDone(store, legId, "team leg"), /LIVE_TEAM_OK/);
 	console.log("team: LIVE_TEAM_OK");
@@ -207,6 +207,6 @@ try {
 	console.log("LIVE_SMOKE_OK");
 } finally {
 	stopAllLiveRuns("live smoke");
-	clearTeamMail();
+	clearAgentTeamMail();
 	rmSync(dir, { recursive: true, force: true });
 }

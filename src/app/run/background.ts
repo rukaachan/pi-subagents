@@ -15,7 +15,7 @@ import type { StoppableSession } from "../live/index.ts";
 import { markStopped } from "../stop/index.ts";
 import { ledger, markKind } from "../session/index.ts";
 import { announceSettle } from "../live/index.ts";
-import { sweepMemberTasks } from "../team/board/index.ts";
+import { sweepMemberTasks } from "../agent-team/board/index.ts";
 import { runBackgroundAttempt, type AttemptResult } from "./background-attempt.ts";
 import { RetryPolicy, sleepUnlessStopped } from "../retry/index.ts";
 import type { RunKind, TaskRecord } from "../../domain/task/index.ts";

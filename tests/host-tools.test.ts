@@ -4,12 +4,12 @@ import { activateTools } from "../src/infra/host/session/index.ts";
 
 describe("child tool activation", () => {
 	it("adds the extra tool to an explicit list", () => {
-		assert.deepEqual(activateTools(["read", "edit"], ["Team"]), ["read", "edit", "Team"]);
-		assert.deepEqual(activateTools(["read", "Team"], ["Team"]), ["read", "Team"]);
+		assert.deepEqual(activateTools(["read", "edit"], ["AgentTeam"]), ["read", "edit", "AgentTeam"]);
+		assert.deepEqual(activateTools(["read", "AgentTeam"], ["AgentTeam"]), ["read", "AgentTeam"]);
 	});
 
 	it("uses a modifier when the subagent has no list", () => {
-		assert.deepEqual(activateTools(undefined, ["Team"]), ["+Team"]);
+		assert.deepEqual(activateTools(undefined, ["AgentTeam"]), ["+AgentTeam"]);
 		assert.equal(activateTools(undefined, []), undefined);
 	});
 });

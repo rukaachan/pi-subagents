@@ -90,7 +90,7 @@ function countRun(run: LaunchRun): string {
 const RUN_NAME: Record<LaunchRun["kind"], string> = {
 	delegate: "Delegate",
 	finish: "Finish",
-	team: "Team start",
+	"agent-team": "AgentTeam start",
 };
 
 export function renderRunTitle(run: LaunchRun): string {
@@ -127,8 +127,8 @@ export function renderRunReport(run: LaunchRun, query: ReportQuery): string {
 	);
 	if (legs.length === 0) {
 		const hint =
-			run.kind === "team"
-				? "Use /subagents team for the board."
+			run.kind === "agent-team"
+				? "Use /subagents agent-teams for the board."
 				: `Use /${run.kind} reports for the last result.`;
 		return `${title}\nNothing live. ${hint}`;
 	}

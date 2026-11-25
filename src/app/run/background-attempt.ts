@@ -21,9 +21,9 @@ import { checkReturn } from "../../domain/run/index.ts";
 import { journalWrite } from "../../telemetry/journal/index.ts";
 import type { ChildSessionPort } from "./child-port.ts";
 import { withGateJournal } from "../guards/index.ts";
-import { teamChildExtras } from "../team/child/index.ts";
-import { sweepMemberTasks } from "../team/board/index.ts";
-import { bindTeamMember } from "../team/channel/index.ts";
+import { agentTeamChildExtras } from "../agent-team/child/index.ts";
+import { sweepMemberTasks } from "../agent-team/board/index.ts";
+import { bindAgentTeamMember } from "../agent-team/channel/index.ts";
 import { windDownSignal } from "../guards/index.ts";
 import { applyReportBudget, effectiveBudget } from "../../domain/subagent/index.ts";
 import { registerLiveSession } from "../live/index.ts";
@@ -59,11 +59,11 @@ export interface AttemptDeps {
 export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptResult> {
 	const { rec, sub, prompt, cwd, ctx, kind, contract, live, holder, setStopHandle } = deps;
 	const gate = { open: true };
-	const team = teamChildExtras(sub.name, rec.taskId, gate);
-	const child = await deps.child.create(sub, cwd, ctx, withGateJournal(team));
-	const unbindMail = team
-		? bindTeamMember(
-				team.member,
+	const agentTeam = agentTeamChildExtras(sub.name, rec.taskId, gate);
+	const child = await deps.child.create(sub, cwd, ctx, withGateJournal(agentTeam));
+	const unbindMail = agentTeam
+		? bindAgentTeamMember(
+				agentTeam.member,
 				sub.name,
 				(text) => {
 					void child.session.steer(text).catch(() => {});

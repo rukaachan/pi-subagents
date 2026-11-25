@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { HYBRID_POLICY } from "../src/domain/policy/index.ts";
-import { DELEGATION_RULE, TEAM_LEAD_POLICY } from "../src/domain/policy/index.ts";
+import { DELEGATION_RULE, AGENT_TEAM_LEAD_POLICY } from "../src/domain/policy/index.ts";
 
 describe("hybrid policy", () => {
 	it("orders the ladder from local to team start", () => {
@@ -27,7 +27,7 @@ describe("hybrid policy", () => {
 	});
 
 	it("tells the lead how to fan out once the board is on", () => {
-		assert.match(TEAM_LEAD_POLICY, /Team \{ action: "start", prompt/);
-		assert.match(TEAM_LEAD_POLICY, /one task and one worker per leg/);
+		assert.match(AGENT_TEAM_LEAD_POLICY, /Team \{ action: "start", prompt/);
+		assert.match(AGENT_TEAM_LEAD_POLICY, /one task and one worker per leg/);
 	});
 });

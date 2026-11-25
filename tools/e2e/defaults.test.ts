@@ -59,11 +59,15 @@ async function command(rpc: PiRpc, text: string, pattern: RegExp): Promise<strin
 
 describe("e2e: shipped roster and defaults", () => {
 	it(
-		"/subagents team with no names runs every shipped subagent",
+		"/subagents agent-teams with no names runs every shipped subagent",
 		{ timeout: 120_000 },
 		async () => {
 			await scenario("default-team", async ({ rpc, home }) => {
-				const started = await command(rpc, "/subagents team E2E_DEFAULT", /Team started ·/);
+				const started = await command(
+					rpc,
+					"/subagents agent-teams E2E_DEFAULT",
+					/AgentTeam started ·/,
+				);
 				assert.match(started, /4 started · 2 queued/, "liveCap 4 queues the last two");
 				for (const name of STARTERS) assert.match(started, new RegExp(`\\b${name}\\b`));
 

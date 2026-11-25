@@ -8,19 +8,19 @@ import {
 	createSubagentAliasTool,
 	createTaskControlTool,
 	createTaskOutputTool,
-	createTeamMessageTool,
-	createTeamTool,
+	createAgentTeamMessageTool,
+	createAgentTeamTool,
 } from "../src/tools/index.ts";
 import { registerDelegateCommand, registerSubagentsCommand } from "../src/ui/commands/index.ts";
-import { teamEnabled } from "../src/app/team/board/index.ts";
+import { agentTeamEnabled } from "../src/app/agent-team/board/index.ts";
 import {
-	bindTeamMail,
-	clearTeamMail,
+	bindAgentTeamMail,
+	clearAgentTeamMail,
 	setLeadInbox,
-	TEAM_MESSAGE_CUSTOM_TYPE,
-} from "../src/app/team/channel/index.ts";
+	AGENT_TEAM_MESSAGE_CUSTOM_TYPE,
+} from "../src/app/agent-team/channel/index.ts";
 import { HYBRID_POLICY } from "../src/domain/policy/index.ts";
-import { TEAM_LEAD_POLICY } from "../src/domain/policy/index.ts";
+import { AGENT_TEAM_LEAD_POLICY } from "../src/domain/policy/index.ts";
 import { createSessionRuntime } from "../src/app/index.ts";
 import { reportStateError } from "../src/app/session/index.ts";
 import { stopAllLiveRuns } from "../src/app/stop/index.ts";
@@ -51,17 +51,18 @@ export function restoredCount(): number {
 
 export default function (pi: ExtensionAPI) {
 	const boot = readGlobalConfig(process.cwd());
-	bindTeamMail(store);
+	bindAgentTeamMail(store);
 	// The host shares two codemode workers with every session in the process.
 	applyCodemodeWorkerDefault(boot.liveCap ?? CODEMODE_WORKERS_DEFAULT);
 	pi.registerTool(createTaskTool(runtime));
 	pi.registerTool(createTaskOutputTool(runtime));
 	pi.registerTool(createTaskControlTool(runtime));
-	pi.registerTool(createTeamTool(runtime));
-	pi.registerTool(createTeamMessageTool(runtime));
+	pi.registerTool(createAgentTeamTool(runtime));
+	pi.registerTool(createAgentTeamMessageTool(runtime));
 	pi.on("before_agent_start", (event) => {
 		event.systemPromptOptions.sections.pi_subagents_hybrid = HYBRID_POLICY;
-		if (teamEnabled()) event.systemPromptOptions.sections.pi_subagents_team = TEAM_LEAD_POLICY;
+		if (agentTeamEnabled())
+			event.systemPromptOptions.sections.pi_subagents_team = AGENT_TEAM_LEAD_POLICY;
 		else delete event.systemPromptOptions.sections.pi_subagents_team;
 	});
 	registerSettledCard(pi);
@@ -74,13 +75,13 @@ export default function (pi: ExtensionAPI) {
 	let unwatchQueue: (() => void) | null = null;
 	pi.on("session_start", (_event, ctx) => {
 		const sessionId = ctx.sessionManager.getSessionId();
-		clearTeamMail();
+		clearAgentTeamMail();
 		runtime.begin(ctx.cwd, sessionId, (message) =>
 			reportStateError(message, (text) => ctx.ui.notify(`state save failed: ${text}`, "warning")),
 		);
 		setLeadInbox((text) => {
 			pi.sendMessage(
-				{ customType: TEAM_MESSAGE_CUSTOM_TYPE, content: text, display: true },
+				{ customType: AGENT_TEAM_MESSAGE_CUSTOM_TYPE, content: text, display: true },
 				{ deliverAs: "steer", triggerTurn: true },
 			);
 		});
@@ -125,7 +126,7 @@ export default function (pi: ExtensionAPI) {
 		}
 	});
 	pi.on("session_shutdown", (event) => {
-		clearTeamMail();
+		clearAgentTeamMail();
 		clearNotifySink();
 		unwatch?.();
 		unwatch = null;

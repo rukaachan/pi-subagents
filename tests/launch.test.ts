@@ -83,8 +83,8 @@ describe("parseLaunchArgs", () => {
 describe("default rosters", () => {
 	const all = ["code-reviewer", "explorer", "planner", "researcher", "tester", "worker"];
 
-	it("team start defaults to every discovered subagent", () => {
-		assert.deepEqual(defaultLegs("team", all), all);
+	it("agent-team start defaults to every discovered subagent", () => {
+		assert.deepEqual(defaultLegs("agent-team", all), all);
 	});
 
 	it("delegate defaults to explorer + worker", () => {
@@ -92,7 +92,7 @@ describe("default rosters", () => {
 	});
 
 	it("a named roster wins over the default and is deduped", () => {
-		assert.deepEqual(rosterFor("team", ["tester", "tester", "explorer"], all), [
+		assert.deepEqual(rosterFor("agent-team", ["tester", "tester", "explorer"], all), [
 			"tester",
 			"explorer",
 		]);

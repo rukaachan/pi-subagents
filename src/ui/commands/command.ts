@@ -17,12 +17,12 @@ import { subagentDetail } from "../view/run/index.ts";
 import type { TaskStorePort } from "../../domain/task/index.ts";
 import { scopeTasks } from "../../app/session/index.ts";
 import { parseLaunchArgs } from "../../domain/policy/index.ts";
-import { disableTeam, enableTeam } from "../../app/team/board/index.ts";
-import { startTeamLaunch } from "../../app/team/run/index.ts";
+import { disableAgentTeam, enableAgentTeam } from "../../app/agent-team/board/index.ts";
+import { startAgentTeamLaunch } from "../../app/agent-team/run/index.ts";
 import { startFinish } from "../../app/launch/index.ts";
 import type { AppDeps } from "../../app/index.ts";
 import { finishNotice } from "../view/run/index.ts";
-import { teamText } from "../view/workspace/index.ts";
+import { agentTeamText } from "../view/workspace/index.ts";
 
 export function registerSubagentsCommand(
 	pi: ExtensionAPI,
@@ -30,9 +30,9 @@ export function registerSubagentsCommand(
 	deps: AppDeps,
 ): void {
 	pi.registerCommand("subagents", {
-		description: "Mission control; list, tasks, team, finish, trash, new, or a name",
+		description: "Mission control; list, tasks, agent-teams, finish, trash, new, or a name",
 		getArgumentCompletions: (prefix) => {
-			const words = ["list", "new", "tasks", "trash", "team", "finish"];
+			const words = ["list", "new", "tasks", "trash", "agent-teams", "finish"];
 			try {
 				const found = discoverSubagents(process.cwd());
 				for (const sub of found.subagents) words.push(sub.name);
@@ -44,41 +44,45 @@ export function registerSubagentsCommand(
 		},
 		handler: async (args, ctx) => {
 			const raw = args.trim();
-			const query = raw.toLowerCase();
+			const first = (raw.split(/\s+/, 1)[0] ?? "").toLowerCase();
+			const teamWord = first === "agent-teams" || first === "agent-team" || first === "team";
+			const query = teamWord
+				? `agent-teams${raw.slice(first.length)}`.toLowerCase()
+				: raw.toLowerCase();
 
-			if (query === "team") {
+			if (query === "agent-teams") {
 				if (!ctx.hasUI) {
-					ctx.ui.notify(teamText(), "info");
+					ctx.ui.notify(agentTeamText(), "info");
 					return;
 				}
-				await openWorkspace(ctx, store, deps, "team");
+				await openWorkspace(ctx, store, deps, "agent-team");
 				return;
 			}
 
-			if (query === "team on") {
-				enableTeam(ctx.sessionManager.getSessionId());
-				ctx.ui.notify("Team mode on. New Task legs join the board.", "info");
+			if (query === "agent-teams on") {
+				enableAgentTeam(ctx.sessionManager.getSessionId());
+				ctx.ui.notify("Agent team mode on. New Task legs join the board.", "info");
 				return;
 			}
 
-			if (query === "team off") {
-				disableTeam();
-				ctx.ui.notify("Team mode off. Existing tasks stay.", "info");
+			if (query === "agent-teams off") {
+				disableAgentTeam();
+				ctx.ui.notify("Agent team mode off. Existing tasks stay.", "info");
 				return;
 			}
 
-			if (query === "team start") {
-				ctx.ui.notify("Add a prompt: /subagents team <prompt> [@a,@b]", "warning");
+			if (query === "agent-teams start") {
+				ctx.ui.notify("Add a prompt: /subagents agent-teams <prompt> [@a,@b]", "warning");
 				return;
 			}
 
-			if (query.startsWith("team ")) {
-				const parsed = parseLaunchArgs(raw.slice("team".length).trim());
+			if (query.startsWith("agent-teams ")) {
+				const parsed = parseLaunchArgs(raw.slice("agent-teams".length).trim());
 				if (!parsed.ok) {
-					ctx.ui.notify(`/subagents team: ${parsed.error}`, "warning");
+					ctx.ui.notify(`/subagents agent-teams: ${parsed.error}`, "warning");
 					return;
 				}
-				const result = await startTeamLaunch(
+				const result = await startAgentTeamLaunch(
 					store,
 					{
 						prompt: parsed.request.prompt,
@@ -97,7 +101,7 @@ export function registerSubagentsCommand(
 						? `\nWarning: ${result.warnings.join(" ")}`
 						: "";
 				ctx.ui.notify(
-					`Team started · ${result.started} started${result.queued ? ` · ${result.queued} queued` : ""}\n${rows}${warning}`,
+					`AgentTeam started · ${result.started} started${result.queued ? ` · ${result.queued} queued` : ""}\n${rows}${warning}`,
 					"info",
 				);
 				return;

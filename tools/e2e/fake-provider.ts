@@ -256,11 +256,11 @@ function answerFor(
 	if (latest && textOf(latest.content).includes("[subagent settled]")) return { text: "WOKEN" };
 
 	// A team leg sees the coordination block prepended to its task prompt.
-	const teamMatch = all.match(/\[team\] You are "([^"]+)"/);
-	if (latest && textOf(latest.content).includes("[team message]") && !teamMatch)
+	const agentTeamMatch = all.match(/\[agent-team\] You are "([^"]+)"/);
+	if (latest && textOf(latest.content).includes("[agent-team message]") && !agentTeamMatch)
 		return { text: "PING_WOKEN" };
-	if (teamMatch) {
-		const member = teamMatch[1] ?? "worker";
+	if (agentTeamMatch) {
+		const member = agentTeamMatch[1] ?? "worker";
 		const peer = member === "worker" ? "worker-2" : "worker";
 		const calls = toolCalls(messages);
 		const last = calls.at(-1);
@@ -268,21 +268,21 @@ function answerFor(
 			if (!last)
 				return {
 					tool: {
-						name: "Team",
+						name: "AgentTeam",
 						args: { action: "claim", task_id: "task-1", expected_revision: 1 },
 					},
 				};
-			if (last.name === "Team" && last.args.action === "claim")
+			if (last.name === "AgentTeam" && last.args.action === "claim")
 				return {
 					tool: {
-						name: "TeamMessage",
+						name: "AgentTeamMessage",
 						args: { action: "send", to: peer, text: "found the bug in parser" },
 					},
 				};
-			if (last.name === "TeamMessage" && last.args.action === "send")
+			if (last.name === "AgentTeamMessage" && last.args.action === "send")
 				return {
 					tool: {
-						name: "Team",
+						name: "AgentTeam",
 						args: {
 							action: "complete",
 							task_id: "task-1",
@@ -291,22 +291,23 @@ function answerFor(
 						},
 					},
 				};
-			if (last.name === "Team" && last.args.action === "complete") return { text: "MAIL_SENT" };
+			if (last.name === "AgentTeam" && last.args.action === "complete")
+				return { text: "MAIL_SENT" };
 		}
 		if (all.includes("E2E_MAIL_WAIT")) {
 			if (!last)
 				return {
 					tool: {
-						name: "Team",
+						name: "AgentTeam",
 						args: { action: "claim", task_id: "task-2", expected_revision: 1 },
 					},
 				};
-			if (last.name === "Team" && last.args.action === "claim")
-				return { tool: { name: "TeamMessage", args: { action: "wait", to: peer } } };
-			if (last.name === "TeamMessage" && last.args.action === "wait")
+			if (last.name === "AgentTeam" && last.args.action === "claim")
+				return { tool: { name: "AgentTeamMessage", args: { action: "wait", to: peer } } };
+			if (last.name === "AgentTeamMessage" && last.args.action === "wait")
 				return {
 					tool: {
-						name: "Team",
+						name: "AgentTeam",
 						args: {
 							action: "complete",
 							task_id: "task-2",
@@ -315,28 +316,28 @@ function answerFor(
 						},
 					},
 				};
-			if (last.name === "Team" && last.args.action === "complete")
+			if (last.name === "AgentTeam" && last.args.action === "complete")
 				return { text: "MAIL_RECEIVED: found the bug in parser" };
 		}
 		if (all.includes("E2E_PING")) {
 			if (!last)
 				return {
 					tool: {
-						name: "Team",
+						name: "AgentTeam",
 						args: { action: "claim", task_id: "task-1", expected_revision: 1 },
 					},
 				};
-			if (last.name === "Team" && last.args.action === "claim")
+			if (last.name === "AgentTeam" && last.args.action === "claim")
 				return {
 					tool: {
-						name: "TeamMessage",
+						name: "AgentTeamMessage",
 						args: { action: "send", to: "lead", text: "ping from the worker" },
 					},
 				};
-			if (last.name === "TeamMessage" && last.args.action === "send")
+			if (last.name === "AgentTeamMessage" && last.args.action === "send")
 				return {
 					tool: {
-						name: "Team",
+						name: "AgentTeam",
 						args: {
 							action: "complete",
 							task_id: "task-1",
@@ -345,17 +346,18 @@ function answerFor(
 						},
 					},
 				};
-			if (last.name === "Team" && last.args.action === "complete") return { text: "PING_SENT" };
+			if (last.name === "AgentTeam" && last.args.action === "complete")
+				return { text: "PING_SENT" };
 		}
-		const failing = all.includes("E2E_TEAM_FAIL");
+		const failing = all.includes("E2E_AGENT_TEAM_FAIL");
 		const call = lastToolCall(messages);
 		const assigned = boardTask(all);
-		if (toolResult(messages) && call?.name === "Team") {
+		if (toolResult(messages) && call?.name === "AgentTeam") {
 			if (call.args.action === "claim") {
 				if (failing) return { finish: "content_filter" };
 				return {
 					tool: {
-						name: "Team",
+						name: "AgentTeam",
 						args: {
 							action: "complete",
 							task_id: assigned,
@@ -369,7 +371,7 @@ function answerFor(
 		}
 		return {
 			tool: {
-				name: "Team",
+				name: "AgentTeam",
 				args: { action: "claim", task_id: assigned, expected_revision: 1 },
 			},
 		};
@@ -415,11 +417,11 @@ function answerFor(
 	}
 	if (hasToken(prompt, "E2E_HYBRID_START")) {
 		const calls = toolCalls(messages);
-		const started = calls.some((call) => call.name === "Team" && call.args.action === "start");
+		const started = calls.some((call) => call.name === "AgentTeam" && call.args.action === "start");
 		if (!started)
 			return {
 				tool: {
-					name: "Team",
+					name: "AgentTeam",
 					args: {
 						action: "start",
 						prompt: "E2E_HYBRID_START",
@@ -429,13 +431,15 @@ function answerFor(
 			};
 		return { text: "HYBRID_STARTED" };
 	}
-	if (hasToken(prompt, "E2E_TEAM_MAIL")) {
+	if (hasToken(prompt, "E2E_AGENT_TEAM_MAIL")) {
 		const calls = toolCalls(messages);
-		const creates = calls.filter((call) => call.name === "Team" && call.args.action === "create");
+		const creates = calls.filter(
+			(call) => call.name === "AgentTeam" && call.args.action === "create",
+		);
 		if (creates.length === 0)
 			return {
 				tool: {
-					name: "Team",
+					name: "AgentTeam",
 					args: {
 						action: "create",
 						subject: "mail A",
@@ -447,7 +451,7 @@ function answerFor(
 		if (creates.length === 1)
 			return {
 				tool: {
-					name: "Team",
+					name: "AgentTeam",
 					args: {
 						action: "create",
 						subject: "mail B",
@@ -482,21 +486,23 @@ function answerFor(
 				},
 			};
 		const waits = calls.filter(
-			(call) => call.name === "TeamMessage" && call.args.action === "wait",
+			(call) => call.name === "AgentTeamMessage" && call.args.action === "wait",
 		);
 		if (waits.length === 0)
-			return { tool: { name: "TeamMessage", args: { action: "wait", to: "worker" } } };
+			return { tool: { name: "AgentTeamMessage", args: { action: "wait", to: "worker" } } };
 		if (waits.length === 1)
-			return { tool: { name: "TeamMessage", args: { action: "wait", to: "worker-2" } } };
+			return { tool: { name: "AgentTeamMessage", args: { action: "wait", to: "worker-2" } } };
 		return { text: "LEAD_SAW_MAIL" };
 	}
-	if (hasToken(prompt, "E2E_TEAM_PING")) {
+	if (hasToken(prompt, "E2E_AGENT_TEAM_PING")) {
 		const calls = toolCalls(messages);
-		const creates = calls.filter((call) => call.name === "Team" && call.args.action === "create");
+		const creates = calls.filter(
+			(call) => call.name === "AgentTeam" && call.args.action === "create",
+		);
 		if (creates.length === 0)
 			return {
 				tool: {
-					name: "Team",
+					name: "AgentTeam",
 					args: { action: "create", subject: "ping task", description: "" },
 				},
 			};
@@ -515,12 +521,12 @@ function answerFor(
 			};
 		return { text: "PING_WAITING" };
 	}
-	const teamFail = prompt.includes("E2E_TEAM_FAIL");
-	if (hasToken(prompt, "E2E_TEAM") || teamFail) {
+	const agentTeamFail = prompt.includes("E2E_AGENT_TEAM_FAIL");
+	if (hasToken(prompt, "E2E_AGENT_TEAM") || agentTeamFail) {
 		if (!toolResult(messages)) {
 			return {
 				tool: {
-					name: "Team",
+					name: "AgentTeam",
 					args: {
 						action: "create",
 						subject: "E2E task",
@@ -531,14 +537,14 @@ function answerFor(
 			};
 		}
 		const call = lastToolCall(messages);
-		if (call?.name === "Team") {
+		if (call?.name === "AgentTeam") {
 			return {
 				tool: {
 					name: "Task",
 					args: {
 						description: "e2e team",
 						subagent_type: "worker",
-						prompt: teamFail ? "Claim task-1 E2E_TEAM_FAIL" : "Claim task-1",
+						prompt: agentTeamFail ? "Claim task-1 E2E_AGENT_TEAM_FAIL" : "Claim task-1",
 						run_in_background: true,
 					},
 				},
@@ -836,7 +842,7 @@ export function startFakeProvider(opts: FakeProviderOptions = {}): Promise<FakeP
 		const answer = answerFor(messages, state, opts);
 		const allText = messages.map((message) => textOf(message.content)).join("\n");
 		if (
-			allText.includes('[team] You are "') &&
+			allText.includes('[agent-team] You are "') &&
 			/E2E_MAIL_SEND|E2E_MAIL_WAIT|E2E_PING/.test(allText)
 		)
 			answer.delayMs ??= 150;

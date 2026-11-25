@@ -3,7 +3,7 @@
  */
 
 export const DELEGATION_RULE =
-	"Delegate at the smallest level that fits: one focused job is one Task; two independent roles use parallel; 3+ files, 2+ modules, about 8 tool calls, or a command over 2 minutes use the ladder; keep a one-file change or a decision local. Three or more pieces with shared state or broad fan-out use Team start with a prompt. End your turn while waiting.";
+	"Delegate at the smallest level that fits: one focused job is one Task; two independent roles use parallel; 3+ files, 2+ modules, about 8 tool calls, or a command over 2 minutes use the ladder; keep a one-file change or a decision local. Three or more pieces with shared state or broad fan-out use AgentTeam start with a prompt. End your turn while waiting.";
 
 export const taskMeta = {
 	name: "Task",

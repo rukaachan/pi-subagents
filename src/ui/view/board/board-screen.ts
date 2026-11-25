@@ -14,7 +14,7 @@ export interface BoardRender {
 	height: number;
 	cursor: number;
 	theme: Pick<Theme, "fg" | "bold">;
-	team?: { open: number; done: number; enabled: boolean };
+	agentTeam?: { open: number; done: number; enabled: boolean };
 	/** The last few steps of a run; only asked for the selected row. */
 	activity?: (taskId: string) => readonly string[] | undefined;
 	/** Stopped and failed runs stay collapsed until the user asks for them. */
@@ -118,8 +118,8 @@ export function renderBoard(rows: BoardRow[], opts: BoardRender): string[] {
 	const failed = opts.hidden?.failed ?? rows.filter((r) => r.section === "failed").length;
 	const stoppedPart = stopped > 0 ? ` · ${stopped} stopped` : "";
 	const counts = `${live} live · ${done} done${stoppedPart} · ${failed} failed`;
-	const team = opts.team ? ` · team ${opts.team.open} open` : "";
-	const title = `${theme.bold("Mission control")}  ${theme.fg("muted", counts + team)}`;
+	const agentTeam = opts.agentTeam ? ` · agent team ${opts.agentTeam.open} open` : "";
+	const title = `${theme.bold("Mission control")}  ${theme.fg("muted", counts + agentTeam)}`;
 	const rule = theme.fg("borderMuted", "─".repeat(Math.max(1, width)));
 	const hint = theme.fg("dim", boardHint(rows, cursor, opts.hidden));
 	const box = hintFrame(hint, width, wide ? listWidth + 1 : undefined, theme);
@@ -137,7 +137,7 @@ export type BoardAction =
 
 export interface BoardViewDeps {
 	rows: () => BoardRow[];
-	team?: () => { open: number; done: number; enabled: boolean };
+	agentTeam?: () => { open: number; done: number; enabled: boolean };
 	height: () => number;
 	theme: BoardRender["theme"];
 	render: () => void;
@@ -207,7 +207,7 @@ export function createBoardView(deps: BoardViewDeps): BoardView {
 				height: deps.height(),
 				cursor,
 				theme: deps.theme,
-				...(deps.team ? { team: deps.team() } : {}),
+				...(deps.agentTeam ? { agentTeam: deps.agentTeam() } : {}),
 			});
 		},
 

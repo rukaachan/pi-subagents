@@ -6,25 +6,25 @@ import { copyToClipboard, type ExtensionCommandContext } from "@earendil-works/p
 import type { AppDeps } from "../../../app/index.ts";
 import { inModal } from "../../../app/stop/index.ts";
 import { liveSession } from "../../../app/live/index.ts";
-import { liveMember } from "../../../app/team/channel/index.ts";
-import { MAX_TEAM_TASKS } from "../../../domain/team/index.ts";
+import { liveMember } from "../../../app/agent-team/channel/index.ts";
+import { MAX_AGENT_TEAM_TASKS } from "../../../domain/agent-team/index.ts";
 import {
-	disableTeam,
-	enableTeam,
+	disableAgentTeam,
+	enableAgentTeam,
 	taskList,
-	teamEnabled,
-	teamSummary,
-} from "../../../app/team/board/index.ts";
+	agentTeamEnabled,
+	agentTeamSummary,
+} from "../../../app/agent-team/board/index.ts";
 import { retryTask, steerTask, stopTaskById } from "../../../app/run/index.ts";
-import { linkedRun } from "../../../app/team/board/index.ts";
+import { linkedRun } from "../../../app/agent-team/board/index.ts";
 import { startFinish } from "../../../app/launch/index.ts";
 import { scopeTasks, type TaskScope } from "../../../app/session/index.ts";
 import type { TaskStorePort } from "../../../domain/task/index.ts";
 import { buildBoard, type BoardRow } from "../../view/board/index.ts";
 import { taskRow } from "../../view/text/index.ts";
 import { recentSteps } from "./task-list.ts";
-import { buildTeamRows, type TeamRow } from "../../view/workspace/index.ts";
-import { teamText } from "../../view/workspace/index.ts";
+import { buildAgentTeamRows, type AgentTeamRow } from "../../view/workspace/index.ts";
+import { agentTeamText } from "../../view/workspace/index.ts";
 import {
 	workspaceHeight,
 	type WorkspaceAction,
@@ -34,7 +34,7 @@ import {
 import { createWorkspaceView } from "../../view/workspace/index.ts";
 import { finishNotice } from "../../view/run/index.ts";
 import { openSessionView } from "../../view/session/index.ts";
-import { runTeamAction } from "./team-actions.ts";
+import { runAgentTeamAction } from "./agent-team-actions.ts";
 
 const RESERVED_ROWS = 8;
 
@@ -46,8 +46,10 @@ function runsOf(store: TaskStorePort, scope: TaskScope): BoardRow[] {
 	return buildBoard(scopeTasks(store.list(), scope), { live: (id) => !!liveSession(id) });
 }
 
-function teamRows(): TeamRow[] {
-	return buildTeamRows(taskList({ limit: MAX_TEAM_TASKS }), (name) => Boolean(liveMember(name)));
+function agentTeamRows(): AgentTeamRow[] {
+	return buildAgentTeamRows(taskList({ limit: MAX_AGENT_TEAM_TASKS }), (name) =>
+		Boolean(liveMember(name)),
+	);
 }
 
 function dataOf(
@@ -57,9 +59,9 @@ function dataOf(
 ): WorkspaceData {
 	return {
 		runs,
-		team: teamRows(),
-		teamEnabled: teamEnabled(),
-		summary: teamSummary(),
+		agentTeam: agentTeamRows(),
+		agentTeamEnabled: agentTeamEnabled(),
+		summary: agentTeamSummary(),
 	};
 }
 
@@ -99,16 +101,16 @@ function mountWorkspace(
 				showHidden = !showHidden;
 				tui.requestRender();
 			},
-			team: teamRows,
-			teamEnabled,
-			summary: teamSummary,
+			agentTeam: agentTeamRows,
+			agentTeamEnabled,
+			summary: agentTeamSummary,
 			height: () => {
 				const data = dataOf(store, scope, runs());
 				return Math.max(
 					6,
 					Math.min(
 						tui.terminal.rows - RESERVED_ROWS,
-						Math.max(workspaceHeight("runs", data), workspaceHeight("team", data)),
+						Math.max(workspaceHeight("runs", data), workspaceHeight("agent-team", data)),
 					),
 				);
 			},
@@ -171,7 +173,7 @@ async function runRunsAction(
 function plainWorkspace(store: TaskStorePort, scope: TaskScope): string {
 	const runs = scopeTasks(store.list(), scope).toReversed();
 	const runText = runs.length === 0 ? "Runs: none this session." : runs.map(taskRow).join("\n");
-	return `${runText}\n\n${teamText()}`;
+	return `${runText}\n\n${agentTeamText()}`;
 }
 
 export async function openWorkspace(
@@ -189,31 +191,31 @@ export async function openWorkspace(
 	for (;;) {
 		const action = await inModal(() => mountWorkspace(ctx, store, scope, tab));
 		if (!action || action.kind === "close") return;
-		if (action.kind === "team-toggle") {
-			if (teamEnabled()) {
-				disableTeam();
-				ctx.ui.notify("Team mode off. Existing tasks stay.", "info");
+		if (action.kind === "agent-team-toggle") {
+			if (agentTeamEnabled()) {
+				disableAgentTeam();
+				ctx.ui.notify("Agent team mode off. Existing tasks stay.", "info");
 			} else {
-				enableTeam(ctx.sessionManager.getSessionId());
-				ctx.ui.notify("Team mode on. New Task legs join the board.", "info");
+				enableAgentTeam(ctx.sessionManager.getSessionId());
+				ctx.ui.notify("Agent team mode on. New Task legs join the board.", "info");
 			}
-			tab = "team";
+			tab = "agent-team";
 			continue;
 		}
-		if (action.kind === "team-open-run") {
+		if (action.kind === "agent-team-open-run") {
 			const linked = linkedRun(store, action.taskId);
 			if (!linked.ok) {
 				ctx.ui.notify(linked.error, "info");
-				tab = "team";
+				tab = "agent-team";
 				continue;
 			}
 			await openSessionView(ctx, linked.rec);
-			tab = "team";
+			tab = "agent-team";
 			continue;
 		}
-		if (action.kind.startsWith("team-")) {
-			await runTeamAction(action, ctx, store, deps);
-			tab = "team";
+		if (action.kind.startsWith("agent-team-")) {
+			await runAgentTeamAction(action, ctx, store, deps);
+			tab = "agent-team";
 			continue;
 		}
 		if (action.kind === "finish") {

@@ -3,7 +3,7 @@
  */
 
 import { notifySettled } from "../../telemetry/notify/index.ts";
-import { sweepMemberTasks } from "../team/board/index.ts";
+import { sweepMemberTasks } from "../agent-team/board/index.ts";
 import { capDelivery } from "../../domain/run/index.ts";
 import type { TaskRecord } from "../../domain/task/index.ts";
 
@@ -14,10 +14,10 @@ import type { TaskRecord } from "../../domain/task/index.ts";
 export function announceSettle(
 	rec: TaskRecord,
 	parentSessionId: string,
-	teamKey = rec.taskId,
+	agentTeamKey = rec.taskId,
 ): boolean {
 	const usage = rec.result?.usage;
-	const sweep = sweepMemberTasks(teamKey, rec.status === "done", Date.now(), rec.error);
+	const sweep = sweepMemberTasks(agentTeamKey, rec.status === "done", Date.now(), rec.error);
 	const report =
 		rec.status === "done" && !rec.fullDelivered && rec.result
 			? capDelivery(rec.result.text)
@@ -37,7 +37,7 @@ export function announceSettle(
 		error: rec.status === "error" ? rec.error : undefined,
 		parentSessionId,
 		delivered: report !== undefined,
-		...(sweep.released.length || sweep.open.length ? { team: sweep } : {}),
+		...(sweep.released.length || sweep.open.length ? { agentTeam: sweep } : {}),
 	});
 	if (!sent) rec.fullDelivered = wasDelivered;
 	return sent;

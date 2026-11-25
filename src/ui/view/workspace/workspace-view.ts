@@ -4,7 +4,7 @@
 
 import { Key, matchesKey } from "@earendil-works/pi-tui";
 import type { BoardRow } from "../board/index.ts";
-import type { TeamRow } from "./team-screen.ts";
+import type { AgentTeamRow } from "./agent-team-screen.ts";
 import {
 	renderWorkspace,
 	type WorkspaceAction,
@@ -16,8 +16,8 @@ import {
 export interface WorkspaceViewDeps {
 	tab: WorkspaceTab;
 	runs: () => BoardRow[];
-	team: () => TeamRow[];
-	teamEnabled: () => boolean;
+	agentTeam: () => AgentTeamRow[];
+	agentTeamEnabled: () => boolean;
 	summary: () => { open: number; done: number; enabled: boolean };
 	height: () => number;
 	activity?: (taskId: string) => readonly string[] | undefined;
@@ -43,7 +43,7 @@ const POLL_MS = 1000;
 export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 	let tab = deps.tab;
 	let runsCursor = 0;
-	let teamCursor = 0;
+	let agentTeamCursor = 0;
 	let closed = false;
 	let lastKey = "";
 	let timer: ReturnType<typeof setInterval> | undefined;
@@ -53,19 +53,19 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 		timer.unref?.();
 	}
 
-	function rows(): readonly (BoardRow | TeamRow)[] {
-		return tab === "runs" ? deps.runs() : deps.team();
+	function rows(): readonly (BoardRow | AgentTeamRow)[] {
+		return tab === "runs" ? deps.runs() : deps.agentTeam();
 	}
 
-	function current(): BoardRow | TeamRow | undefined {
-		return rows()[tab === "runs" ? runsCursor : teamCursor];
+	function current(): BoardRow | AgentTeamRow | undefined {
+		return rows()[tab === "runs" ? runsCursor : agentTeamCursor];
 	}
 
 	function data(): WorkspaceData {
 		return {
 			runs: deps.runs(),
-			team: deps.team(),
-			teamEnabled: deps.teamEnabled(),
+			agentTeam: deps.agentTeam(),
+			agentTeamEnabled: deps.agentTeamEnabled(),
 			summary: deps.summary(),
 		};
 	}
@@ -76,13 +76,13 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 		return [
 			tab,
 			runsCursor,
-			teamCursor,
-			all.teamEnabled,
+			agentTeamCursor,
+			all.agentTeamEnabled,
 			`${hidden?.failed ?? 0}:${hidden?.stopped ?? 0}:${hidden?.hidden ? 1 : 0}`,
 			all.runs
 				.map((row) => `${row.taskId}:${row.section}:${row.turns}:${row.elapsedSec}`)
 				.join("|"),
-			all.team
+			all.agentTeam
 				.map(
 					(row) =>
 						`${row.view.task.id}:${row.view.task.revision}:${row.view.task.status}:${row.live ? 1 : 0}`,
@@ -115,7 +115,7 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 		const list = rows();
 		if (list.length === 0) return;
 		if (tab === "runs") runsCursor = Math.max(0, Math.min(runsCursor + delta, list.length - 1));
-		else teamCursor = Math.max(0, Math.min(teamCursor + delta, list.length - 1));
+		else agentTeamCursor = Math.max(0, Math.min(agentTeamCursor + delta, list.length - 1));
 		sync();
 	}
 
@@ -144,36 +144,36 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 		if (key === "c") return emit({ kind: "copy", taskId: row.taskId });
 	}
 
-	function handleTeam(key: string): void {
-		const row = current() as TeamRow | undefined;
+	function handleAgentTeam(key: string): void {
+		const row = current() as AgentTeamRow | undefined;
 		const taskId = row?.view.task.id;
 		if (key === "g") {
-			teamCursor = 0;
+			agentTeamCursor = 0;
 			return sync();
 		}
 		if (key === "G") {
-			teamCursor = Math.max(0, deps.team().length - 1);
+			agentTeamCursor = Math.max(0, deps.agentTeam().length - 1);
 			return sync();
 		}
-		if (key === "t") return emit({ kind: "team-toggle" });
-		if (key === "n") return emit({ kind: "team-new" });
-		if (key === "s") return emit({ kind: "team-start" });
+		if (key === "t") return emit({ kind: "agent-team-toggle" });
+		if (key === "n") return emit({ kind: "agent-team-new" });
+		if (key === "s") return emit({ kind: "agent-team-start" });
 		if (!taskId) return;
-		if (matchesKey(key, Key.enter)) return emit({ kind: "team-detail", taskId });
-		if (key === "o") return emit({ kind: "team-open-run", taskId });
-		if (key === "e") return emit({ kind: "team-edit", taskId });
-		if (key === "a") return emit({ kind: "team-assign", taskId });
-		if (key === "c") return emit({ kind: "team-claim", taskId });
-		if (key === "r") return emit({ kind: "team-release", taskId });
-		if (key === "x") return emit({ kind: "team-complete", taskId });
-		if (key === "d") return emit({ kind: "team-delete", taskId });
+		if (matchesKey(key, Key.enter)) return emit({ kind: "agent-team-detail", taskId });
+		if (key === "o") return emit({ kind: "agent-team-open-run", taskId });
+		if (key === "e") return emit({ kind: "agent-team-edit", taskId });
+		if (key === "a") return emit({ kind: "agent-team-assign", taskId });
+		if (key === "c") return emit({ kind: "agent-team-claim", taskId });
+		if (key === "r") return emit({ kind: "agent-team-release", taskId });
+		if (key === "x") return emit({ kind: "agent-team-complete", taskId });
+		if (key === "d") return emit({ kind: "agent-team-delete", taskId });
 	}
 
 	return {
 		render(width: number): string[] {
 			const all = data();
 			if (tab === "runs") runsCursor = Math.max(0, Math.min(runsCursor, all.runs.length - 1));
-			else teamCursor = Math.max(0, Math.min(teamCursor, all.team.length - 1));
+			else agentTeamCursor = Math.max(0, Math.min(agentTeamCursor, all.agentTeam.length - 1));
 			lastKey = keyOf();
 			return renderWorkspace({
 				...all,
@@ -181,7 +181,7 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 				width,
 				height: deps.height(),
 				runsCursor,
-				teamCursor,
+				agentTeamCursor,
 				theme: deps.theme,
 				activity: deps.activity,
 				...(deps.hidden ? { hidden: deps.hidden() } : {}),
@@ -192,11 +192,11 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 			if (closed) return;
 			if (matchesKey(key, Key.escape) || key === "\x03") return emit({ kind: "close" });
 			if (matchesKey(key, Key.tab)) {
-				switchTab(tab === "runs" ? "team" : "runs");
+				switchTab(tab === "runs" ? "agent-team" : "runs");
 				return;
 			}
 			if (key === "1") return switchTab("runs");
-			if (key === "2") return switchTab("team");
+			if (key === "2") return switchTab("agent-team");
 			if (key === "f") return emit({ kind: "finish" });
 			if (key === "e" && tab === "runs" && hiddenTotal()) {
 				deps.toggleHidden?.();
@@ -206,7 +206,7 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 			if (matchesKey(key, Key.up) || key === "k") return move(-1);
 			if (matchesKey(key, Key.down) || key === "j") return move(1);
 			if (tab === "runs") handleRuns(key);
-			else handleTeam(key);
+			else handleAgentTeam(key);
 		},
 
 		sync,

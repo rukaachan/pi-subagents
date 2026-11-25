@@ -12,7 +12,12 @@ import {
 } from "../src/ui/view/workspace/index.ts";
 
 function empty(): WorkspaceData {
-	return { runs: [], team: [], teamEnabled: false, summary: { open: 0, done: 0, enabled: false } };
+	return {
+		runs: [],
+		agentTeam: [],
+		agentTeamEnabled: false,
+		summary: { open: 0, done: 0, enabled: false },
+	};
 }
 
 describe("failed runs", () => {
@@ -25,7 +30,7 @@ describe("failed runs", () => {
 			width: 90,
 			height: 8,
 			runsCursor: 0,
-			teamCursor: 0,
+			agentTeamCursor: 0,
 			theme: plainTheme() as never,
 			hidden: { failed: 1, stopped: 0, hidden: true },
 		});
@@ -43,7 +48,7 @@ describe("failed runs", () => {
 			width: 90,
 			height: workspaceHeight("runs", shown),
 			runsCursor: 0,
-			teamCursor: 0,
+			agentTeamCursor: 0,
 			theme: plainTheme() as never,
 			hidden: { failed: 1, stopped: 0, hidden: false },
 		});
@@ -64,7 +69,7 @@ describe("failed runs", () => {
 			width: 90,
 			height: 8,
 			runsCursor: 0,
-			teamCursor: 0,
+			agentTeamCursor: 0,
 			theme: plainTheme() as never,
 			hidden: { failed: 0, stopped: 1, hidden: true },
 		});
@@ -81,8 +86,8 @@ describe("failed runs", () => {
 		const v = createWorkspaceView({
 			tab: "runs",
 			runs: () => [],
-			team: () => [],
-			teamEnabled: () => false,
+			agentTeam: () => [],
+			agentTeamEnabled: () => false,
 			summary: () => ({ open: 0, done: 0, enabled: false }),
 			height: () => 8,
 			theme: plainTheme() as never,

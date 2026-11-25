@@ -35,7 +35,7 @@ type ChildExtensionHost = {
 };
 
 export interface ChildExtras {
-	/** Extra custom tools, e.g. the teammate's Team tool. */
+	/** Extra custom tools, e.g. the teammate's AgentTeam tool. */
 	tools?: ToolDefinition[];
 	/** Names to activate after session creation, without narrowing the subagent's tool list. */
 	activate?: string[];

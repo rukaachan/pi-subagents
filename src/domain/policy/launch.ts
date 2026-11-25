@@ -2,7 +2,7 @@
  * pi-subagents: the /delegate, finish, and team start argument grammar.
  */
 
-export type LaunchKind = "delegate" | "finish" | "team";
+export type LaunchKind = "delegate" | "finish" | "agent-team";
 
 /** `/delegate` without a roster runs these two. */
 export const DELEGATE_LEGS = ["explorer", "worker"] as const;

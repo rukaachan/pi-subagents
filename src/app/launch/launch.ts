@@ -51,7 +51,7 @@ export type LaunchStart =
 const latest: Record<LaunchKind, LaunchRun | null> = {
 	delegate: null,
 	finish: null,
-	team: null,
+	"agent-team": null,
 };
 const closers = new Set<() => void>();
 const openRuns = new Set<LaunchRun>();

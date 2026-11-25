@@ -26,9 +26,9 @@ import {
 } from "../../domain/run/index.ts";
 import type { ChildDeps } from "./child-port.ts";
 import { withGateJournal } from "../guards/index.ts";
-import { teamChildExtras } from "../team/child/index.ts";
-import { bindTeamMember } from "../team/channel/index.ts";
-import { sweepMemberTasks } from "../team/board/index.ts";
+import { agentTeamChildExtras } from "../agent-team/child/index.ts";
+import { bindAgentTeamMember } from "../agent-team/channel/index.ts";
+import { sweepMemberTasks } from "../agent-team/board/index.ts";
 import { liveStop } from "../live/index.ts";
 import { RunStopped, stoppedRowNote } from "../../domain/task/index.ts";
 
@@ -48,18 +48,18 @@ export async function runSubagent(
 	contract: readonly string[] = [],
 ): Promise<SubagentRunResult> {
 	ledger.begin(sub.name);
-	const teamKey = attach?.taskId;
+	const agentTeamKey = attach?.taskId;
 	const gate = { open: true };
-	const team = teamChildExtras(sub.name, teamKey, gate);
-	const child = await deps.child.create(sub, cwd, ctx, withGateJournal(team));
-	const unbindMail = team
-		? bindTeamMember(
-				team.member,
+	const agentTeam = agentTeamChildExtras(sub.name, agentTeamKey, gate);
+	const child = await deps.child.create(sub, cwd, ctx, withGateJournal(agentTeam));
+	const unbindMail = agentTeam
+		? bindAgentTeamMember(
+				agentTeam.member,
 				sub.name,
 				(text) => {
 					void child.session.steer(text).catch(() => {});
 				},
-				teamKey,
+				agentTeamKey,
 			)
 		: () => {};
 	const trackKey = attach?.taskId ?? runKey;
@@ -78,7 +78,7 @@ export async function runSubagent(
 		gate.open = false;
 		if (attach) attach.history = snapshotHistory(child.session);
 		ledger.finish(sub.name, "stopped");
-		sweepMemberTasks(teamKey, false, Date.now(), "stopped");
+		sweepMemberTasks(agentTeamKey, false, Date.now(), "stopped");
 		stop?.({ status: "interrupted", error: stoppedRowNote(why) });
 	});
 	const budgetStop = installRunBudget(child.session, effectiveBudget(sub.budget));
@@ -158,7 +158,7 @@ export async function runSubagent(
 				? why.message
 				: String(why);
 		ledger.finish(sub.name, "error");
-		sweepMemberTasks(teamKey, false, Date.now(), message);
+		sweepMemberTasks(agentTeamKey, false, Date.now(), message);
 		stop?.({ status: "error", error: message, promptChars: task.length });
 		throw why;
 	} finally {
@@ -169,6 +169,6 @@ export async function runSubagent(
 		stop?.();
 		if (attach) attach.history = snapshotHistory(child.session);
 		child.session.dispose();
-		if (live.wasStopped()) sweepMemberTasks(teamKey, false, Date.now(), "stopped");
+		if (live.wasStopped()) sweepMemberTasks(agentTeamKey, false, Date.now(), "stopped");
 	}
 }

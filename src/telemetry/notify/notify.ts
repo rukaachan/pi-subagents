@@ -22,7 +22,7 @@ export interface SettleNotice {
 	/** True when this notice carries the report body. */
 	delivered?: boolean;
 	/** Board tasks this run freed, or left claimed. */
-	team?: { released: string[]; open: string[] };
+	agentTeam?: { released: string[]; open: string[] };
 }
 
 export interface SettleDetails {
@@ -39,7 +39,7 @@ export interface SettleDetails {
 	runId?: string;
 	report?: string;
 	error?: string;
-	team?: { released: string[]; open: string[] };
+	agentTeam?: { released: string[]; open: string[] };
 }
 
 export interface SettleMessage {
@@ -98,8 +98,8 @@ export function settleMessage(notice: SettleNotice): SettleMessage {
 		...(notice.runId ? { runId: notice.runId } : {}),
 		...(notice.report ? { report: notice.report } : {}),
 		...(notice.error ? { error: notice.error } : {}),
-		...(notice.team && (notice.team.released.length || notice.team.open.length)
-			? { team: notice.team }
+		...(notice.agentTeam && (notice.agentTeam.released.length || notice.agentTeam.open.length)
+			? { agentTeam: notice.agentTeam }
 			: {}),
 	};
 
@@ -114,8 +114,8 @@ export function settleMessage(notice: SettleNotice): SettleMessage {
 	if (costText) head.push(costText);
 
 	const body: string[] = [head.join(" · ")];
-	const released = notice.team?.released ?? [];
-	const open = notice.team?.open ?? [];
+	const released = notice.agentTeam?.released ?? [];
+	const open = notice.agentTeam?.open ?? [];
 	if (released.length > 0) {
 		body.push(
 			"",

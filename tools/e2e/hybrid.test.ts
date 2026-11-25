@@ -10,7 +10,7 @@ import { createE2EHome, type E2EHome } from "./home.ts";
 import { startRpc } from "./rpc.ts";
 
 interface Saved {
-	team?: { enabled?: boolean; tasks?: Array<{ status: string }> };
+	agentTeam?: { enabled?: boolean; tasks?: Array<{ status: string }> };
 	tasks?: Array<{ status: string }>;
 }
 
@@ -82,7 +82,7 @@ describe("e2e: hybrid policy", () => {
 			assert.ok(body.includes("Hybrid delegation: pick the smallest level"));
 			assert.ok(body.includes("Team { action:"));
 			assert.ok(body.includes("one worker per leg"));
-			assert.ok(!body.includes("Agent Team mode is on"));
+			assert.ok(!body.includes("Agent Agent team mode is on"));
 		});
 	});
 
@@ -92,8 +92,8 @@ describe("e2e: hybrid policy", () => {
 			await waitFor(() => hooks(home) >= 1, "one child hook");
 			await waitFor(() => saved(home).tasks?.length === 1, "one task row saved");
 			const state = saved(home);
-			assert.equal(state.team?.enabled, false);
-			assert.deepEqual(state.team?.tasks, []);
+			assert.equal(state.agentTeam?.enabled, false);
+			assert.deepEqual(state.agentTeam?.tasks, []);
 			assert.equal(state.tasks?.length, 1);
 		});
 	});
@@ -106,12 +106,12 @@ describe("e2e: hybrid policy", () => {
 				await rpc.prompt("E2E_HYBRID_START", { waitSettled: false });
 				await waitFor(() => hooks(home) >= 1, "one team child hook");
 				await waitFor(() => {
-					const tasks = saved(home).team?.tasks ?? [];
+					const tasks = saved(home).agentTeam?.tasks ?? [];
 					return tasks.length === 1 && tasks[0]?.status === "completed";
 				}, "team task completed");
 				const state = saved(home);
-				assert.equal(state.team?.enabled, true);
-				assert.equal(state.team?.tasks?.length, 1);
+				assert.equal(state.agentTeam?.enabled, true);
+				assert.equal(state.agentTeam?.tasks?.length, 1);
 			});
 		},
 	);

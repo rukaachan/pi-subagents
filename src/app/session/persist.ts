@@ -7,9 +7,9 @@ import type { InMemoryLedger } from "./ledger.ts";
 import type { TaskStorePort } from "../../domain/task/index.ts";
 import type { TaskRecord } from "../../domain/task/index.ts";
 import { freezeRestored } from "../../domain/task/index.ts";
-import { restoreTeam, teamSnapshot } from "../team/board/index.ts";
-import { coldMailSnapshot, restoreColdMail } from "../team/channel/index.ts";
-import { releaseOrphanedTasks } from "../team/board/index.ts";
+import { restoreAgentTeam, agentTeamSnapshot } from "../agent-team/board/index.ts";
+import { coldMailSnapshot, restoreColdMail } from "../agent-team/channel/index.ts";
+import { releaseOrphanedTasks } from "../agent-team/board/index.ts";
 import { findStateTask } from "../../infra/state/index.ts";
 import { journalWrite } from "../../telemetry/journal/index.ts";
 import type { StatePort } from "./state-port.ts";
@@ -43,14 +43,14 @@ export function archivedTask(cwd: string, taskId: string): TaskRecord | undefine
 }
 
 export function serializeState(store: TaskStorePort, ledger: InMemoryLedger): PersistedState {
-	const team = teamSnapshot();
+	const agentTeam = agentTeamSnapshot();
 	const coldMail = coldMailSnapshot();
 	return {
 		version: STATE_VERSION,
 		savedAt: Date.now(),
 		tasks: store.snapshot().map(capRecord),
 		ledger: ledger.bySubagent(),
-		...(team ? { team: { ...team, ...(coldMail ? { coldMail } : {}) } } : {}),
+		...(agentTeam ? { agentTeam: { ...agentTeam, ...(coldMail ? { coldMail } : {}) } } : {}),
 	};
 }
 
@@ -64,9 +64,9 @@ export function restoreInto(
 	if (!state) return 0;
 	// Rows that were live cannot finish: count them as errors so totals add up.
 	const interrupted = state.tasks.filter((t) => t.status === "running");
-	if (state.team) {
-		restoreTeam(state.team);
-		restoreColdMail(state.team.coldMail);
+	if (state.agentTeam) {
+		restoreAgentTeam(state.agentTeam);
+		restoreColdMail(state.agentTeam.coldMail);
 		releaseOrphanedTasks();
 	}
 	store.restore(state.tasks);

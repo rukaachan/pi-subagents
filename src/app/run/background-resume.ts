@@ -19,9 +19,9 @@ import { checkReturn } from "../../domain/run/index.ts";
 import { resumePrompt } from "../retry/index.ts";
 import type { ChildDeps } from "./child-port.ts";
 import { withGateJournal } from "../guards/index.ts";
-import { teamChildExtras } from "../team/child/index.ts";
-import { bindTeamMember } from "../team/channel/index.ts";
-import { sweepMemberTasks } from "../team/board/index.ts";
+import { agentTeamChildExtras } from "../agent-team/child/index.ts";
+import { bindAgentTeamMember } from "../agent-team/channel/index.ts";
+import { sweepMemberTasks } from "../agent-team/board/index.ts";
 import { windDownSignal } from "../guards/index.ts";
 import { applyReportBudget, effectiveBudget } from "../../domain/subagent/index.ts";
 import { MAX_LIVE_TASKS, newTaskId } from "../../domain/task/index.ts";
@@ -95,11 +95,11 @@ export async function resumeTask(
 	void (async () => {
 		try {
 			const gate = { open: true };
-			const team = teamChildExtras(sub.name, rec.taskId, gate);
-			const child = await deps.child.create(sub, rec.cwd, ctx, withGateJournal(team));
-			const unbindMail = team
-				? bindTeamMember(
-						team.member,
+			const agentTeam = agentTeamChildExtras(sub.name, rec.taskId, gate);
+			const child = await deps.child.create(sub, rec.cwd, ctx, withGateJournal(agentTeam));
+			const unbindMail = agentTeam
+				? bindAgentTeamMember(
+						agentTeam.member,
 						sub.name,
 						(text) => {
 							void child.session.steer(text).catch(() => {});

@@ -8,7 +8,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import type { SpawnCounts, TaskRecord } from "../../domain/task/index.ts";
 import { decodeTasks } from "./state-validate.ts";
-import { decodeTeam, type PersistedTeam } from "./state-team.ts";
+import { decodeAgentTeam, type PersistedAgentTeam } from "./state-agent-team.ts";
 
 export const STATE_VERSION = 1;
 export const STATE_FILE_NAME = "pi-subagents-state.json";
@@ -32,7 +32,7 @@ export interface PersistedState {
 	savedAt: number;
 	tasks: TaskRecord[];
 	ledger: Record<string, SpawnCounts>;
-	team?: PersistedTeam;
+	agentTeam?: PersistedAgentTeam;
 }
 
 /** One state file per project, so two repos never share a board. */
@@ -121,13 +121,14 @@ export function decodeState(raw: string): PersistedState | null {
 		if (!parsed || typeof parsed !== "object") return null;
 		if (parsed.version !== STATE_VERSION) return null;
 		if (!Array.isArray(parsed.tasks)) return null;
-		const team = decodeTeam(parsed.team);
+		const legacy = (parsed as { team?: unknown }).team;
+		const agentTeam = decodeAgentTeam(parsed.agentTeam ?? legacy);
 		return {
 			version: STATE_VERSION,
 			savedAt: typeof parsed.savedAt === "number" ? parsed.savedAt : 0,
 			tasks: decodeTasks(parsed.tasks),
 			ledger: decodeLedger(parsed.ledger),
-			...(team ? { team } : {}),
+			...(agentTeam ? { agentTeam } : {}),
 		};
 	} catch {
 		return null;

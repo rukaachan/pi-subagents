@@ -4,9 +4,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { visibleWidth } from "@earendil-works/pi-tui";
-import type { TeamTaskView } from "../src/domain/team/index.ts";
+import type { AgentTeamTaskView } from "../src/domain/agent-team/index.ts";
 import { board, plainTheme, rec } from "./board-fixtures.ts";
-import { buildTeamRows, renderTeamScreen } from "../src/ui/view/workspace/index.ts";
+import { buildAgentTeamRows, renderAgentTeamScreen } from "../src/ui/view/workspace/index.ts";
 import { createWorkspaceView } from "../src/ui/view/workspace/index.ts";
 import {
 	renderWorkspace,
@@ -15,7 +15,7 @@ import {
 	type WorkspaceData,
 } from "../src/ui/view/workspace/index.ts";
 
-function teamView(over: Partial<TeamTaskView["task"]> = {}): TeamTaskView {
+function agentTeamView(over: Partial<AgentTeamTaskView["task"]> = {}): AgentTeamTaskView {
 	return {
 		task: {
 			id: "task-1",
@@ -35,9 +35,9 @@ function teamView(over: Partial<TeamTaskView["task"]> = {}): TeamTaskView {
 	};
 }
 
-function teamHint(status: "pending" | "in_progress" | "completed") {
-	const rows = buildTeamRows([teamView({ status })], () => false);
-	const out = renderTeamScreen(rows, {
+function agentTeamHint(status: "pending" | "in_progress" | "completed") {
+	const rows = buildAgentTeamRows([agentTeamView({ status })], () => false);
+	const out = renderAgentTeamScreen(rows, {
 		width: 120,
 		height: 12,
 		cursor: 0,
@@ -50,20 +50,20 @@ function teamHint(status: "pending" | "in_progress" | "completed") {
 function data(over: Partial<WorkspaceData> = {}): WorkspaceData {
 	return {
 		runs: [],
-		team: [],
-		teamEnabled: false,
+		agentTeam: [],
+		agentTeamEnabled: false,
 		summary: { open: 0, done: 0, enabled: false },
 		...over,
 	};
 }
 
-function view(initial: WorkspaceData, tab: "runs" | "team" = "runs") {
+function view(initial: WorkspaceData, tab: "runs" | "agent-team" = "runs") {
 	const actions: WorkspaceAction[] = [];
 	const v = createWorkspaceView({
 		tab,
 		runs: () => initial.runs,
-		team: () => initial.team,
-		teamEnabled: () => initial.teamEnabled,
+		agentTeam: () => initial.agentTeam,
+		agentTeamEnabled: () => initial.agentTeamEnabled,
 		summary: () => initial.summary,
 		height: () => 14,
 		theme: plainTheme() as never,
@@ -82,7 +82,7 @@ describe("mission control", () => {
 			width: 90,
 			height: 12,
 			runsCursor: 0,
-			teamCursor: 0,
+			agentTeamCursor: 0,
 			theme: plainTheme() as never,
 		});
 		assert.equal(out.length, 12);
@@ -93,48 +93,48 @@ describe("mission control", () => {
 	});
 
 	it("switches to Team and emits every Team action", () => {
-		const teamRows = buildTeamRows([teamView()], () => false);
-		const row = teamRows[0];
+		const agentTeamRows = buildAgentTeamRows([agentTeamView()], () => false);
+		const row = agentTeamRows[0];
 		if (!row) throw new Error("missing team row");
-		const initial = data({ team: [row], teamEnabled: true });
+		const initial = data({ agentTeam: [row], agentTeamEnabled: true });
 		const made = view(initial);
 		made.v.render(90);
 		made.v.handleInput("2");
 		made.v.handleInput("n");
-		assert.deepEqual(made.actions, [{ kind: "team-new" }]);
+		assert.deepEqual(made.actions, [{ kind: "agent-team-new" }]);
 		assert.equal(
 			made.v.render(90).some((line) => line.includes("map the engine")),
 			true,
 		);
 
 		const keys: [string, WorkspaceAction["kind"]][] = [
-			["\r", "team-detail"],
-			["o", "team-open-run"],
-			["e", "team-edit"],
-			["a", "team-assign"],
-			["c", "team-claim"],
-			["r", "team-release"],
-			["x", "team-complete"],
-			["d", "team-delete"],
+			["\r", "agent-team-detail"],
+			["o", "agent-team-open-run"],
+			["e", "agent-team-edit"],
+			["a", "agent-team-assign"],
+			["c", "agent-team-claim"],
+			["r", "agent-team-release"],
+			["x", "agent-team-complete"],
+			["d", "agent-team-delete"],
 		];
 		for (const [key, kind] of keys) {
-			const next = view(initial, "team");
+			const next = view(initial, "agent-team");
 			next.v.render(90);
 			next.v.handleInput(key);
 			assert.equal(next.actions[0]?.kind, kind, key);
 		}
-		const toggle = view(initial, "team");
+		const toggle = view(initial, "agent-team");
 		toggle.v.handleInput("t");
-		assert.deepEqual(toggle.actions, [{ kind: "team-toggle" }]);
-		const start = view(initial, "team");
+		assert.deepEqual(toggle.actions, [{ kind: "agent-team-toggle" }]);
+		const start = view(initial, "agent-team");
 		start.v.handleInput("s");
-		assert.deepEqual(start.actions, [{ kind: "team-start" }]);
+		assert.deepEqual(start.actions, [{ kind: "agent-team-start" }]);
 	});
 
 	it("shows the linked run and one result line in the detail pane", () => {
-		const linked = buildTeamRows(
+		const linked = buildAgentTeamRows(
 			[
-				teamView({
+				agentTeamView({
 					runId: "task-run-0",
 					status: "completed",
 					result: "changed src/a.ts; tests pass",
@@ -142,7 +142,7 @@ describe("mission control", () => {
 			],
 			() => false,
 		);
-		const withRun = renderTeamScreen(linked, {
+		const withRun = renderAgentTeamScreen(linked, {
 			width: 120,
 			height: 12,
 			cursor: 0,
@@ -153,8 +153,8 @@ describe("mission control", () => {
 		assert.match(withRun, /result: changed src\/a\.ts; tests pass/);
 		assert.match(withRun, /o open run/);
 
-		const plain = buildTeamRows([teamView({ status: "completed" })], () => false);
-		const withoutRun = renderTeamScreen(plain, {
+		const plain = buildAgentTeamRows([agentTeamView({ status: "completed" })], () => false);
+		const withoutRun = renderAgentTeamScreen(plain, {
 			width: 120,
 			height: 12,
 			cursor: 0,
@@ -166,14 +166,14 @@ describe("mission control", () => {
 	});
 
 	it("shows the team board in the Team tab with revision and owner", () => {
-		const rows = buildTeamRows(
+		const rows = buildAgentTeamRows(
 			[
-				teamView({ status: "in_progress", owner: "alice", revision: 3 }),
-				teamView({ id: "task-2", subject: "write the proof", status: "completed" }),
+				agentTeamView({ status: "in_progress", owner: "alice", revision: 3 }),
+				agentTeamView({ id: "task-2", subject: "write the proof", status: "completed" }),
 			],
 			(name) => name === "alice",
 		);
-		const out = renderTeamScreen(rows, {
+		const out = renderAgentTeamScreen(rows, {
 			width: 100,
 			height: 12,
 			cursor: 0,
@@ -188,15 +188,15 @@ describe("mission control", () => {
 	});
 
 	it("lists the Team actions for the selected task status", () => {
-		const pending = teamHint("pending");
+		const pending = agentTeamHint("pending");
 		assert.match(pending.footer, /c claim/);
 		assert.doesNotMatch(pending.footer, /x done/);
 		assert.match(pending.head, /team on \(t\)/);
-		const active = teamHint("in_progress");
+		const active = agentTeamHint("in_progress");
 		assert.match(active.footer, /x done/);
 		assert.match(active.footer, /r release/);
 		assert.doesNotMatch(active.footer, /c claim/);
-		const done = teamHint("completed");
+		const done = agentTeamHint("completed");
 		assert.doesNotMatch(done.footer, /claim|release|x done/);
 		assert.match(done.footer, /e edit/);
 		assert.ok(visibleWidth(done.footer) <= 120, done.footer);
@@ -207,14 +207,14 @@ describe("mission control", () => {
 		const seen: string[] = [];
 		const out = renderWorkspace({
 			runs,
-			team: [],
-			teamEnabled: false,
+			agentTeam: [],
+			agentTeamEnabled: false,
 			summary: { open: 0, done: 0, enabled: false },
 			tab: "runs",
 			width: 120,
 			height: 18,
 			runsCursor: 0,
-			teamCursor: 0,
+			agentTeamCursor: 0,
 			theme: plainTheme() as never,
 			activity: (taskId) => {
 				seen.push(taskId);
