@@ -238,9 +238,9 @@ judgment calls stay recorded so the next reader can dispute them.
 | 2505.00212 Failure attribution         | reject (for now) | 53.5% agent and 14.2% step accuracy is too weak to automate; keep the step trail in the journal.                                                                                                                                                             |
 | 2603.18000 AgentFactory                | reject (for now) | Executable subagent accumulation adds a code-generation surface with no repeated-task defect measured.                                                                                                                                                       |
 | 2510.02669 AutoMaAS                    | reject (for now) | Architecture search optimises a roster already capped; no evidence our shape is wrong.                                                                                                                                                                       |
-| Claude SubagentStop / Codex /subagents | adopt            | A finished leg needs a visible signal: the footer keeps `✓`, `✗`, or `⊘` for 8 s, newest three plus `+N`, and an optional `finishHook` command gets one JSON line. User settings or a trusted project only (research/claude-code-hooks.txt).                 |
+| Claude SubagentStop / Codex /subagents | adopt            | A finished leg needs a visible signal: the footer keeps `✓`, `✗`, or `⊘` for 8 s, newest three plus `+N`, and an optional `finishHook` command gets one JSON line. User settings or a trusted project only (research/vendors/claude-code-hooks.txt).         |
 | Claude agent teams                     | adapt            | v0.15 kept the parent as messenger; AgentTeam v2 adds a bounded peer channel and named wait; AgentTeam v3 adds a session cold queue, persisted with the board, and a read-only scope resolver; still no cold resume.                                         |
-| DeepSeek agent teams                   | adapt            | The lead is the root session, not a new agent; teammates are ordinary legs. CAS board, scope reservations, peer messages, named wait, and a read-only conflict resolver. `research/deepseek-agent-teams.md`.                                                 |
+| DeepSeek agent teams                   | adapt            | The lead is the root session, not a new agent; teammates are ordinary legs. CAS board, scope reservations, peer messages, named wait, and a read-only conflict resolver. `research/vendors/deepseek-agent-teams.md`.                                         |
 | Codex [agents] live cap                | adopt            | `max_concurrent_threads_per_session` is configurable there; `liveCap` now matches it (1–64, default 12), and the codemode pool follows at load.                                                                                                              |
 
 ## Adopted from the 2026 corpus
@@ -265,7 +265,7 @@ poll. The footer now keeps a per-leg token for 8 s (`✓` done, `✗` error,
 six-leg agent-team start capture showed `✓ tester 2s · ⇄ 5 live · …` while the rest
 ran, then `✓ planner 3s · ✓ explorer 3s +4`; the count dropped as tokens
 aged out. `finish` is idempotent and the prune timer is unref'd, so a
-finished run never holds the process open (research/claude-code-hooks.txt).
+finished run never holds the process open (research/vendors/claude-code-hooks.txt).
 
 The third adoption is the return contract. A report could arrive short and
 nothing said so. `Task` now takes `return: [...]`, appends one line per
@@ -283,7 +283,7 @@ from project settings only when the folder is trusted; no agent file can
 set it. Measured: the runner's blank-command guard costs 0.015 µs, a real spawn of `true`
 is 1.0–1.1 ms at p50 / 3.8–4.9 ms at p95, and a hook past 5 s is killed with
 `SIGKILL`. One real run (`PI_IT_HOOK=1`, 4.0 s) wrote exactly one line with
-the right task id, status, cwd, and size (research/claude-code-hooks.txt).
+the right task id, status, cwd, and size (research/vendors/claude-code-hooks.txt).
 
 The fifth adoption is the failure family. MAST's three families are now a
 label the caller can attach once to a failed run:
@@ -303,6 +303,7 @@ one settings read (0.11–0.12 ms, 4–5 ns after resolution) and the hot path i
 unchanged (paint 0.34 ms, shape 0.40 ms, save 0.03 ms in `bench:layers`).
 
 The corpus itself is local and unshipped. `research/index.md` maps the 32
-papers; `research/notes.md` is the synthesis. Four vendor notes sit beside
-them: `codex-subagents.txt`, `claude-code-subagents.txt`,
-`claude-code-hooks.txt`, and `harness-comparison.txt`.
+papers; `research/notes.md` is the synthesis. They are grouped by theme:
+`foundations/`, `multi-agent/`, `delegation/`, `reliability/`, `scaling/`,
+`context/`, `vendors/`, and `cogentic/`. The last folder holds the Cogentic
+harness paper and its ten companion papers.
