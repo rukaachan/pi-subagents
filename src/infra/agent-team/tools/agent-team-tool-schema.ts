@@ -14,6 +14,7 @@ const UPDATE_ACTIONS = new Set<string>([
 	"reopen",
 	"reassign",
 	"delete",
+	"verify",
 ]);
 
 const PARAMETERS = Type.Object({
@@ -32,10 +33,12 @@ const PARAMETERS = Type.Object({
 			"reopen",
 			"reassign",
 			"delete",
+			"verify",
+			"advise",
 		],
 		{
 			description:
-				"Start an agent team (prompt required), read the board, create or change one task, or resolve a conflict.",
+				"Start an agent team (prompt required), read the board, create or change one task, verify a review, ask the advisor, or resolve a conflict.",
 		},
 	),
 	task_id: Type.Optional(
@@ -69,8 +72,22 @@ const PARAMETERS = Type.Object({
 	result: Type.Optional(
 		Type.String({ description: "What the work returned (complete); trimmed and capped." }),
 	),
+	acceptance: Type.Optional(
+		Type.String({ description: "Criteria a verifier checks (create or edit)." }),
+	),
+	verify_with: Type.Optional(
+		Type.String({ description: "Subagent used for verification (create or edit)." }),
+	),
+	verdict: Type.Optional(StringEnum(["pass", "fail"], { description: "Review verdict (verify)." })),
+	note: Type.Optional(
+		Type.String({ description: "Verification reason (verify) or release reason." }),
+	),
+	override: Type.Optional(
+		Type.Boolean({ description: "Lead-only verification override; a note is required." }),
+	),
+	question: Type.Optional(Type.String({ description: "Question for the advisor (advise)." })),
 	status: Type.Optional(
-		StringEnum(["pending", "in_progress", "completed"], {
+		StringEnum(["pending", "in_progress", "in_review", "completed"], {
 			description: "Exact status filter (list).",
 		}),
 	),
@@ -105,7 +122,9 @@ type Params = {
 		| "complete"
 		| "reopen"
 		| "reassign"
-		| "delete";
+		| "delete"
+		| "verify"
+		| "advise";
 	task_id?: string;
 	expected_revision?: number;
 	subject?: string;
@@ -114,7 +133,13 @@ type Params = {
 	write_scopes?: string[];
 	owner?: string;
 	result?: string;
-	status?: "pending" | "in_progress" | "completed";
+	acceptance?: string;
+	verify_with?: string;
+	verdict?: "pass" | "fail";
+	note?: string;
+	override?: boolean;
+	question?: string;
+	status?: "pending" | "in_progress" | "in_review" | "completed";
 	unowned?: boolean;
 	ready?: boolean;
 	limit?: number;

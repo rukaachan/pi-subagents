@@ -3,6 +3,7 @@
  */
 
 import type { RunKind, TaskRecord, TaskStatus } from "../../domain/task/index.ts";
+import type { AgentTeamOrigin, AgentTeamRole } from "../../domain/agent-team/index.ts";
 import { decodeLegs, decodeSteps } from "./state-steps.ts";
 import type { FailureFamily } from "../../domain/policy/index.ts";
 import type {
@@ -37,6 +38,17 @@ function status(value: unknown): TaskStatus | undefined {
 		? value
 		: undefined;
 }
+
+const AGENT_TEAM_ROLES = new Set<AgentTeamRole>(["worker", "verifier", "advisor"]);
+const AGENT_TEAM_ORIGINS = new Set<AgentTeamOrigin>([
+	"manual",
+	"task",
+	"parallel",
+	"chain",
+	"delegate",
+	"finish",
+	"start",
+]);
 
 function source(value: unknown): SubagentSource {
 	return value === "project" || value === "temp" ? value : "user";
@@ -166,6 +178,17 @@ function task(value: unknown): TaskRecord | undefined {
 	const error = typeof raw.error === "string" ? raw.error : undefined;
 	const sessionId = typeof raw.sessionId === "string" ? raw.sessionId : undefined;
 	const runId = typeof raw.runId === "string" ? raw.runId : undefined;
+	const agentTeamTaskId = typeof raw.agentTeamTaskId === "string" ? raw.agentTeamTaskId : undefined;
+	const agentTeamRole =
+		typeof raw.agentTeamRole === "string" &&
+		AGENT_TEAM_ROLES.has(raw.agentTeamRole as AgentTeamRole)
+			? (raw.agentTeamRole as AgentTeamRole)
+			: undefined;
+	const agentTeamOrigin =
+		typeof raw.agentTeamOrigin === "string" &&
+		AGENT_TEAM_ORIGINS.has(raw.agentTeamOrigin as AgentTeamOrigin)
+			? (raw.agentTeamOrigin as AgentTeamOrigin)
+			: undefined;
 	const modelId = typeof raw.modelId === "string" ? raw.modelId : undefined;
 	const thinkingLevel = typeof raw.thinkingLevel === "string" ? raw.thinkingLevel : undefined;
 	const tools = Array.isArray(raw.tools) ? strings(raw.tools) : undefined;
@@ -190,6 +213,9 @@ function task(value: unknown): TaskRecord | undefined {
 		...(runFailure ? { failure: runFailure } : {}),
 		...(sessionId ? { sessionId } : {}),
 		...(runId ? { runId } : {}),
+		...(agentTeamTaskId ? { agentTeamTaskId } : {}),
+		...(agentTeamRole ? { agentTeamRole } : {}),
+		...(agentTeamOrigin ? { agentTeamOrigin } : {}),
 		...(modelId ? { modelId } : {}),
 		...(thinkingLevel ? { thinkingLevel } : {}),
 		...(tools && tools.length > 0 ? { tools } : {}),

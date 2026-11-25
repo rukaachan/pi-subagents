@@ -8,6 +8,7 @@ import { createAgentTeamMessageTool } from "../../../infra/agent-team/message/in
 import { createAgentTeamTool } from "../../../infra/agent-team/tools/index.ts";
 import { liveMember, agentTeamMessageApi } from "../channel/index.ts";
 import { joinAgentTeam, agentTeamApi, agentTeamEnabled } from "../board/index.ts";
+import type { AgentTeamRole } from "../../../domain/agent-team/index.ts";
 
 export interface AgentTeamChildExtras extends ChildExtras {
 	member: string;
@@ -15,6 +16,7 @@ export interface AgentTeamChildExtras extends ChildExtras {
 
 export interface AgentTeamChild {
 	member: string;
+	role: AgentTeamRole;
 	tools: ToolDefinition[];
 	prompt: string;
 }
@@ -29,13 +31,14 @@ export function agentTeamChildExtras(
 	starter: string,
 	key?: string,
 	gate?: AgentTeamGate,
+	role: AgentTeamRole = "worker",
 ): AgentTeamChildExtras | undefined {
-	const agentTeam = joinAgentTeamChild(starter, key, gate);
+	const agentTeam = joinAgentTeamChild(starter, key, gate, role);
 	return agentTeam
 		? {
 				member: agentTeam.member,
 				tools: agentTeam.tools,
-				activate: ["AgentTeam", "AgentTeamMessage"],
+				activate: role === "worker" ? ["AgentTeam", "AgentTeamMessage"] : ["AgentTeam"],
 				promptPrefix: `${agentTeam.prompt}\n\n`,
 			}
 		: undefined;
@@ -46,11 +49,13 @@ export function joinAgentTeamChild(
 	starter: string,
 	key?: string,
 	gate?: AgentTeamGate,
+	role: AgentTeamRole = "worker",
 ): AgentTeamChild | undefined {
 	if (!agentTeamEnabled()) return undefined;
-	const member = joinAgentTeam(starter, key);
+	const member = joinAgentTeam(starter, key, undefined, role);
 	return {
 		member,
+		role,
 		tools: [
 			createAgentTeamTool(
 				{
@@ -59,14 +64,30 @@ export function joinAgentTeamChild(
 					...(gate ? { canWork: () => gate.open } : {}),
 				},
 				member,
+				role,
 			),
-			createAgentTeamMessageTool(agentTeamMessageApi, member),
+			...(role === "worker" ? [createAgentTeamMessageTool(agentTeamMessageApi, member)] : []),
 		],
-		prompt: agentTeamPrompt(member),
+		prompt: agentTeamPrompt(member, role),
 	};
 }
 
-function agentTeamPrompt(member: string): string {
+function agentTeamPrompt(member: string, role: AgentTeamRole): string {
+	if (role === "verifier") {
+		return [
+			`[agent-team] You are "${member}", the verifier on this session's shared board.`,
+			"Read the task, its acceptance text, its result, and the files or commands that prove it.",
+			'Do not edit files and do not claim work. Call AgentTeam { action: "verify", task_id, expected_revision, verdict: "pass" | "fail", note } with a short reason.',
+			"Fail when the evidence is missing or the acceptance text is not met; a failed task returns to the board with your note.",
+		].join("\n");
+	}
+	if (role === "advisor") {
+		return [
+			`[agent-team] You are "${member}", the advisor on this session's shared board.`,
+			"Answer the lead's question with a short, concrete recommendation and the trade-off you see.",
+			"Do not edit files, claim tasks, or verify work. Read the board when the question needs context.",
+		].join("\n");
+	}
 	return [
 		`[agent-team] You are "${member}" on this session's shared agent team board.`,
 		"Use the AgentTeam tool: list ready tasks, get one, claim it with its current revision, do the work, then complete it.",

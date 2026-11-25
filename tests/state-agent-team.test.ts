@@ -20,7 +20,7 @@ const valid = {
 			updatedAt: 2,
 		},
 	],
-	members: [{ name: "worker", starter: "worker", joinedAt: 1 }],
+	members: [{ name: "worker", starter: "worker", role: "worker", joinedAt: 1 }],
 };
 
 describe("team state decoding", () => {
@@ -125,7 +125,7 @@ describe("team state decoding", () => {
 			...valid,
 			members: [
 				{ ...valid.members[0], key: "task-9" },
-				{ name: "bob", starter: "worker", joinedAt: 2, key: 42 },
+				{ name: "bob", starter: "worker", role: "worker", joinedAt: 2, key: 42 },
 			],
 		});
 		assert.ok(agentTeam);

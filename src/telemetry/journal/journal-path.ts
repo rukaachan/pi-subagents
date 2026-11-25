@@ -39,6 +39,14 @@ export type JournalEvent =
 			ok: boolean;
 			error?: string;
 	  }
+	| {
+			event: "agent_team_verify";
+			taskId: string;
+			ok: boolean;
+			runId?: string;
+			error?: string;
+	  }
+	| { event: "agent_team_advice"; taskId?: string; chars: number; ok: boolean; error?: string }
 	| { event: "stop"; id: string; family: string; why?: string }
 	| {
 			event: "compact";

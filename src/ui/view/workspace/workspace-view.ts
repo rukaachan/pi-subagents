@@ -166,6 +166,8 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 		if (key === "c") return emit({ kind: "agent-team-claim", taskId });
 		if (key === "r") return emit({ kind: "agent-team-release", taskId });
 		if (key === "x") return emit({ kind: "agent-team-complete", taskId });
+		if (key === "v") return emit({ kind: "agent-team-verify", taskId });
+		if (key === "i") return emit({ kind: "agent-team-advise", taskId });
 		if (key === "d") return emit({ kind: "agent-team-delete", taskId });
 	}
 

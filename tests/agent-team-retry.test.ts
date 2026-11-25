@@ -1,20 +1,20 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
-	createAgentTeamTask,
 	newAgentTeam,
 	type AgentTeamBoard,
 	type AgentTeamMember,
 	type AgentTeamUpdate,
 } from "../src/domain/agent-team/index.ts";
-import { updateAgentTeamTask } from "../src/domain/agent-team/index.ts";
+import { updateAgentTeamTask } from "../src/domain/team-tasks/index.ts";
+import { createAgentTeamTask } from "../src/domain/team-tasks/index.ts";
 
 const lead = { name: "lead", lead: true };
 const alice = { name: "alice", lead: false };
 const bob = { name: "bob", lead: false };
 const members: AgentTeamMember[] = [
-	{ name: "alice", starter: "worker", joinedAt: 1 },
-	{ name: "bob", starter: "worker", joinedAt: 2 },
+	{ name: "alice", starter: "worker", role: "worker", joinedAt: 1 },
+	{ name: "bob", starter: "worker", role: "worker", joinedAt: 2 },
 ];
 
 function add(board: AgentTeamBoard, subject = "one"): void {

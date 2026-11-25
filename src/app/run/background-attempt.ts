@@ -22,7 +22,9 @@ import { journalWrite } from "../../telemetry/journal/index.ts";
 import type { ChildSessionPort } from "./child-port.ts";
 import { withGateJournal } from "../guards/index.ts";
 import { agentTeamChildExtras } from "../agent-team/child/index.ts";
-import { sweepMemberTasks } from "../agent-team/board/index.ts";
+import { getTask, sweepMemberTasks } from "../agent-team/board/index.ts";
+import { requestAgentTeamVerify } from "../agent-team/verify/index.ts";
+import { completeTask, ensureTask, taskPrompt } from "../agent-team/auto/index.ts";
 import { bindAgentTeamMember } from "../agent-team/channel/index.ts";
 import { windDownSignal } from "../guards/index.ts";
 import { applyReportBudget, effectiveBudget } from "../../domain/subagent/index.ts";
@@ -59,7 +61,26 @@ export interface AttemptDeps {
 export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptResult> {
 	const { rec, sub, prompt, cwd, ctx, kind, contract, live, holder, setStopHandle } = deps;
 	const gate = { open: true };
-	const agentTeam = agentTeamChildExtras(sub.name, rec.taskId, gate);
+	const role = rec.agentTeamRole ?? "worker";
+	const agentTeam = agentTeamChildExtras(sub.name, rec.taskId, gate, role);
+	let teamTaskId = rec.agentTeamTaskId;
+	if (agentTeam && role === "worker") {
+		const ensured = ensureTask({
+			sub,
+			prompt,
+			origin: rec.agentTeamOrigin ?? (kind === "parallel" ? "parallel" : "task"),
+			existingTaskId: teamTaskId,
+			member: agentTeam.member,
+		});
+		if (!ensured.ok) throw new Error(ensured.error);
+		teamTaskId = ensured.taskId;
+		rec.agentTeamTaskId = teamTaskId;
+	}
+	const teamPrefix = teamTaskId
+		? `${taskPrompt(teamTaskId, role)}\n\n`
+		: role === "advisor"
+			? `${taskPrompt("", role)}\n\n`
+			: "";
 	const child = await deps.child.create(sub, cwd, ctx, withGateJournal(agentTeam));
 	const unbindMail = agentTeam
 		? bindAgentTeamMember(
@@ -117,7 +138,7 @@ export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptRe
 			stop({ status: "interrupted", error: stoppedRowNote(live.why()) });
 			return { ok: false, stopped: true };
 		}
-		const turn = child.prompt(`Task: ${prompt}`, contract);
+		const turn = child.prompt(`${teamPrefix}Task: ${prompt}`, contract);
 		// A steer can arrive before this session exists; it lands here.
 		for (const text of takeSteers(rec.taskId)) {
 			void child.session.steer(text).catch(() => {});
@@ -143,6 +164,10 @@ export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptRe
 		};
 		rec.status = "done";
 		rec.endedAt = Date.now();
+		if (teamTaskId && role === "worker") {
+			completeTask(teamTaskId, rec.result.text);
+			if (getTask(teamTaskId)?.task.status === "in_review") requestAgentTeamVerify(teamTaskId, ctx);
+		}
 		if (checked.failure && !rec.failure) {
 			rec.failure = checked.failure;
 			journalWrite({ event: "failure", id: rec.taskId, family: checked.failure, auto: true });

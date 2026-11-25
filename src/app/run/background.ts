@@ -19,6 +19,7 @@ import { sweepMemberTasks } from "../agent-team/board/index.ts";
 import { runBackgroundAttempt, type AttemptResult } from "./background-attempt.ts";
 import { RetryPolicy, sleepUnlessStopped } from "../retry/index.ts";
 import type { RunKind, TaskRecord } from "../../domain/task/index.ts";
+import type { AgentTeamOrigin, AgentTeamRole } from "../../domain/agent-team/index.ts";
 import type { TaskStorePort } from "../../domain/task/index.ts";
 
 export { resumeTask } from "./background-resume.ts";
@@ -39,6 +40,9 @@ export function launchBackground(
 		dispatch?: { rule: string; matched: string };
 		contract?: readonly string[];
 		runId?: string;
+		agentTeamTaskId?: string;
+		agentTeamRole?: AgentTeamRole;
+		agentTeamOrigin?: AgentTeamOrigin;
 	},
 ): string {
 	const kind = opts?.kind ?? "background";
@@ -58,6 +62,9 @@ export function launchBackground(
 		kind,
 		prompt,
 		...(opts?.runId ? { runId: opts.runId } : {}),
+		...(opts?.agentTeamTaskId ? { agentTeamTaskId: opts.agentTeamTaskId } : {}),
+		...(opts?.agentTeamRole ? { agentTeamRole: opts.agentTeamRole } : {}),
+		...(opts?.agentTeamOrigin ? { agentTeamOrigin: opts.agentTeamOrigin } : {}),
 		dispatch: opts?.dispatch,
 	};
 	store.add(rec);

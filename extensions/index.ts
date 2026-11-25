@@ -22,6 +22,8 @@ import {
 import { HYBRID_POLICY } from "../src/domain/policy/index.ts";
 import { AGENT_TEAM_LEAD_POLICY } from "../src/domain/policy/index.ts";
 import { createSessionRuntime } from "../src/app/index.ts";
+import { setAgentTeamVerifyHook } from "../src/app/agent-team/verify/index.ts";
+import { startAgentTeamVerification } from "../src/app/agent-team/verify-run/index.ts";
 import { reportStateError } from "../src/app/session/index.ts";
 import { stopAllLiveRuns } from "../src/app/stop/index.ts";
 import { queuedLegCount, stopLaunchSchedulers } from "../src/app/launch/index.ts";
@@ -43,6 +45,9 @@ import { registerSettledCard } from "../src/ui/view/run/index.ts";
 
 const runtime = createSessionRuntime({ child: hostChild, state: fileState });
 const store = runtime.store;
+setAgentTeamVerifyHook((taskId, ctx) =>
+	startAgentTeamVerification(runtime.store, taskId, ctx, runtime.deps),
+);
 setJournal(fileJournal);
 
 export function restoredCount(): number {

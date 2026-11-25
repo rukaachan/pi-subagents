@@ -126,6 +126,9 @@ export function retryTask(
 			kind: rec.kind === "parallel" ? "parallel" : "background",
 			dispatch: rec.dispatch,
 			...(rec.runId ? { runId: rec.runId } : {}),
+			...(rec.agentTeamTaskId ? { agentTeamTaskId: rec.agentTeamTaskId } : {}),
+			...(rec.agentTeamRole ? { agentTeamRole: rec.agentTeamRole } : {}),
+			...(rec.agentTeamOrigin ? { agentTeamOrigin: rec.agentTeamOrigin } : {}),
 		},
 	);
 	return {

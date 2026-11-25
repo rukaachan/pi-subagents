@@ -3,7 +3,7 @@
  */
 
 import { defineTool } from "@earendil-works/pi-coding-agent";
-import type { AgentTeamCaller } from "../../../domain/agent-team/index.ts";
+import type { AgentTeamCaller, AgentTeamRole } from "../../../domain/agent-team/index.ts";
 import { renderAgentTeamCall, renderAgentTeamResult } from "../message/index.ts";
 import { runAgentTeam } from "./agent-team-tool-run.ts";
 import { PARAMETERS, type Params } from "./agent-team-tool-schema.ts";
@@ -18,12 +18,16 @@ export type {
 	AgentTeamLaunchResult,
 } from "./agent-team-tool-types.ts";
 
-function callerOf(member?: string): AgentTeamCaller {
-	return member ? { name: member, lead: false } : { name: "lead", lead: true };
+function callerOf(member?: string, role: AgentTeamRole = "worker"): AgentTeamCaller {
+	return member ? { name: member, lead: false, role } : { name: "lead", lead: true };
 }
 
-export function createAgentTeamTool(api: AgentTeamApi, member?: string) {
-	const caller = callerOf(member);
+export function createAgentTeamTool(
+	api: AgentTeamApi,
+	member?: string,
+	role: AgentTeamRole = "worker",
+) {
+	const caller = callerOf(member, role);
 	return defineTool({
 		name: "AgentTeam",
 		label: "AgentTeam",

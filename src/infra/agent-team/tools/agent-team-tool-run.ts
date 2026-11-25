@@ -12,82 +12,21 @@ import {
 import { UPDATE_ACTIONS, type Params } from "./agent-team-tool-schema.ts";
 import { shutDown } from "./agent-team-tool-gate.ts";
 import type { AgentTeamApi } from "./agent-team-tool-types.ts";
-import { taskJson, taskLine } from "./agent-team-tool-view.ts";
-
-function fail(message: string, taskId?: string) {
-	return {
-		content: [{ type: "text" as const, text: message }],
-		details: { ...(taskId ? { task_id: taskId } : {}), error: message },
-		isError: true,
-	};
-}
-
-function ok(text: string, details: Record<string, unknown>) {
-	return { content: [{ type: "text" as const, text }], details };
-}
-
-function liveLabel(api: AgentTeamApi, owner: string): string {
-	if (owner === "nobody") return "unowned";
-	if (!api.isLive) return "unknown";
-	return api.isLive(owner) ? "live" : "not live";
-}
-
-function resolveTask(api: AgentTeamApi, taskId: string, caller: AgentTeamCaller) {
-	if (!caller.lead) return fail("Only the lead can resolve scope conflicts.", taskId);
-	const resolved = api.resolve(taskId);
-	if (!resolved) return fail(`Unknown task "${taskId}".`, taskId);
-	const head = taskLine(resolved.task);
-	if (resolved.conflicts.length === 0) {
-		return ok(`${head}\nNo scope conflict.`, {
-			agent_team_id: api.agentTeamId(),
-			task: taskJson(resolved.task),
-			conflicts: [],
-			suggested: "Claim it.",
-		});
-	}
-	const rows = resolved.conflicts.map((hit) => ({ ...hit, live: liveLabel(api, hit.owner) }));
-	const lines = [head, "Conflicts:"];
-	for (const hit of rows) {
-		lines.push(
-			`- ${hit.id} [${hit.status}] rev ${hit.revision} · ${hit.scope} · ${hit.owner} · ${hit.live}`,
-		);
-	}
-	const cold = rows.filter((hit) => hit.live === "not live");
-	const live = rows.filter((hit) => hit.live === "live");
-	const unknown = rows.filter((hit) => hit.live === "unknown");
-	const parts: string[] = [];
-	if (cold.length > 0) {
-		parts.push(
-			`${cold.map((hit) => `AgentTeam { action: "release", task_id: "${hit.id}", expected_revision: ${hit.revision} }`).join(", then ")}, then claim ${resolved.task.task.id}`,
-		);
-	}
-	if (live.length > 0) {
-		parts.push(`ask ${live.map((hit) => hit.owner).join(", ")} to narrow the scope`);
-	}
-	if (unknown.length > 0) {
-		parts.push(`check whether ${unknown.map((hit) => hit.owner).join(", ")} is still running`);
-	}
-	const next = `Next: ${parts.join("; ")}.`;
-	lines.push(next);
-	return ok(lines.join("\n"), {
-		agent_team_id: api.agentTeamId(),
-		task: taskJson(resolved.task),
-		conflicts: rows,
-		suggested: next,
-	});
-}
+import { fail, ok, taskJson, taskLine } from "./agent-team-tool-view.ts";
+import { resolveTask } from "./agent-team-tool-resolve.ts";
 
 function boardSummary(api: AgentTeamApi): { head: string; details: Record<string, unknown> } {
 	const summary = api.summary();
 	const members = api.members();
 	const rows = api.list({ limit: MAX_AGENT_TEAM_TASKS });
-	const head = `AgentTeam ${summary.agentTeamId} · ${summary.enabled ? "on" : "off"} · ${summary.open} open · ${summary.done} done · ${members.length} members`;
+	const head = `AgentTeam ${summary.agentTeamId} · ${summary.enabled ? "on" : "off"} · ${summary.open} open · ${summary.review} review · ${summary.done} done · ${members.length} members`;
 	return {
 		head,
 		details: {
 			agent_team_id: summary.agentTeamId,
 			agent_team_mode: summary.enabled ? "on" : "off",
 			open: summary.open,
+			review: summary.review,
 			done: summary.done,
 			members: members.map((member) => ({ name: member.name, starter: member.starter })),
 			tasks: rows.map(taskJson),
@@ -134,6 +73,18 @@ export async function runAgentTeam(
 	ctx: ExtensionContext,
 ) {
 	if (params.action === "start") return startAgentTeam(api, params, caller, ctx);
+	if (params.action === "advise") {
+		if (!caller.lead) return fail("Only the lead can ask the advisor.");
+		if (!params.question?.trim()) return fail("advise needs question.");
+		if (!api.advise) return fail("AgentTeam advise is not available in this session.");
+		const result = await api.advise(params.question, params.task_id, ctx);
+		if (!result.ok) return fail(result.error, params.task_id);
+		return ok(result.text, {
+			agent_team_id: api.agentTeamId(),
+			...(params.task_id ? { task_id: params.task_id } : {}),
+			advice: result.text,
+		});
+	}
 	if (params.action === "status") {
 		const board = boardSummary(api);
 		const members = api.members();
@@ -158,7 +109,20 @@ export async function runAgentTeam(
 			'Agent team mode is off. Use /subagents agent-teams on for a manual board, or AgentTeam { action: "start", prompt } to launch work.',
 		);
 	}
+	if (
+		caller.role === "advisor" &&
+		!["status", "list", "get", "advise", "resolve"].includes(params.action)
+	) {
+		return fail("The advisor is read-only.");
+	}
+	if (
+		caller.role === "verifier" &&
+		!["status", "list", "get", "verify", "resolve"].includes(params.action)
+	) {
+		return fail("The verifier may only read and verify.");
+	}
 	if (params.action === "create") {
+		if (!caller.lead) return fail("Only the lead can create tasks.");
 		const shut = shutDown(api, caller);
 		if (shut) return fail(shut);
 		if (!params.subject) return fail("A task needs a subject.");
@@ -168,6 +132,8 @@ export async function runAgentTeam(
 				description: params.description ?? "",
 				...(params.blocked_by ? { blockedBy: params.blocked_by } : {}),
 				...(params.write_scopes ? { writeScopes: params.write_scopes } : {}),
+				...(params.acceptance ? { acceptance: params.acceptance } : {}),
+				...(params.verify_with ? { verifyWith: params.verify_with } : {}),
 			},
 			caller.name,
 		);
@@ -212,14 +178,23 @@ export async function runAgentTeam(
 		...(params.write_scopes !== undefined ? { writeScopes: params.write_scopes } : {}),
 		...(params.owner !== undefined ? { owner: params.owner } : {}),
 		...(params.result !== undefined ? { result: params.result } : {}),
+		...(params.acceptance !== undefined ? { acceptance: params.acceptance } : {}),
+		...(params.verify_with !== undefined ? { verifyWith: params.verify_with } : {}),
+		...(params.verdict !== undefined ? { verdict: params.verdict } : {}),
+		...(params.note !== undefined ? { note: params.note } : {}),
+		...(params.override !== undefined ? { override: params.override } : {}),
 	};
 	const result = api.update(update, caller);
 	if (!result.ok) return fail(result.error, params.task_id);
 	const view = api.get(result.task.id);
 	if (!view) return fail(`Task ${result.task.id} is no longer on the board.`, result.task.id);
+	if (params.action === "complete" && result.task.status === "in_review") {
+		api.startVerify?.(result.task.id, ctx);
+	}
 	const retried =
 		result.retriedFrom !== undefined ? ` · retried from rev ${result.retriedFrom}` : "";
-	return ok(`${params.action} · ${taskLine(view)}${retried}`, {
+	const review = result.task.status === "in_review" ? " · sent to review" : "";
+	return ok(`${params.action} · ${taskLine(view)}${retried}${review}`, {
 		agent_team_id: api.agentTeamId(),
 		action: params.action,
 		task: taskJson(view),

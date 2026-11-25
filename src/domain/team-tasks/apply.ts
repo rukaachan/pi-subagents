@@ -1,27 +1,29 @@
 /**
- * pi-subagents: compare-and-set transitions on the team task board.
+ * pi-subagents: one compare-and-set board transition.
  */
 
 import {
 	LEAD_NAME,
+	MAX_AGENT_TEAM_ACCEPTANCE,
 	MAX_AGENT_TEAM_BLOCKERS,
 	MAX_AGENT_TEAM_DESCRIPTION,
+	MAX_AGENT_TEAM_NOTE,
 	MAX_AGENT_TEAM_RESULT,
 	MAX_AGENT_TEAM_SUBJECT,
+	MAX_AGENT_TEAM_VERIFY_WITH,
 	blockedByOpen,
 	normalizeScopes,
 	taskReady,
 	wouldCycle,
-	type AgentTeamAction,
 	type AgentTeamBoard,
 	type AgentTeamCaller,
 	type AgentTeamMember,
 	type AgentTeamResult,
 	type AgentTeamTask,
 	type AgentTeamUpdate,
-} from "./agent-team.ts";
-import { scopeConflictError, scopeConflicts } from "./agent-team-scope.ts";
-
+} from "../agent-team/index.ts";
+import { scopeConflictError, scopeConflicts } from "../agent-team/index.ts";
+import { verifyAgentTeamTask } from "../agent-team/index.ts";
 function fail(error: string): AgentTeamResult {
 	return { ok: false, error };
 }
@@ -46,39 +48,7 @@ function bump(task: AgentTeamTask, now: number): void {
 	task.updatedAt = now;
 }
 
-const RETRY_SAFE = new Set<AgentTeamAction>([
-	"claim",
-	"release",
-	"complete",
-	"reopen",
-	"reassign",
-	"delete",
-]);
-
-/** Apply one CAS update, retrying once when the caller's revision is only stale. */
-export function updateAgentTeamTask(
-	board: AgentTeamBoard,
-	update: AgentTeamUpdate,
-	caller: AgentTeamCaller,
-	members: readonly AgentTeamMember[],
-	now = Date.now(),
-): AgentTeamResult {
-	const first = applyUpdate(board, update, caller, members, now);
-	if (first.ok || !RETRY_SAFE.has(update.action)) return first;
-	const task = board.tasks.find((row) => row.id === update.taskId);
-	if (!task || task.status === "deleted" || task.revision <= update.expectedRevision) return first;
-	const retried = applyUpdate(
-		board,
-		{ ...update, expectedRevision: task.revision },
-		caller,
-		members,
-		now,
-	);
-	if (!retried.ok) return retried;
-	return { ...retried, retriedFrom: update.expectedRevision };
-}
-
-function applyUpdate(
+export function applyUpdate(
 	board: AgentTeamBoard,
 	update: AgentTeamUpdate,
 	caller: AgentTeamCaller,
@@ -93,9 +63,11 @@ function applyUpdate(
 			`Task ${task.id} changed (revision ${task.revision}, expected ${update.expectedRevision}). Read it again.`,
 		);
 	}
+	if (update.action === "verify") return verifyAgentTeamTask(task, update, caller, now);
 	if (update.action === "reassign") {
 		if (!caller.lead) return fail("Only the lead can reassign tasks.");
 		if (task.status === "completed") return fail(`Task ${task.id} is completed; reopen it first.`);
+		if (task.status === "in_review") return fail(`Task ${task.id} is in review; verify it first.`);
 		const owner = update.owner?.trim();
 		if (owner) {
 			if (owner !== LEAD_NAME && !members.some((member) => member.name === owner)) {
@@ -114,6 +86,7 @@ function applyUpdate(
 		return { ok: true, task };
 	}
 	if (update.action === "claim") {
+		if (task.owner === caller.name && task.status === "in_progress") return { ok: true, task };
 		if (task.owner) return fail(`Task ${task.id} is owned by ${task.owner}.`);
 		if (task.status !== "pending")
 			return fail(`Task ${task.id} is ${task.status}; claim needs a pending task.`);
@@ -134,6 +107,12 @@ function applyUpdate(
 	if (update.action === "release") {
 		if (task.status !== "in_progress")
 			return fail(`Task ${task.id} is ${task.status}; release needs an in-progress task.`);
+		const note = update.note?.trim();
+		if (note && note.length > MAX_AGENT_TEAM_NOTE)
+			return fail(`A release note is limited to ${MAX_AGENT_TEAM_NOTE} characters.`);
+		if (task.owner) task.lastOwner = task.owner;
+		if (note) task.lastError = note;
+		task.returnedAt = now;
 		task.status = "pending";
 		delete task.owner;
 		bump(task, now);
@@ -141,20 +120,26 @@ function applyUpdate(
 	}
 	if (update.action === "complete") {
 		if (task.status === "completed") return fail(`Task ${task.id} is already completed.`);
+		if (task.status === "in_review") return fail(`Task ${task.id} is already in review.`);
 		if (update.result !== undefined) {
 			const result = update.result.trim();
 			if (!result) return fail("A result cannot be empty when sent.");
 			task.result = result.slice(0, MAX_AGENT_TEAM_RESULT);
 		}
-		task.status = "completed";
+		task.status = task.acceptance ? "in_review" : "completed";
 		bump(task, now);
 		return { ok: true, task };
 	}
 	if (update.action === "reopen") {
-		if (task.status !== "completed")
-			return fail(`Task ${task.id} is ${task.status}; reopen needs a completed task.`);
+		if (task.status !== "completed" && task.status !== "in_review")
+			return fail(`Task ${task.id} is ${task.status}; reopen needs a completed or in-review task.`);
 		task.status = "pending";
 		delete task.owner;
+		delete task.verdict;
+		delete task.verifiedBy;
+		delete task.verifiedAt;
+		delete task.verifyRunId;
+		delete task.lastError;
 		bump(task, now);
 		return { ok: true, task };
 	}
@@ -183,6 +168,17 @@ function applyUpdate(
 		) {
 			return fail(`Description is limited to ${MAX_AGENT_TEAM_DESCRIPTION} characters.`);
 		}
+		const acceptance = update.acceptance === undefined ? undefined : update.acceptance.trim();
+		if (acceptance && acceptance.length > MAX_AGENT_TEAM_ACCEPTANCE) {
+			return fail(`Acceptance is limited to ${MAX_AGENT_TEAM_ACCEPTANCE} characters.`);
+		}
+		const verifyWith = update.verifyWith === undefined ? undefined : update.verifyWith.trim();
+		if (
+			verifyWith &&
+			(verifyWith.length > MAX_AGENT_TEAM_VERIFY_WITH || !/^[a-z0-9-_]+$/.test(verifyWith))
+		) {
+			return fail("verifyWith must be a subagent name.");
+		}
 		const scopes =
 			update.writeScopes === undefined ? undefined : normalizeScopes(update.writeScopes);
 		if (scopes && !scopes.ok) return scopes;
@@ -200,9 +196,13 @@ function applyUpdate(
 			subject === undefined &&
 			update.description === undefined &&
 			scopes === undefined &&
-			blockedBy === undefined
+			blockedBy === undefined &&
+			update.acceptance === undefined &&
+			update.verifyWith === undefined
 		) {
-			return fail("Edit needs a subject, description, write_scopes, or blocked_by.");
+			return fail(
+				"Edit needs a subject, description, write_scopes, blocked_by, acceptance, or verify_with.",
+			);
 		}
 		if (scopes?.ok && task.status === "in_progress") {
 			const hits = scopeConflicts(task, board, scopes.scopes);
@@ -211,6 +211,14 @@ function applyUpdate(
 		if (subject !== undefined) task.subject = subject;
 		if (update.description !== undefined) task.description = update.description.trim();
 		if (scopes?.ok) task.writeScopes = scopes.scopes;
+		if (update.acceptance !== undefined) {
+			if (acceptance) task.acceptance = acceptance;
+			else delete task.acceptance;
+		}
+		if (update.verifyWith !== undefined) {
+			if (verifyWith) task.verifyWith = verifyWith;
+			else delete task.verifyWith;
+		}
 		if (blockedBy) {
 			const original = task.blockedBy;
 			task.blockedBy = blockedBy;

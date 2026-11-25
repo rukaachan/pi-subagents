@@ -5,6 +5,7 @@
 import type { FailureFamily } from "../policy/index.ts";
 import type { SubagentConfig } from "../subagent/index.ts";
 import type { SubagentRunResult } from "../run/index.ts";
+import type { AgentTeamOrigin, AgentTeamRole } from "../agent-team/index.ts";
 
 export type TaskStatus = "running" | "done" | "error" | "stopped";
 export type RunKind = "foreground" | "background" | "alias" | "chain" | "parallel";
@@ -62,6 +63,10 @@ export interface TaskRecord {
 	prompt?: string;
 	/** Groups the legs started by one delegate, team, parallel, or chain call. */
 	runId?: string;
+	/** The board task this run works, when agent team mode put it there. */
+	agentTeamTaskId?: string;
+	agentTeamRole?: AgentTeamRole;
+	agentTeamOrigin?: AgentTeamOrigin;
 	dispatch?: { rule: string; matched: string };
 	steps?: ChainStep[];
 	legs?: ParallelLeg[];

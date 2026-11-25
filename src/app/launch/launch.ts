@@ -7,16 +7,13 @@ import type { ChildDeps } from "../run/index.ts";
 import { discoverSubagents } from "../../infra/files/index.ts";
 import { withTemps } from "../../domain/run/index.ts";
 import type { SubagentRunResult } from "../../domain/run/index.ts";
-import type { LaunchKind } from "../../domain/policy/index.ts";
-import type { FailureFamily } from "../../domain/policy/index.ts";
+import type { FailureFamily, LaunchKind } from "../../domain/policy/index.ts";
 import { unknownLegs } from "../../domain/policy/index.ts";
 import { launchBackground } from "../run/index.ts";
 import { readGlobalConfig, withGlobalConfig } from "../session/index.ts";
 import { useFooterUI } from "../../telemetry/live/index.ts";
-import type { TaskRecord } from "../../domain/task/index.ts";
-import type { TaskStorePort } from "../../domain/task/index.ts";
-import { newRunId } from "../../domain/task/index.ts";
-import { MAX_LIVE_TASKS } from "../../domain/task/index.ts";
+import type { TaskRecord, TaskStorePort } from "../../domain/task/index.ts";
+import { MAX_LIVE_TASKS, newRunId } from "../../domain/task/index.ts";
 
 export type LegStatus = "queued" | "running" | "done" | "error" | "stopped";
 
@@ -122,6 +119,8 @@ export function startLaunch(
 		promptFor?: (name: string, index: number) => string;
 		/** Called when a leg gets its run id, including legs that waited in the queue. */
 		onLeg?: (index: number, taskId: string) => void;
+		/** The board task already created for this leg, if any. */
+		agentTeamTaskIdFor?: (index: number) => string | undefined;
 	} = {},
 ): LaunchStart {
 	const disk = withTemps(discoverSubagents(ctx.cwd));
@@ -181,6 +180,7 @@ export function startLaunch(
 				const legPrompt = options.promptFor?.(leg.name, index) ?? prompt;
 				leg.status = "running";
 				leg.startedAt = Date.now();
+				const teamTaskId = options.agentTeamTaskIdFor?.(index);
 				try {
 					leg.taskId = launchBackground(
 						store,
@@ -190,7 +190,12 @@ export function startLaunch(
 						ctx.cwd,
 						ctx,
 						deps,
-						{ kind: "parallel", runId },
+						{
+							kind: "parallel",
+							runId,
+							agentTeamOrigin: kind === "agent-team" ? "start" : kind,
+							...(teamTaskId ? { agentTeamTaskId: teamTaskId } : {}),
+						},
 					);
 					options.onLeg?.(index, leg.taskId);
 				} catch (err) {

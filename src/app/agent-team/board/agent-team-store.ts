@@ -2,12 +2,10 @@
  * pi-subagents: the live team board for one Pi session.
  */
 
-import type { PersistedAgentTeam } from "../../../infra/state/index.ts";
 import type { AgentTeamApi } from "../../../infra/agent-team/tools/index.ts";
 import {
 	LEAD_NAME,
 	MAX_AGENT_TEAM_MEMBERS,
-	createAgentTeamTask,
 	liveTasks,
 	newAgentTeam,
 	agentTeamView,
@@ -15,11 +13,14 @@ import {
 	type AgentTeamCaller,
 	type AgentTeamMember,
 	type AgentTeamFilters,
+	type AgentTeamOrigin,
 	type AgentTeamResult,
+	type AgentTeamRole,
 	type AgentTeamTaskView,
 	type AgentTeamUpdate,
 } from "../../../domain/agent-team/index.ts";
-import { updateAgentTeamTask } from "../../../domain/agent-team/index.ts";
+import { updateAgentTeamTask } from "../../../domain/team-tasks/index.ts";
+import { createAgentTeamTask } from "../../../domain/team-tasks/index.ts";
 import { resolveTaskOn, summarizeBoard, taskListOn } from "./agent-team-read.ts";
 import { journalAgentTeamTask } from "./agent-team-journal.ts";
 
@@ -55,6 +56,18 @@ export function setAgentTeamChangeHook(fn: (() => void) | null): void {
 function current(): AgentTeamState {
 	state ??= fresh("local");
 	return state;
+}
+
+export function hasAgentTeamState(): boolean {
+	return state !== null;
+}
+
+export function readAgentTeamState(): AgentTeamState {
+	return current();
+}
+
+export function writeAgentTeamState(next: AgentTeamState): void {
+	state = next;
 }
 
 export function agentTeamEnabled(): boolean {
@@ -100,11 +113,19 @@ function baseName(starter: string): string {
 }
 
 /** Register one teammate and return its unique owner name. */
-export function joinAgentTeam(starter: string, key?: string, now = Date.now()): string {
+export function joinAgentTeam(
+	starter: string,
+	key?: string,
+	now = Date.now(),
+	role: AgentTeamRole = "worker",
+): string {
 	const agentTeam = current();
 	if (key) {
 		const known = agentTeam.members.find((member) => member.key === key);
-		if (known) return known.name;
+		if (known) {
+			known.role = role;
+			return known.name;
+		}
 	}
 	const base = baseName(starter);
 	const reserved = new Set(
@@ -125,7 +146,7 @@ export function joinAgentTeam(starter: string, key?: string, now = Date.now()): 
 	]);
 	let name = base;
 	for (let n = 2; used.has(name); n += 1) name = `${base}-${n}`;
-	agentTeam.members.push({ name, starter, joinedAt: now, ...(key ? { key } : {}) });
+	agentTeam.members.push({ name, starter, role, joinedAt: now, ...(key ? { key } : {}) });
 	return name;
 }
 
@@ -144,6 +165,9 @@ export function createTask(
 		description: string;
 		blockedBy?: string[];
 		writeScopes?: string[];
+		acceptance?: string;
+		verifyWith?: string;
+		origin?: AgentTeamOrigin;
 	},
 	actor = "lead",
 ): AgentTeamResult {
@@ -193,43 +217,11 @@ export function agentTeamSummary(): {
 	agentTeamId: string;
 	enabled: boolean;
 	open: number;
+	review: number;
 	done: number;
 } {
 	const agentTeam = current();
 	return summarizeBoard(agentTeam.board, agentTeam.enabled);
-}
-
-/** Attach the run that owns a task, without touching its revision. */
-export function linkRun(taskId: string, runId: string): void {
-	const task = current().board.tasks.find((row) => row.id === taskId);
-	if (!task || task.status === "deleted") return;
-	const clean = runId.trim().slice(0, 128);
-	if (!clean || task.runId === clean) return;
-	task.runId = clean;
-	notify();
-}
-
-export function agentTeamSnapshot(): PersistedAgentTeam | undefined {
-	if (!state) return undefined;
-	return {
-		agentTeamId: state.board.agentTeamId,
-		enabled: state.enabled,
-		nextId: state.board.nextId,
-		tasks: state.board.tasks.map((task) => ({
-			...task,
-			blockedBy: [...task.blockedBy],
-			writeScopes: [...task.writeScopes],
-		})),
-		members: state.members.map((member) => ({ ...member })),
-	};
-}
-
-export function restoreAgentTeam(snapshot: PersistedAgentTeam): void {
-	state = {
-		enabled: snapshot.enabled,
-		board: { agentTeamId: snapshot.agentTeamId, nextId: snapshot.nextId, tasks: snapshot.tasks },
-		members: snapshot.members,
-	};
 }
 
 export const agentTeamApi: AgentTeamApi = {

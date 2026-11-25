@@ -21,10 +21,17 @@ export interface AgentTeamScreenOptions {
 	enabled: boolean;
 }
 
-const GLYPH = { pending: "○", in_progress: "…", completed: "✓", deleted: "·" } as const;
+const GLYPH = {
+	pending: "○",
+	in_progress: "…",
+	in_review: "?",
+	completed: "✓",
+	deleted: "·",
+} as const;
 const COLOR = {
 	pending: "warning",
 	in_progress: "accent",
+	in_review: "warning",
 	completed: "success",
 	deleted: "dim",
 } as const;
@@ -90,6 +97,15 @@ export function agentTeamDetailLines(
 		theme.fg("dim", `rev ${task.revision} · ${owner}${row.live ? " · live" : ""}`),
 		theme.fg("dim", task.runId ? `run ${task.runId}` : "no run linked"),
 	];
+	if (task.acceptance)
+		lines.push(theme.fg("warning", `acceptance: ${shortText(task.acceptance, 100)}`));
+	if (task.verdict) {
+		const who = task.verifiedBy ? ` by ${task.verifiedBy}` : "";
+		lines.push(
+			theme.fg(task.verdict === "pass" ? "success" : "error", `verdict: ${task.verdict}${who}`),
+		);
+	}
+	if (task.verifyRunId) lines.push(theme.fg("dim", `verifier run ${task.verifyRunId}`));
 	if (task.result) lines.push(theme.fg("text", `result: ${shortText(task.result, 120)}`));
 	lines.push(theme.fg("dim", `scopes: ${scopeText(row.view)}`));
 	if (row.view.blockedByOpen.length > 0) {
@@ -109,7 +125,8 @@ function agentTeamHint(rows: readonly AgentTeamRow[], cursor: number): string {
 	if (status === "pending") parts.push("c claim");
 	if (status === "in_progress") parts.push("x done", "r release");
 	if (status === "pending" || status === "in_progress") parts.push("a assign");
-	if (status && status !== "deleted") parts.push("e edit", "d delete");
+	if (status === "in_review") parts.push("v verify");
+	if (status && status !== "deleted") parts.push("i advice", "e edit", "d delete");
 	if (rows[cursor]?.view.task.runId) parts.push("o open run");
 	parts.push("n new", "s start", "tab", "esc");
 	return parts.join(" · ");
@@ -140,9 +157,12 @@ export function renderAgentTeamScreen(
 		const detail = truncateToWidth(details[index] ?? "", detailWidth, "…");
 		return `${clipped}${pad}${theme.fg("borderMuted", " │ ")}${detail}`;
 	});
-	const open = rows.filter((row) => row.view.task.status !== "completed").length;
+	const open = rows.filter(
+		(row) => row.view.task.status !== "completed" && row.view.task.status !== "in_review",
+	).length;
+	const review = rows.filter((row) => row.view.task.status === "in_review").length;
 	const done = rows.filter((row) => row.view.task.status === "completed").length;
-	const title = `${theme.bold("Mission control")}  ${theme.fg("muted", `${open} open · ${done} done · team ${opts.enabled ? "on" : "off"} (t)`)}`;
+	const title = `${theme.bold("Mission control")}  ${theme.fg("muted", `${open} open · ${review} review · ${done} done · team ${opts.enabled ? "on" : "off"} (t)`)}`;
 	const rule = theme.fg("borderMuted", "─".repeat(Math.max(1, width)));
 	const hint = theme.fg("dim", agentTeamHint(rows, cursor));
 	const box = hintFrame(hint, width, wide ? listWidth + 1 : undefined, theme);

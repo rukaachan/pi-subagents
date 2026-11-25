@@ -95,6 +95,7 @@ export async function runParallelTask(
 		const id = await launchBackground(store, leg, label, prompt, ctx.cwd, ctx, deps, {
 			kind: "parallel",
 			runId,
+			agentTeamOrigin: "parallel",
 		});
 		ids.push(id);
 	}

@@ -3,6 +3,7 @@
  */
 
 import {
+	MAX_AGENT_TEAM_ACCEPTANCE,
 	MAX_AGENT_TEAM_BLOCKERS,
 	MAX_AGENT_TEAM_DESCRIPTION,
 	MAX_AGENT_TEAM_ERROR,
@@ -12,9 +13,13 @@ import {
 	MAX_AGENT_TEAM_SCOPES,
 	MAX_AGENT_TEAM_SUBJECT,
 	MAX_AGENT_TEAM_TASKS,
+	MAX_AGENT_TEAM_VERIFY_WITH,
 	type AgentTeamMember,
+	type AgentTeamOrigin,
+	type AgentTeamRole,
 	type AgentTeamTask,
 	type AgentTeamTaskStatus,
+	type VerificationVerdict,
 } from "../../domain/agent-team/index.ts";
 import { canonicalWorkspacePath } from "../../domain/policy/index.ts";
 import { MAX_COLD_CHARS, MAX_COLD_MESSAGES } from "../../domain/agent-team/index.ts";
@@ -28,7 +33,24 @@ export interface PersistedAgentTeam {
 	coldMail?: Record<string, string[]>;
 }
 
-const STATUSES = new Set<AgentTeamTaskStatus>(["pending", "in_progress", "completed", "deleted"]);
+const STATUSES = new Set<AgentTeamTaskStatus>([
+	"pending",
+	"in_progress",
+	"in_review",
+	"completed",
+	"deleted",
+]);
+const ROLES = new Set<AgentTeamRole>(["worker", "verifier", "advisor"]);
+const ORIGINS = new Set<AgentTeamOrigin>([
+	"manual",
+	"task",
+	"parallel",
+	"chain",
+	"delegate",
+	"finish",
+	"start",
+]);
+const VERDICTS = new Set<VerificationVerdict>(["pass", "fail"]);
 const MAX_PERSISTED_TASKS = MAX_AGENT_TEAM_TASKS * 2;
 
 function stringValue(value: unknown, max: number): string | undefined {
@@ -82,6 +104,22 @@ function decodeTask(value: unknown): AgentTeamTask | undefined {
 		typeof row.returnedAt === "number" && Number.isFinite(row.returnedAt)
 			? row.returnedAt
 			: undefined;
+	const acceptance = stringValue(row.acceptance, MAX_AGENT_TEAM_ACCEPTANCE);
+	const verifyWith = stringValue(row.verifyWith, MAX_AGENT_TEAM_VERIFY_WITH);
+	const verdict =
+		typeof row.verdict === "string" && VERDICTS.has(row.verdict as VerificationVerdict)
+			? (row.verdict as VerificationVerdict)
+			: undefined;
+	const verifiedBy = stringValue(row.verifiedBy, 64);
+	const verifiedAt =
+		typeof row.verifiedAt === "number" && Number.isFinite(row.verifiedAt)
+			? row.verifiedAt
+			: undefined;
+	const verifyRunId = stringValue(row.verifyRunId, MAX_AGENT_TEAM_RUN_ID);
+	const origin =
+		typeof row.origin === "string" && ORIGINS.has(row.origin as AgentTeamOrigin)
+			? (row.origin as AgentTeamOrigin)
+			: "manual";
 	return {
 		id,
 		revision,
@@ -97,6 +135,13 @@ function decodeTask(value: unknown): AgentTeamTask | undefined {
 		...(returnedAt !== undefined ? { returnedAt } : {}),
 		...(runId ? { runId } : {}),
 		...(result ? { result } : {}),
+		...(acceptance ? { acceptance } : {}),
+		...(verifyWith ? { verifyWith } : {}),
+		...(verdict ? { verdict } : {}),
+		...(verifiedBy ? { verifiedBy } : {}),
+		...(verifiedAt !== undefined ? { verifiedAt } : {}),
+		...(verifyRunId ? { verifyRunId } : {}),
+		origin,
 		blockedBy: stringList(row.blockedBy, MAX_AGENT_TEAM_BLOCKERS, 64),
 		writeScopes: decodeScopes(row.writeScopes),
 		createdAt,
@@ -111,9 +156,13 @@ function decodeMember(value: unknown): AgentTeamMember | undefined {
 	const starter = stringValue(row.starter, 64);
 	const joinedAt = row.joinedAt;
 	const key = stringValue(row.key, 128);
+	const role =
+		typeof row.role === "string" && ROLES.has(row.role as AgentTeamRole)
+			? (row.role as AgentTeamRole)
+			: "worker";
 	if (!name || !starter) return undefined;
 	if (typeof joinedAt !== "number" || !Number.isFinite(joinedAt)) return undefined;
-	return { name, starter, joinedAt, ...(key ? { key } : {}) };
+	return { name, starter, role, joinedAt, ...(key ? { key } : {}) };
 }
 
 function decodeColdMail(

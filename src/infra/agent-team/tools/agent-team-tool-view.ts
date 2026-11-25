@@ -11,6 +11,8 @@ export function taskLine(view: AgentTeamTaskView): string {
 		view.ready ? "ready" : "",
 		view.blockedByOpen.length ? `blocked by ${view.blockedByOpen.join(",")}` : "",
 		view.writeScopeWarnings.length ? view.writeScopeWarnings.join("; ") : "",
+		task.acceptance ? `acceptance set` : "",
+		task.verdict ? `verdict ${task.verdict}` : "",
 		task.lastError ? `last ${task.lastOwner ?? "a run"}: ${task.lastError.slice(0, 40)}` : "",
 	].filter(Boolean);
 	return `${task.id} [${task.status}] rev ${task.revision} · ${task.subject} · ${owner}${flags.length ? ` · ${flags.join(" · ")}` : ""}`;
@@ -31,8 +33,27 @@ export function taskJson(view: AgentTeamTaskView): Record<string, unknown> {
 		...(view.task.returnedAt ? { returned_at: view.task.returnedAt } : {}),
 		...(view.task.runId ? { run_id: view.task.runId } : {}),
 		...(view.task.result ? { result: view.task.result } : {}),
+		...(view.task.acceptance ? { acceptance: view.task.acceptance } : {}),
+		...(view.task.verifyWith ? { verify_with: view.task.verifyWith } : {}),
+		...(view.task.verdict ? { verdict: view.task.verdict } : {}),
+		...(view.task.verifiedBy ? { verified_by: view.task.verifiedBy } : {}),
+		...(view.task.verifiedAt ? { verified_at: view.task.verifiedAt } : {}),
+		...(view.task.verifyRunId ? { verify_run_id: view.task.verifyRunId } : {}),
+		...(view.task.origin ? { origin: view.task.origin } : {}),
 		ready: view.ready,
 		blocked_by_open: view.blockedByOpen,
 		write_scope_warnings: view.writeScopeWarnings,
 	};
+}
+
+export function fail(message: string, taskId?: string) {
+	return {
+		content: [{ type: "text" as const, text: message }],
+		details: { ...(taskId ? { task_id: taskId } : {}), error: message },
+		isError: true,
+	};
+}
+
+export function ok(text: string, details: Record<string, unknown>) {
+	return { content: [{ type: "text" as const, text }], details };
 }

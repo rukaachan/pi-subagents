@@ -163,8 +163,9 @@ The UI grew without adding a second source of truth: `TaskRecord` and
   RUNS │ AGENT TEAM tab line above the existing board renderer, and
   `agent-team-screen.ts` draws the board rows. `menu/workspace.ts` owns the
   modal loop; `agent-team-actions.ts` owns create/edit/assign/claim/release/
-  complete/delete/start/finish. Every mutation re-reads the revision;
-  no edit is retried silently.
+  complete/verify/advise/delete/start/finish. Every mutation re-reads the
+  revision; no edit is retried silently. The toggle makes every work leg an
+  auto-task; acceptance moves completion to `in_review` and starts a verifier.
 - `src/app/hybrid-policy.ts` is injected as
   `systemPromptOptions.sections.pi_subagents_hybrid` on every lead turn.
   It names the ladder; the model chooses. `AgentTeam { action: "start", prompt }`

@@ -53,12 +53,13 @@ export function taskListOn(
 export function summarizeBoard(
 	board: AgentTeamBoard,
 	enabled: boolean,
-): { agentTeamId: string; enabled: boolean; open: number; done: number } {
+): { agentTeamId: string; enabled: boolean; open: number; review: number; done: number } {
 	const rows: AgentTeamTask[] = liveTasks(board);
 	return {
 		agentTeamId: board.agentTeamId,
 		enabled,
 		open: rows.filter((task) => task.status !== "completed").length,
+		review: rows.filter((task) => task.status === "in_review").length,
 		done: rows.filter((task) => task.status === "completed").length,
 	};
 }

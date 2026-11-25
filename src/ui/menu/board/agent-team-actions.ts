@@ -7,6 +7,8 @@ import type { AppDeps } from "../../../app/index.ts";
 import type { AgentTeamTaskView, AgentTeamUpdate } from "../../../domain/agent-team/index.ts";
 import { inModal } from "../../../app/stop/index.ts";
 import { startAgentTeamLaunch } from "../../../app/agent-team/run/index.ts";
+import { adviseAgentTeam } from "../../../app/agent-team/advisor/index.ts";
+import { startAgentTeamVerification } from "../../../app/agent-team/verify-run/index.ts";
 import {
 	createTask,
 	getTask,
@@ -106,6 +108,40 @@ async function assignFlow(ctx: ExtensionCommandContext, taskId: string): Promise
 	update(ctx, view, "reassign", { owner });
 }
 
+async function verifyFlow(ctx: ExtensionCommandContext, taskId: string): Promise<void> {
+	const view = taskOf(ctx, taskId);
+	if (!view) return;
+	if (view.task.status !== "in_review") {
+		notice(ctx, "Only a task in review can be verified.", "error");
+		return;
+	}
+	const verdict = await pickFromList(ctx, {
+		title: `Verify ${taskId}`,
+		subtitle: "lead override is journaled",
+		items: [
+			{ value: "pass", label: "pass" },
+			{ value: "fail", label: "fail" },
+		],
+	});
+	if (verdict !== "pass" && verdict !== "fail") return;
+	if (verdict === "pass") return update(ctx, view, "verify", { verdict: "pass" });
+	const note = await input(ctx, "Why did it fail?");
+	if (note === undefined) return;
+	update(ctx, view, "verify", { verdict: "fail", note });
+}
+
+async function adviseFlow(
+	ctx: ExtensionCommandContext,
+	taskId: string,
+	store: TaskStorePort,
+	deps: AppDeps,
+): Promise<void> {
+	const question = await input(ctx, "Ask the advisor");
+	if (!question) return;
+	const result = await adviseAgentTeam(store, question, taskId, ctx, deps);
+	notice(ctx, result.ok ? result.text : result.error, result.ok ? "info" : "error");
+}
+
 async function confirmDelete(ctx: ExtensionCommandContext, view: AgentTeamTaskView): Promise<void> {
 	const ok = await inModal(() =>
 		ctx.ui.confirm("Delete task?", `${view.task.id} · ${shortText(view.task.subject, 60)}`),
@@ -180,7 +216,11 @@ export async function runAgentTeamAction(
 		const view = taskOf(ctx, action.taskId);
 		if (!view) return;
 		const verb = action.kind.replace("agent-team-", "") as AgentTeamUpdate["action"];
-		return update(ctx, view, verb);
+		update(ctx, view, verb);
+		if (verb === "complete" && getTask(action.taskId)?.task.status === "in_review") {
+			startAgentTeamVerification(store, action.taskId, ctx, deps);
+		}
+		return;
 	}
 	if (action.kind === "agent-team-delete") {
 		const view = taskOf(ctx, action.taskId);
@@ -188,5 +228,7 @@ export async function runAgentTeamAction(
 		return;
 	}
 	if (action.kind === "agent-team-detail") return detailFlow(ctx, action.taskId);
+	if (action.kind === "agent-team-verify") return verifyFlow(ctx, action.taskId);
+	if (action.kind === "agent-team-advise") return adviseFlow(ctx, action.taskId, store, deps);
 	if (action.kind === "agent-team-start") return startFlow(ctx, store, deps);
 }

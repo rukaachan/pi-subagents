@@ -153,9 +153,11 @@ A run that ends in error or is stopped releases the tasks it still owns:
 they go back to pending with a new revision, and the settle notice names
 them. The release records `lastOwner`, the reason (capped at 300
 characters), and `returnedAt`, so the row shows `last worker: boom`.
-A successful run that leaves a task in_progress keeps the claim, and the
-notice says so. A restart releases every in_progress task with
-`Pi restarted`, because no run survives it.
+Every work leg runs `ensureTask` before its child starts. That creates one
+task, links the run, assigns the member, and injects the task id; a task
+already named in the prompt is reused. The parent completes the task from
+the report after a successful run. A restart releases every in_progress
+task with `Pi restarted`, because no run survives it.
 
 A claim, a reassign, or an in-progress scope edit checks the board for
 another in-progress task whose scopes overlap. The update is refused
@@ -179,6 +181,14 @@ says `retried from rev N`.
 The board does not start anyone. Restoring a pending task is history,
 not a queue: no agent wakes because a task exists. The lead delegates
 with `Task`, and the settle card still owns the wake.
+
+When a task has `acceptance`, `complete` moves it to `in_review` instead of
+`completed`. The app calls `startAgentTeamVerification`, which launches a
+fresh `code-reviewer` (or `verify_with`) run as a read-only verifier. A pass
+completes the task; a fail returns it to pending with the note in
+`last_error`; a verifier error leaves it in review. `advise` launches one
+read-only `advisor` run (fallback `planner`) with a board snapshot and a
+120-second wait; it cannot mutate the board.
 
 `AgentTeam { action: "start", prompt, roster? }` is lead-only and always
 launches. It handles the request before the active gate, validates the

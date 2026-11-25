@@ -52,19 +52,33 @@ export type AgentTeamLaunchResult =
 export interface AgentTeamApi {
 	active: () => boolean;
 	agentTeamId: () => string;
-	summary: () => { agentTeamId: string; enabled: boolean; open: number; done: number };
+	summary: () => {
+		agentTeamId: string;
+		enabled: boolean;
+		open: number;
+		review: number;
+		done: number;
+	};
 	members: () => AgentTeamMember[];
 	resolve: (taskId: string) => AgentTeamResolution | undefined;
 	isLive?: (name: string) => boolean;
 	/** False once the run is stopped; late board changes must not land. */
 	canWork?: () => boolean;
 	launch?: (input: AgentTeamLaunchInput, ctx: ExtensionContext) => Promise<AgentTeamLaunchResult>;
+	startVerify?: (taskId: string, ctx: ExtensionContext) => void;
+	advise?: (
+		question: string,
+		taskId: string | undefined,
+		ctx: ExtensionContext,
+	) => Promise<{ ok: true; text: string } | { ok: false; error: string }>;
 	create: (
 		input: {
 			subject: string;
 			description: string;
 			blockedBy?: string[];
 			writeScopes?: string[];
+			acceptance?: string;
+			verifyWith?: string;
 		},
 		actor?: string,
 	) => AgentTeamResult;

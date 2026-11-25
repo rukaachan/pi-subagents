@@ -15,8 +15,21 @@ export const MAX_AGENT_TEAM_BLOCKERS = 20;
 export const MAX_AGENT_TEAM_ERROR = 300;
 export const MAX_AGENT_TEAM_RESULT = 2_000;
 export const MAX_AGENT_TEAM_RUN_ID = 128;
+export const MAX_AGENT_TEAM_ACCEPTANCE = 500;
+export const MAX_AGENT_TEAM_NOTE = 300;
+export const MAX_AGENT_TEAM_VERIFY_WITH = 64;
 
-export type AgentTeamTaskStatus = "pending" | "in_progress" | "completed" | "deleted";
+export type AgentTeamTaskStatus = "pending" | "in_progress" | "in_review" | "completed" | "deleted";
+export type AgentTeamRole = "worker" | "verifier" | "advisor";
+export type AgentTeamOrigin =
+	| "manual"
+	| "task"
+	| "parallel"
+	| "chain"
+	| "delegate"
+	| "finish"
+	| "start";
+export type VerificationVerdict = "pass" | "fail";
 
 export interface AgentTeamTask {
 	id: string;
@@ -34,6 +47,15 @@ export interface AgentTeamTask {
 	runId?: string;
 	/** What the owner reported when it completed the task. */
 	result?: string;
+	/** Criteria a verifier checks before the task may count as completed. */
+	acceptance?: string;
+	/** Subagent used for the fresh verification run; defaults to code-reviewer. */
+	verifyWith?: string;
+	verdict?: VerificationVerdict;
+	verifiedBy?: string;
+	verifiedAt?: number;
+	verifyRunId?: string;
+	origin?: AgentTeamOrigin;
 	createdAt: number;
 	updatedAt: number;
 }
@@ -47,6 +69,7 @@ export interface AgentTeamBoard {
 export interface AgentTeamMember {
 	name: string;
 	starter: string;
+	role: AgentTeamRole;
 	joinedAt: number;
 	/** Stable run identity, so a retried attempt keeps its member name. */
 	key?: string;
@@ -74,11 +97,13 @@ export type AgentTeamAction =
 	| "complete"
 	| "reopen"
 	| "reassign"
-	| "delete";
+	| "delete"
+	| "verify";
 
 export interface AgentTeamCaller {
 	name: string;
 	lead: boolean;
+	role?: AgentTeamRole;
 }
 
 export interface AgentTeamUpdate {
@@ -92,6 +117,12 @@ export interface AgentTeamUpdate {
 	owner?: string;
 	/** Sent with complete; what the work returned. */
 	result?: string;
+	acceptance?: string;
+	verifyWith?: string;
+	verdict?: VerificationVerdict;
+	note?: string;
+	/** Lead-only bypass of the verifier role; a note is required. */
+	override?: boolean;
 }
 
 export type AgentTeamOk = { ok: true; task: AgentTeamTask; retriedFrom?: number };
@@ -108,10 +139,6 @@ export function liveTasks(board: AgentTeamBoard): AgentTeamTask[] {
 
 function find(board: AgentTeamBoard, taskId: string): AgentTeamTask | undefined {
 	return board.tasks.find((task) => task.id === taskId);
-}
-
-function text(value: string, max: number): string {
-	return value.trim().slice(0, max);
 }
 
 export function normalizeScopes(
@@ -138,24 +165,6 @@ export function normalizeScopes(
 		if (!out.includes(scope)) out.push(scope);
 	}
 	return { ok: true, scopes: out };
-}
-
-function blockerError(
-	board: AgentTeamBoard,
-	taskId: string | undefined,
-	blockedBy: readonly string[],
-): string | undefined {
-	if (blockedBy.length > MAX_AGENT_TEAM_BLOCKERS)
-		return `At most ${MAX_AGENT_TEAM_BLOCKERS} blockers.`;
-	const seen = new Set<string>();
-	for (const id of blockedBy) {
-		if (!id || seen.has(id)) return "Blockers must be distinct task ids.";
-		seen.add(id);
-		if (id === taskId) return "A task cannot block itself.";
-		const found = find(board, id);
-		if (!found || found.status === "deleted") return `Unknown blocker "${id}".`;
-	}
-	return undefined;
 }
 
 function reaches(
@@ -197,44 +206,4 @@ export function agentTeamView(task: AgentTeamTask, board: AgentTeamBoard): Agent
 		blockedByOpen: blockedByOpen(task, board),
 		writeScopeWarnings: writeScopeWarnings(task, board),
 	};
-}
-
-export function createAgentTeamTask(
-	board: AgentTeamBoard,
-	input: { subject: string; description: string; blockedBy?: string[]; writeScopes?: string[] },
-	now = Date.now(),
-): AgentTeamResult {
-	if (liveTasks(board).length >= MAX_AGENT_TEAM_TASKS) {
-		return { ok: false, error: `Agent team board is full (max ${MAX_AGENT_TEAM_TASKS} tasks).` };
-	}
-	const subject = text(input.subject, MAX_AGENT_TEAM_SUBJECT + 1);
-	if (!subject) return { ok: false, error: "A task needs a subject." };
-	if (subject.length > MAX_AGENT_TEAM_SUBJECT) {
-		return { ok: false, error: `Subject is limited to ${MAX_AGENT_TEAM_SUBJECT} characters.` };
-	}
-	if (input.description.trim().length > MAX_AGENT_TEAM_DESCRIPTION) {
-		return {
-			ok: false,
-			error: `Description is limited to ${MAX_AGENT_TEAM_DESCRIPTION} characters.`,
-		};
-	}
-	const blockedBy = [...new Set(input.blockedBy ?? [])];
-	const blockers = blockerError(board, undefined, blockedBy);
-	if (blockers) return { ok: false, error: blockers };
-	const scopes = normalizeScopes(input.writeScopes ?? []);
-	if (!scopes.ok) return scopes;
-	const task: AgentTeamTask = {
-		id: `task-${board.nextId}`,
-		revision: 1,
-		subject,
-		description: input.description.trim().slice(0, MAX_AGENT_TEAM_DESCRIPTION),
-		status: "pending",
-		blockedBy,
-		writeScopes: scopes.scopes,
-		createdAt: now,
-		updatedAt: now,
-	};
-	board.nextId += 1;
-	board.tasks.push(task);
-	return { ok: true, task };
 }

@@ -365,6 +365,30 @@ Workflow:
    `AgentTeam { action: "status" }`) and waits for the settle cards, or calls
    `AgentTeamMessage { action: "wait", to }` for a named run.
 
+When team mode is on, every work leg gets a board task automatically. The
+parent creates it before the child starts, assigns the member, links the run,
+and puts the task id in the child prompt. This covers `Task`, parallel, chain,
+`/delegate`, and `finish`; `AgentTeam { action: "start" }` creates its tasks
+once and reuses them. If the prompt already names a task (`task-1`), the parent
+reuses that task instead of making a second one. The parent completes the task
+from the report if the child forgot. Verifier and advisor runs never get a work
+task.
+
+Set `acceptance` on a task to gate completion. `complete` then moves it to
+`in_review`; a fresh read-only verifier checks the result, the changed files,
+and the commands. The verifier defaults to `code-reviewer`; set `verify_with`
+to `tester` or another name. A `pass` makes the task `completed`; a `fail`
+returns it to `pending` with the reason in `last_error`, so dependents stay
+blocked. A verifier error leaves the task in review. Only the verifier or the
+lead can verify; a lead override needs a note and is journaled.
+
+Ask for a second opinion without giving up ownership:
+`AgentTeam { action: "advise", question, task_id? }`. It starts one bounded,
+read-only `advisor` run (fallback `planner`) with the board and task snapshot,
+waits up to 120 seconds, and returns the advice to the caller. Advice is not
+stored on the board, cannot claim or edit a task, and cannot veto. One advice
+runs at a time per team and shares the live cap.
+
 Every mutation carries the revision it read. A stale revision on an
 intent-only action (claim, release, complete, reopen, reassign, delete)
 retries once and says `retried from rev N`. `edit` never retries because
@@ -391,9 +415,8 @@ reviews the diff.
 If a leg fails or is stopped, its claimed tasks go back to pending with
 a new revision, and the settle card names them. The task remembers
 `last_owner`, `last_error`, and `returned_at`, so the next claim shows
-`last worker: boom` and knows what failed. A done leg that forgot to
-complete its task keeps it; the card says which task is still open.
-A restart releases every in_progress task with `Pi restarted`.
+`last worker: boom` and knows what failed. A restart releases every
+in_progress task with `Pi restarted`.
 
 Task changes never start an agent. A ready task wakes nobody; the lead
 delegates, and a finished leg still wakes the lead with its report. Use
@@ -411,13 +434,19 @@ The board lives in the same per-session state file as runs, so
 `/reload` keeps tasks, revisions, owners, and member names.
 `/subagents agent-teams off` keeps the board and lets a claimed task finish; it
 only stops new legs from joining. A new Pi session starts empty. Limits: 128 live tasks,
-128 rows per list, 2,000 characters per description, 20 blockers and 20
-scopes per task, and 32 members. Idle members are evicted; a 33rd join is
+128 rows per list, 2,000 characters per description, 500 per acceptance,
+300 per note, 64 per verifier name, 1,000 per advice question, 20 blockers
+and 20 scopes per task, and 32 members. Idle members are evicted; a 33rd join is
 refused when all 32 own live tasks, and a start takes at most 32 legs.
 
 While agent team mode is on, the lead's system prompt gets a short policy
 section: plan, create tasks, split write scopes, delegate, then wait.
 Only the lead spawns; an agent teammate cannot delegate further.
+
+In the AGENT TEAM tab, a task waiting for a verdict shows `?` and the header
+counts `N review`. `v` records a pass or fail (a lead override is journaled),
+and `i` asks the advisor. The detail pane shows the acceptance text, the
+verifier run, and the verdict.
 
 `AgentTeamMessage` sends to a live member first. A known finished member gets
 a bounded session queue (8 messages or 8,000 characters): the send result

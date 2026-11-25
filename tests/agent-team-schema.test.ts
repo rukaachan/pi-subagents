@@ -36,9 +36,16 @@ describe("team tool schemas", () => {
 			"reopen",
 			"reassign",
 			"delete",
+			"verify",
+			"advise",
 		]);
 		assert.equal(agentTeam.properties?.status?.type, "string");
-		assert.deepEqual(agentTeam.properties?.status?.enum, ["pending", "in_progress", "completed"]);
+		assert.deepEqual(agentTeam.properties?.status?.enum, [
+			"pending",
+			"in_progress",
+			"in_review",
+			"completed",
+		]);
 		assert.equal(agentTeam.properties?.prompt?.type, "string");
 		assert.equal(agentTeam.properties?.roster?.type, "array");
 		assert.equal(agentTeam.properties?.limit?.maximum, MAX_AGENT_TEAM_TASKS);

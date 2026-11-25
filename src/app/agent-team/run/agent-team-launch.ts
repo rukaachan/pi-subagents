@@ -102,6 +102,7 @@ export async function startAgentTeamLaunch(
 		const result = createTask({
 			subject: cut(`${name}: ${prompt}`, MAX_AGENT_TEAM_SUBJECT),
 			description: prompt,
+			origin: "start",
 			...(scopes.length > 0 ? { writeScopes: scopes } : {}),
 		});
 		if (!result.ok) return undo(result.error);
@@ -110,6 +111,7 @@ export async function startAgentTeamLaunch(
 	const prompts = created.map((task) => legPrompt(task.taskId, prompt));
 	const started = startLaunch(store, "agent-team", roster, prompt, ctx, deps, {
 		promptFor: (_name, index) => prompts[index] ?? prompt,
+		agentTeamTaskIdFor: (index) => created[index]?.taskId,
 		// A queued leg gets its run id later; link it then, not just at handoff.
 		onLeg: (index, runId) => {
 			const task = created[index];

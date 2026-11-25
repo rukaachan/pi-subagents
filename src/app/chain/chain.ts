@@ -17,44 +17,21 @@ import type { ChildDeps } from "../run/index.ts";
 import { withGateJournal } from "../guards/index.ts";
 import { agentTeamChildExtras } from "../agent-team/child/index.ts";
 import { bindAgentTeamMember } from "../agent-team/channel/index.ts";
-import { sweepMemberTasks } from "../agent-team/board/index.ts";
+import { getTask, sweepMemberTasks } from "../agent-team/board/index.ts";
+import { requestAgentTeamVerify } from "../agent-team/verify/index.ts";
+import { completeTask, ensureTask, taskPrompt } from "../agent-team/auto/index.ts";
 import { ledger, markKind } from "../session/index.ts";
 import { newTaskId } from "../../domain/task/index.ts";
-import type { ChainStep, TaskRecord } from "../../domain/task/index.ts";
 import type { TaskStorePort } from "../../domain/task/index.ts";
 import type { SubagentRunResult } from "../../domain/run/index.ts";
 import { liveStop, type LiveStop, type StoppableSession } from "../live/index.ts";
 import { markStopped } from "../stop/index.ts";
 import { RunStopped } from "../../domain/task/index.ts";
 import { aggregateResult } from "./chain-result.ts";
-
-export interface ChainSpec {
-	steps: string[];
-	prompt: string;
-}
-
-/** What a chain step passes on; longer reports are cut. */
-export const MAX_PRIOR_REPORT = 8000;
-
-export function stepPrompt(spec: ChainSpec, idx: number, priorReport?: string): string {
-	if (idx === 0) return spec.prompt;
-	const prior = priorReport ? priorReport.slice(0, MAX_PRIOR_REPORT) : "(no prior report)";
-	return `Prior step report (may be cut):\n${prior}\n\nOriginal task: ${spec.prompt}\n\nContinue from the report above. Do your own step and return one short report.`;
-}
-
-export function newChainSteps(spec: ChainSpec): ChainStep[] {
-	return spec.steps.map((name, idx) => ({
-		idx,
-		subagentName: name,
-		prompt: stepPrompt(spec, idx),
-		status: idx === 0 ? "running" : "pending",
-	}));
-}
-
-export interface ChainRun {
-	taskId: string;
-	done: Promise<void>;
-}
+import { stepPrompt, type ChainRun, type ChainSpec } from "./chain-spec.ts";
+import { newChainRecord } from "./chain-record.ts";
+export { MAX_PRIOR_REPORT, newChainSteps, stepPrompt } from "./chain-spec.ts";
+export type { ChainRun, ChainSpec } from "./chain-spec.ts";
 
 export function runChain(
 	store: TaskStorePort,
@@ -68,24 +45,15 @@ export function runChain(
 	attachSignal?: AbortSignal,
 ): ChainRun | { error: string } {
 	const taskId = newTaskId();
-	const lead = subagents[0];
-	if (!lead) return { error: "Chain has no subagents." };
-	const rec: TaskRecord = {
+	const rec = newChainRecord({
 		taskId,
-		subagentName: spec.steps[0] ?? "chain",
-		description,
-		status: "running",
-		createdAt: Date.now(),
-		startedAt: Date.now(),
-		fullDelivered: false,
-		subagent: lead,
+		spec,
+		subagents,
 		cwd,
 		sessionId: ctx.sessionManager.getSessionId(),
-		history: [],
-		kind: "chain",
-		runId: taskId,
-		steps: newChainSteps(spec),
-	};
+		description,
+	});
+	if (!rec) return { error: "Chain has no subagents." };
 	store.add(rec);
 	ledger.begin(spec.steps[0] ?? "chain");
 	markKind(spec.steps[0] ?? "chain", "chain");
@@ -102,6 +70,7 @@ export function runChain(
 
 	const done = (async () => {
 		let priorReport: string | undefined;
+		let priorTaskId: string | undefined;
 		const seen: SubagentRunResult[] = [];
 		try {
 			for (const step of rec.steps ?? []) {
@@ -113,8 +82,29 @@ export function runChain(
 				step.prompt = stepPrompt(spec, step.idx, priorReport);
 				store.touch();
 				const runId = `${taskId}-${step.idx}`;
+				const ensured = ensureTask({
+					sub,
+					prompt: step.prompt,
+					origin: "chain",
+					runId,
+					...(priorTaskId ? { blockedBy: [priorTaskId] } : {}),
+				});
+				if (!ensured.ok) throw new Error(ensured.error);
+				let teamTaskId = ensured.taskId;
 				const gate = { open: true };
 				const agentTeam = agentTeamChildExtras(sub.name, runId, gate);
+				if (agentTeam && teamTaskId) {
+					const assigned = ensureTask({
+						sub,
+						prompt: step.prompt,
+						origin: "chain",
+						existingTaskId: teamTaskId,
+						member: agentTeam.member,
+					});
+					if (!assigned.ok) throw new Error(assigned.error);
+					teamTaskId = assigned.taskId;
+				}
+				const teamPrefix = teamTaskId ? `${taskPrompt(teamTaskId)}\n\n` : "";
 				const child = await deps.child.create(sub, cwd, ctx, withGateJournal(agentTeam));
 				const unbindMail = agentTeam
 					? bindAgentTeamMember(
@@ -155,7 +145,7 @@ export function runChain(
 					const onAbort = () => live.stop("Esc");
 					attachSignal?.addEventListener("abort", onAbort, { once: true });
 					try {
-						await child.prompt(step.prompt);
+						await child.prompt(`${teamPrefix}${step.prompt}`);
 					} finally {
 						attachSignal?.removeEventListener("abort", onAbort);
 					}
@@ -168,6 +158,12 @@ export function runChain(
 					step.status = "done";
 					step.endedAt = Date.now();
 					priorReport = text;
+					if (teamTaskId) {
+						completeTask(teamTaskId, text);
+						if (getTask(teamTaskId)?.task.status === "in_review")
+							requestAgentTeamVerify(teamTaskId, ctx);
+						priorTaskId = teamTaskId;
+					}
 					seen.push({
 						text,
 						usage: sumUsage(child.session.messages),

@@ -21,7 +21,9 @@ import type { ChildDeps } from "./child-port.ts";
 import { withGateJournal } from "../guards/index.ts";
 import { agentTeamChildExtras } from "../agent-team/child/index.ts";
 import { bindAgentTeamMember } from "../agent-team/channel/index.ts";
-import { sweepMemberTasks } from "../agent-team/board/index.ts";
+import { getTask, sweepMemberTasks } from "../agent-team/board/index.ts";
+import { requestAgentTeamVerify } from "../agent-team/verify/index.ts";
+import { completeTask, ensureTask, taskPrompt } from "../agent-team/auto/index.ts";
 import { windDownSignal } from "../guards/index.ts";
 import { applyReportBudget, effectiveBudget } from "../../domain/subagent/index.ts";
 import { MAX_LIVE_TASKS, newTaskId } from "../../domain/task/index.ts";
@@ -34,10 +36,10 @@ import { applyRunOverrides } from "../../domain/run/index.ts";
 import type { RunOverrides } from "../../domain/run/index.ts";
 import { readGlobalConfig, withGlobalConfig } from "../session/index.ts";
 import { ledger, markKind } from "../session/index.ts";
-import type { TaskRecord } from "../../domain/task/index.ts";
 import type { TaskStorePort } from "../../domain/task/index.ts";
 import { announceSettle } from "../live/index.ts";
 import { archivedTask } from "../session/index.ts";
+import { resumeRecord } from "./resume-row.ts";
 
 export async function resumeTask(
 	store: TaskStorePort,
@@ -73,21 +75,7 @@ export async function resumeTask(
 	const parentSessionId = ctx.sessionManager.getSessionId();
 	const followId = newTaskId();
 	const sub = applyRunOverrides(withGlobalConfig(rec.subagent, global), overrides);
-	const follow: TaskRecord = {
-		taskId: followId,
-		subagentName: rec.subagentName,
-		description: `resume of ${taskId}`,
-		status: "running",
-		createdAt: Date.now(),
-		fullDelivered: false,
-		subagent: sub,
-		cwd: rec.cwd,
-		sessionId: parentSessionId,
-		history: [],
-		kind: "background",
-		prompt,
-		...(rec.runId ? { runId: rec.runId } : {}),
-	};
+	const follow = resumeRecord({ rec, followId, sub, prompt, sessionId: parentSessionId });
 	store.add(follow);
 	ledger.begin(rec.subagentName);
 	markKind(rec.subagentName, "background");
@@ -95,7 +83,27 @@ export async function resumeTask(
 	void (async () => {
 		try {
 			const gate = { open: true };
-			const agentTeam = agentTeamChildExtras(sub.name, rec.taskId, gate);
+			const role = rec.agentTeamRole ?? "worker";
+			const agentTeam = agentTeamChildExtras(sub.name, rec.taskId, gate, role);
+			let teamTaskId = rec.agentTeamTaskId;
+			if (agentTeam && role === "worker") {
+				const ensured = ensureTask({
+					sub,
+					prompt,
+					origin: rec.agentTeamOrigin ?? "task",
+					runId: followId,
+					existingTaskId: teamTaskId,
+					member: agentTeam.member,
+				});
+				if (!ensured.ok) throw new Error(ensured.error);
+				teamTaskId = ensured.taskId;
+				follow.agentTeamTaskId = teamTaskId;
+			}
+			const teamPrefix = teamTaskId
+				? `${taskPrompt(teamTaskId, role)}\n\n`
+				: role === "advisor"
+					? `${taskPrompt("", role)}\n\n`
+					: "";
 			const child = await deps.child.create(sub, rec.cwd, ctx, withGateJournal(agentTeam));
 			const unbindMail = agentTeam
 				? bindAgentTeamMember(
@@ -149,7 +157,7 @@ export async function resumeTask(
 			try {
 				const outcome = await awaitWithHardStop(
 					child.session,
-					child.prompt(resumePrompt(rec.history, prompt), contract),
+					child.prompt(`${teamPrefix}${resumePrompt(rec.history, prompt)}`, contract),
 					budgetStop,
 				);
 				if (live.wasStopped()) throw new RunStopped(live.why());
@@ -172,6 +180,11 @@ export async function resumeTask(
 				};
 				follow.status = "done";
 				follow.endedAt = Date.now();
+				if (teamTaskId && role === "worker") {
+					completeTask(teamTaskId, follow.result.text);
+					if (getTask(teamTaskId)?.task.status === "in_review")
+						requestAgentTeamVerify(teamTaskId, ctx);
+				}
 				ledger.finish(rec.subagentName, "done");
 				stop({
 					status: "done",
@@ -187,11 +200,12 @@ export async function resumeTask(
 				gate.open = false;
 				if (live.wasStopped()) throw new RunStopped(live.why());
 				const why = annotateFailure(err, surfaceBudgetNotes(child.notes, budgetStop));
+				const message = why instanceof Error ? why.message : String(why);
 				follow.history = snapshotHistory(child.session);
 				store.touch();
 				stop({
 					status: "error",
-					error: why instanceof Error ? why.message : String(why),
+					error: message,
 					promptChars: prompt.length,
 					...usageEnd(follow.result?.usage),
 				});

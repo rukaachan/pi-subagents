@@ -28,7 +28,10 @@ import type { ChildDeps } from "./child-port.ts";
 import { withGateJournal } from "../guards/index.ts";
 import { agentTeamChildExtras } from "../agent-team/child/index.ts";
 import { bindAgentTeamMember } from "../agent-team/channel/index.ts";
-import { sweepMemberTasks } from "../agent-team/board/index.ts";
+import { getTask, sweepMemberTasks } from "../agent-team/board/index.ts";
+import { requestAgentTeamVerify } from "../agent-team/verify/index.ts";
+import { completeTask, ensureTask, taskPrompt } from "../agent-team/auto/index.ts";
+import type { AgentTeamRole } from "../../domain/agent-team/index.ts";
 import { liveStop } from "../live/index.ts";
 import { RunStopped, stoppedRowNote } from "../../domain/task/index.ts";
 
@@ -46,11 +49,36 @@ export async function runSubagent(
 	runKey?: string,
 	attach?: TaskRecord,
 	contract: readonly string[] = [],
+	options: {
+		agentTeamRole?: AgentTeamRole;
+		agentTeamTaskId?: string;
+		autoTask?: boolean;
+	} = {},
 ): Promise<SubagentRunResult> {
 	ledger.begin(sub.name);
 	const agentTeamKey = attach?.taskId;
+	const role = options.agentTeamRole ?? "worker";
 	const gate = { open: true };
-	const agentTeam = agentTeamChildExtras(sub.name, agentTeamKey, gate);
+	const agentTeam = agentTeamChildExtras(sub.name, agentTeamKey, gate, role);
+	let teamTaskId = options.agentTeamTaskId ?? attach?.agentTeamTaskId;
+	if (agentTeam && role === "worker" && options.autoTask !== false) {
+		const ensured = ensureTask({
+			sub,
+			prompt: task,
+			origin: "task",
+			runId: agentTeamKey,
+			existingTaskId: teamTaskId,
+			member: agentTeam.member,
+		});
+		if (!ensured.ok) throw new Error(ensured.error);
+		teamTaskId = ensured.taskId;
+		if (attach && teamTaskId) attach.agentTeamTaskId = teamTaskId;
+	}
+	const teamPrefix = teamTaskId
+		? `${taskPrompt(teamTaskId, role)}\n\n`
+		: role === "advisor"
+			? `${taskPrompt("", role)}\n\n`
+			: "";
 	const child = await deps.child.create(sub, cwd, ctx, withGateJournal(agentTeam));
 	const unbindMail = agentTeam
 		? bindAgentTeamMember(
@@ -94,7 +122,7 @@ export async function runSubagent(
 		try {
 			const outcome = await awaitWithHardStop(
 				child.session,
-				child.prompt(`Task: ${task}`, contract),
+				child.prompt(`${teamPrefix}Task: ${task}`, contract),
 				budgetStop,
 			);
 			// A disposed session may resolve instead of rejecting; the stop
@@ -132,6 +160,10 @@ export async function runSubagent(
 			model: result.model,
 			notes: result.notes,
 		});
+		if (teamTaskId && role === "worker") {
+			completeTask(teamTaskId, result.text);
+			if (getTask(teamTaskId)?.task.status === "in_review") requestAgentTeamVerify(teamTaskId, ctx);
+		}
 		if (attach) {
 			attach.history = snapshotHistory(child.session);
 			attach.result = result;

@@ -1,7 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
-	createAgentTeamTask,
 	liveTasks,
 	newAgentTeam,
 	normalizeScopes,
@@ -9,14 +8,15 @@ import {
 	type AgentTeamBoard,
 	type AgentTeamMember,
 } from "../src/domain/agent-team/index.ts";
-import { updateAgentTeamTask } from "../src/domain/agent-team/index.ts";
+import { updateAgentTeamTask } from "../src/domain/team-tasks/index.ts";
+import { createAgentTeamTask } from "../src/domain/team-tasks/index.ts";
 
 const lead = { name: "lead", lead: true };
 const alice = { name: "alice", lead: false };
 const bob = { name: "bob", lead: false };
 const members: AgentTeamMember[] = [
-	{ name: "alice", starter: "worker", joinedAt: 1 },
-	{ name: "bob", starter: "worker", joinedAt: 2 },
+	{ name: "alice", starter: "worker", role: "worker", joinedAt: 1 },
+	{ name: "bob", starter: "worker", role: "worker", joinedAt: 2 },
 ];
 
 function newBoard(): AgentTeamBoard {
@@ -101,6 +101,15 @@ describe("team board: claim and complete", () => {
 		const second = run(b, "task-1", "claim", {}, bob);
 		assert.equal(second.ok, false);
 		assert.match(second.ok ? "" : second.error, /owned by alice/);
+	});
+
+	it("lets the owner claim again without bumping", () => {
+		const b = newBoard();
+		add(b, "one");
+		assert.equal(run(b, "task-1", "claim", {}, alice).ok, true);
+		const again = run(b, "task-1", "claim", {}, alice);
+		assert.equal(again.ok, true);
+		assert.equal(again.ok ? again.task.revision : 0, 2);
 	});
 
 	it("refuses a blocked task until its blocker completes", () => {
