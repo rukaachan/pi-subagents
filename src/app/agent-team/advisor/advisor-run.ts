@@ -7,13 +7,16 @@ import { discoverSubagents } from "../../../infra/files/index.ts";
 import { withTemps } from "../../../domain/run/index.ts";
 import type { ChildDeps } from "../../run/index.ts";
 import type { SubagentConfig } from "../../../domain/subagent/index.ts";
+import { MAX_LIVE_TASKS } from "../../../domain/task/index.ts";
 import type { TaskStorePort } from "../../../domain/task/index.ts";
 import { MAX_AGENT_TEAM_QUESTION } from "../../../domain/agent-team/index.ts";
 import { journalWrite } from "../../../telemetry/journal/index.ts";
-import { runSubagent } from "../../run/index.ts";
+import { launchBackground, stopTaskById } from "../../run/index.ts";
+import { readGlobalConfig } from "../../session/index.ts";
 import { agentTeamSummary, getTask } from "../board/index.ts";
 
 const ADVISOR_TIMEOUT_MS = 120_000;
+const POLL_MS = 50;
 let advising = false;
 
 function readOnly(sub: SubagentConfig): SubagentConfig {
@@ -41,8 +44,38 @@ function fail(taskId: string | undefined, error: string): { ok: false; error: st
 	return { ok: false, error };
 }
 
+function hold(ms: number): Promise<void> {
+	return new Promise((resolve) => {
+		setTimeout(resolve, ms);
+	});
+}
+
+async function waitForAdvice(
+	store: TaskStorePort,
+	runId: string,
+	taskId: string | undefined,
+): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+	const deadline = Date.now() + ADVISOR_TIMEOUT_MS;
+	for (;;) {
+		const rec = store.get(runId);
+		if (!rec) return fail(taskId, "The advisor run disappeared before it answered.");
+		if (rec.status === "done") {
+			const text = rec.result?.text.trim();
+			return text ? { ok: true, text } : fail(taskId, "The advisor returned no advice.");
+		}
+		if (rec.status === "error" || rec.status === "stopped") {
+			return fail(taskId, rec.error ?? "The advisor run stopped.");
+		}
+		if (Date.now() >= deadline) {
+			stopTaskById(store, runId, "advisor timeout");
+			return fail(taskId, "Advisor timed out after 120s.");
+		}
+		await hold(POLL_MS);
+	}
+}
+
 export async function adviseAgentTeam(
-	_store: TaskStorePort,
+	store: TaskStorePort,
 	question: string,
 	taskId: string | undefined,
 	ctx: ExtensionContext,
@@ -54,51 +87,46 @@ export async function adviseAgentTeam(
 		return fail(taskId, `A question is limited to ${MAX_AGENT_TEAM_QUESTION} characters.`);
 	}
 	if (advising) return fail(taskId, "An advisor is already running for this session.");
+	const disk = withTemps(discoverSubagents(ctx.cwd));
+	const base = pick(disk.subagents);
+	if (!base) return fail(taskId, "No advisor or planner subagent found.");
+	const global = readGlobalConfig(ctx.cwd, undefined, {
+		trusted: ctx.isProjectTrusted?.() === true,
+	});
+	const cap = global.liveCap ?? MAX_LIVE_TASKS;
+	if (!store.canStart(cap)) {
+		return fail(taskId, `Live cap reached (${cap}); wait for a leg to finish.`);
+	}
+	const summary = agentTeamSummary();
+	const task = taskId ? getTask(taskId) : undefined;
+	const prompt = [
+		`Agent team ${summary.agentTeamId}: ${summary.open} open, ${summary.review} review, ${summary.done} done.`,
+		task
+			? `Task ${task.task.id} [${task.task.status}] ${task.task.subject}\n${task.task.description}`
+			: "No task named.",
+		`Question: ${text}`,
+		"Answer with a short recommendation and the main trade-off. Do not edit files or claim work.",
+	].join("\n\n");
 	advising = true;
-	const controller = new AbortController();
-	const timer = setTimeout(() => controller.abort(), ADVISOR_TIMEOUT_MS);
 	try {
-		const disk = withTemps(discoverSubagents(ctx.cwd));
-		const base = pick(disk.subagents);
-		if (!base) return fail(taskId, "No advisor or planner subagent found.");
-		const summary = agentTeamSummary();
-		const task = taskId ? getTask(taskId) : undefined;
-		const prompt = [
-			`Agent team ${summary.agentTeamId}: ${summary.open} open, ${summary.review} review, ${summary.done} done.`,
-			task
-				? `Task ${task.task.id} [${task.task.status}] ${task.task.subject}\n${task.task.description}`
-				: "No task named.",
-			`Question: ${text}`,
-			"Answer with a short recommendation and the main trade-off. Do not edit files or claim work.",
-		].join("\n\n");
-		const result = await runSubagent(
-			readOnly(base),
-			prompt,
-			ctx.cwd,
-			ctx,
-			deps,
-			controller.signal,
-			undefined,
-			undefined,
-			[],
-			{ agentTeamRole: "advisor", autoTask: false },
-		);
-		journalWrite({
-			event: "agent_team_advice",
-			chars: result.text.length,
-			ok: true,
-			...(taskId ? { taskId } : {}),
+		const runId = launchBackground(store, readOnly(base), "advice", prompt, ctx.cwd, ctx, deps, {
+			kind: "background",
+			agentTeamRole: "advisor",
+			agentTeamOrigin: "task",
 		});
-		return { ok: true, text: result.text };
+		const result = await waitForAdvice(store, runId, taskId);
+		if (result.ok) {
+			journalWrite({
+				event: "agent_team_advice",
+				chars: result.text.length,
+				ok: true,
+				...(taskId ? { taskId } : {}),
+			});
+		}
+		return result;
 	} catch (err) {
-		const error = controller.signal.aborted
-			? "Advisor timed out after 120s."
-			: err instanceof Error
-				? err.message
-				: String(err);
-		return fail(taskId, error);
+		return fail(taskId, err instanceof Error ? err.message : String(err));
 	} finally {
-		clearTimeout(timer);
 		advising = false;
 	}
 }
