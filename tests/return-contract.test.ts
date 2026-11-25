@@ -8,7 +8,7 @@ import {
 	missingReturn,
 	parseReturn,
 } from "../src/domain/run/index.ts";
-import { planTask } from "../src/tools/task/index.ts";
+import { planTask } from "../src/domain/task/tool/index.ts";
 
 describe("return contract parsing", () => {
 	it("treats no value as no contract", () => {

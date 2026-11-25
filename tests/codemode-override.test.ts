@@ -6,8 +6,8 @@ import assert from "node:assert/strict";
 import { applyRunOverrides, overrideNote, parseCodemodeOverride } from "../src/domain/run/index.ts";
 import { planCodemode } from "../src/domain/task/index.ts";
 import type { SubagentConfig } from "../src/domain/subagent/index.ts";
-import { planTask } from "../src/tools/task/index.ts";
-import type { TaskParams } from "../src/tools/task/index.ts";
+import { planTask } from "../src/domain/task/tool/index.ts";
+import type { TaskParams } from "../src/domain/task/tool/index.ts";
 
 const sub = (over: Partial<SubagentConfig> = {}): SubagentConfig => ({
 	name: "probe",

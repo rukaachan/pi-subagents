@@ -18,15 +18,15 @@ import {
 	createWriteToolDefinition,
 	getAgentDir,
 } from "@earendil-works/pi-coding-agent";
-import { createChildGateExtension } from "../guard/index.ts";
-import type { GateBlock } from "../guard/index.ts";
-import { contextNote } from "../guard/index.ts";
-import { guardPaths } from "../guard/index.ts";
-import { clampToolsForAutonomy } from "../../domain/subagent/index.ts";
-import type { SubagentConfig } from "../../domain/subagent/index.ts";
-import { planCodemode, withScriptRoute } from "../../domain/task/index.ts";
-import { contractPrompt } from "../../domain/run/index.ts";
-import { taskPrompt } from "../../domain/subagent/index.ts";
+import { createChildGateExtension } from "../../guard/index.ts";
+import type { GateBlock } from "../../guard/index.ts";
+import { contextNote } from "../../guard/index.ts";
+import { guardPaths } from "../../guard/index.ts";
+import { clampToolsForAutonomy } from "../../../domain/subagent/index.ts";
+import type { SubagentConfig } from "../../../domain/subagent/index.ts";
+import { planCodemode, withScriptRoute } from "../../../domain/task/index.ts";
+import { contractPrompt } from "../../../domain/run/index.ts";
+import { taskPrompt } from "../../../domain/subagent/index.ts";
 
 // The host surface for codemode and MCP.
 type ChildExtensionHost = {

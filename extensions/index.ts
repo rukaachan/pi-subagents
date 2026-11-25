@@ -17,7 +17,7 @@ import {
 	TEAM_MESSAGE_CUSTOM_TYPE,
 } from "../src/app/team/channel/index.ts";
 import { HYBRID_POLICY } from "../src/domain/policy/index.ts";
-import { TEAM_LEAD_POLICY } from "../src/app/team/run/index.ts";
+import { TEAM_LEAD_POLICY } from "../src/domain/policy/index.ts";
 import { teamMessageTool, teamTool } from "../src/tools/team.ts";
 import { beginSession, store, stopPersistence } from "../src/app/session/index.ts";
 import { reportStateError } from "../src/app/session/index.ts";

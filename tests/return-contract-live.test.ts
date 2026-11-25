@@ -24,7 +24,7 @@ describe("the return contract reaches a real child session", () => {
 		async () => {
 			const pi = await import("@earendil-works/pi-coding-agent");
 			const { loadSubagentFromContent } = await import("../src/infra/files/subagent-files.ts");
-			const { startSubagentSession } = await import("../src/infra/host/host-session.ts");
+			const { startSubagentSession } = await import("../src/infra/host/session/host-session.ts");
 			const { snapshotHistory } = await import("../src/domain/run/run-result.ts");
 
 			const cfg = loadSubagentFromContent(

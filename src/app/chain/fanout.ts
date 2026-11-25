@@ -4,7 +4,6 @@
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { discoverSubagents } from "../../infra/files/index.ts";
-import { showValue } from "../../domain/subagent/index.ts";
 import type { SubagentConfig } from "../../domain/subagent/index.ts";
 import { fanoutAdmission } from "../../domain/policy/index.ts";
 import { codemodeContentionNote, codemodeLegs } from "../../domain/task/index.ts";
@@ -17,26 +16,6 @@ import { applyRunOverrides, type RunOverrides } from "../../domain/run/index.ts"
 import { readGlobalConfig, withGlobalConfig } from "../session/index.ts";
 import { launchBackground } from "../run/index.ts";
 import { unknownSubagentResult } from "./chain-task.ts";
-
-export function parallelNamesFrom(value: unknown): string[] {
-	if (!Array.isArray(value)) return [];
-	const out: string[] = [];
-	for (const item of value) {
-		if (typeof item === "string") {
-			const name = item.trim();
-			if (name) out.push(name);
-			continue;
-		}
-		if (item && typeof item === "object") {
-			const raw = (item as Record<string, unknown>).subagent_type;
-			const name = (
-				typeof raw === "string" ? raw : raw === undefined || raw === null ? "" : showValue(raw)
-			).trim();
-			if (name) out.push(name);
-		}
-	}
-	return out;
-}
 
 export async function runParallelTask(
 	store: TaskStore,

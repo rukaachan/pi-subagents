@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { subagentArgs, taskArgs } from "../src/infra/host/index.ts";
+import { subagentArgs, taskArgs } from "../src/domain/task/tool/index.ts";
 
 describe("taskArgs", () => {
 	it("keeps the canonical shape", () => {

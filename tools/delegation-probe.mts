@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Type } from "@earendil-works/pi-ai";
-import { DELEGATION_RULE, taskMeta } from "../src/tools/task/index.ts";
+import { DELEGATION_RULE, taskMeta } from "../src/domain/policy/index.ts";
 
 const pi = await import("@earendil-works/pi-coding-agent");
 

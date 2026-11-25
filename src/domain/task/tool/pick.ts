@@ -2,7 +2,7 @@
  * pi-subagents: choosing a subagent from the prompt text.
  */
 
-import { dispatchSubagent, type DispatchVerdict } from "../../domain/policy/index.ts";
+import { dispatchSubagent, type DispatchVerdict } from "../../policy/index.ts";
 
 export type PickEcho = { chosen: string; rule: string; matched: string };
 

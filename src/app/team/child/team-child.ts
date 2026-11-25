@@ -3,10 +3,10 @@
  */
 
 import type { ToolDefinition } from "@earendil-works/pi-coding-agent";
-import type { ChildExtras } from "../../../infra/host/index.ts";
+import type { ChildExtras } from "../../../infra/host/session/index.ts";
 import { createTeamMessageTool } from "../../../infra/team/message/index.ts";
 import { createTeamTool } from "../../../infra/team/tools/index.ts";
-import { liveMember, teamMessageApi } from "./team-mail.ts";
+import { liveMember, teamMessageApi } from "../channel/index.ts";
 import { joinTeam, teamApi, teamEnabled } from "../board/index.ts";
 
 export interface TeamChildExtras extends ChildExtras {

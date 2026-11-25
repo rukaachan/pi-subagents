@@ -3,7 +3,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { DELEGATION_RULE, taskMeta } from "../src/tools/task/index.ts";
+import { DELEGATION_RULE, taskMeta } from "../src/domain/policy/index.ts";
 import { subagentAliasTool } from "../src/tools/subagent-alias.ts";
 
 describe("the delegation rule", () => {

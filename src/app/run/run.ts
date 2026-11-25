@@ -23,9 +23,9 @@ import {
 	snapshotHistory,
 	sumUsage,
 } from "../../domain/run/index.ts";
-import { startSubagentSession } from "../../infra/host/index.ts";
+import { startSubagentSession } from "../../infra/host/session/index.ts";
 import { withGateJournal } from "../guards/index.ts";
-import { teamChildExtras } from "../team/channel/index.ts";
+import { teamChildExtras } from "../team/child/index.ts";
 import { bindTeamMember } from "../team/channel/index.ts";
 import { sweepMemberTasks } from "../team/board/index.ts";
 import { liveStop } from "../live/index.ts";

@@ -2,6 +2,8 @@
  * pi-subagents: the host's usage shape.
  */
 
+import type { Usage } from "../../domain/run/index.ts";
+
 export function toUsage(details: {
 	input: number;
 	output: number;
@@ -16,5 +18,5 @@ export function toUsage(details: {
 		cacheWrite: details.cacheWrite,
 		totalTokens: details.input + details.output,
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: details.cost },
-	};
+	} satisfies Usage;
 }

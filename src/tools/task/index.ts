@@ -7,8 +7,8 @@ import { Text } from "@earendil-works/pi-tui";
 import { usageFooter, resultShell } from "../../ui/tool-results.ts";
 import { shortText } from "../../ui/view/format.ts";
 import { executeTask } from "./execute.ts";
-import { taskMeta } from "./meta.ts";
-import { taskSchema } from "./schema.ts";
+import { taskMeta } from "../../domain/policy/index.ts";
+import { taskSchema } from "../../domain/task/tool/index.ts";
 
 export const taskTool = defineTool({
 	...taskMeta,
@@ -69,10 +69,3 @@ export const taskTool = defineTool({
 		return resultShell(theme, head, body, 2000, 160, expanded);
 	},
 });
-
-export * from "./execute.ts";
-export * from "./meta.ts";
-export * from "./pick.ts";
-export * from "./schema.ts";
-export * from "./types.ts";
-export * from "./validate.ts";

@@ -2,7 +2,7 @@
  * pi-subagents: wiring a child's gate blocks to the journal.
  */
 
-import type { ChildExtras } from "../../infra/host/index.ts";
+import type { ChildExtras } from "../../infra/host/session/index.ts";
 import type { GateBlock } from "../../infra/guard/index.ts";
 import { journalWrite } from "../../telemetry/journal/index.ts";
 
