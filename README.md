@@ -1,306 +1,219 @@
 # pi-subagents
 
-Reusable subagents for Pi. A subagent is a Markdown file: YAML frontmatter
-for its config, body for its system prompt. `Task` runs it in a fresh
-context and returns one report. A `subagent` alias does the same for models
-that know Pi's sample tool.
+Run small, focused AI workers in a fresh context.
 
-This package is not published to npm. It is meant to be used from a local
-checkout.
+A subagent is a Markdown file. The frontmatter sets its model, tools, and
+limits; the body is its standing prompt. Pi can run one subagent with a
+task, or run several as a parallel group or a shared team.
+
+This package is a local Pi extension. It is not published to npm.
 
 ## Requirements
 
-- Linux (Windows and macOS are not supported)
-- Pi 1.4.0 or newer
-- Node.js 22.19 or newer
+- Linux. Windows and macOS are not supported.
+- Pi 1.4.0 or newer.
+- Node.js 22.19 or newer.
 
-## Install (local)
+## Install
 
-Clone or copy this directory somewhere permanent, then install it by path:
+Clone the repository somewhere permanent and install it by path:
 
 ```bash
 pi install /path/to/pi-subagents
 ```
 
-Restart Pi or run `/reload`. Check that Pi sees the package:
+Restart Pi or run `/reload`. Check the package is visible:
 
 ```bash
 pi list
 ```
 
-Pi records the package path in `~/.pi/agent/settings.json` and loads the
-extension from that directory. Moving or deleting the directory breaks the
-install. Run `pi install` again with the new path. Pi reads the files in
-place, so after `git pull` you only need `/reload`.
+The path is stored in `~/.pi/agent/settings.json`. Moving the checkout
+breaks the install; run `pi install` again with the new path. Files are
+read in place, so a `git pull` only needs `/reload`.
 
-Project scope is also available. Pi loads it only after you trust the
-project:
+For one project, trust the project and install locally:
 
 ```bash
 pi install --local /path/to/pi-subagents
 ```
 
-Try it without installing:
+Remove it with `pi remove /path/to/pi-subagents`.
+
+The package has no runtime dependencies of its own; Pi provides the host
+packages. Run `npm ci` for the development tools.
+
+## Start in 60 seconds
+
+Copy the starter subagents you want:
 
 ```bash
-pi -e /path/to/pi-subagents
+mkdir -p ~/.pi/agent/subagents
+cp subagents/*.md ~/.pi/agent/subagents/
 ```
 
-Remove it with:
+Then use one command:
 
-```bash
-pi remove /path/to/pi-subagents
+```text
+/subagents <prompt>
 ```
 
-This is a local package, so Pi does not install its dependencies. The only
-bare imports are Pi packages the host provides. Run `npm ci` to get the
-dev dependencies for tests and type checking.
+Example:
 
-Starters live in `subagents/`, but Pi does not load them from the package.
-Copy the ones you want:
-
-```bash
-cp subagents/*.md ~/.pi/agent/subagents/     # or <repo>/.pi/subagents/
+```text
+/subagents Find why the session screen drops its cursor and write a test.
 ```
 
-## Use
+Pi picks the smallest roster that fits the prompt (at most four), starts
+the run, and shows it in the Runs tab. If the text is exactly a subagent
+name, that subagent opens instead. Use `/subagents run <prompt>` when you
+want the run path explicitly.
+
+The other common paths are:
+
+```text
+/subagents team <prompt>    start a shared agent team
+/subagents new              create a subagent
+/subagents <name>           inspect or edit one subagent
+```
+
+## The board
+
+```text
+/subagents
+```
+
+The board has two tabs:
+
+- **RUNS** — queued, running, done, stopped, and failed runs. On an empty
+  board, press `enter` or `n` and type a prompt.
+- **AGENT TEAM** — the shared task board. Press `t` to turn team mode on
+  or off.
+
+Common keys:
+
+```text
+↑↓ move       enter open       n run        f finish
+s steer       x stop           r retry      c copy
+? help        tab switch       esc close
+```
+
+On the Team tab, `n` creates a task, `s` starts a team, `e` edits,
+`a` assigns, `c` claims, `r` releases, `x` completes, and `o` opens
+the linked run.
+
+A run opens a read-only transcript with three tabs: transcript, tools,
+and errors. `y` copies the visible tab, `/` searches, and `esc`
+returns to the board. The viewer never changes the run.
+
+## A subagent file
 
 ```markdown
 ---
 name: reviewer
-description: Reviews a diff for bugs, missing tests, and risky edits.
+description: Reviews a diff for bugs and missing tests.
+model: inherit
 tools: read-only
 autonomy: low
 ---
 You review code. Report findings by severity with `file:line`, then name
-the tests that would have caught each one. Do not edit files.
+the test that would catch each one. Do not edit files.
 ```
 
-Ask Pi: "Use the subagent `reviewer` on the last commit." The model calls
-`Task` with `subagent_type`, `description`, and `prompt`.
+`description` is the short menu line. `model: inherit` uses the parent
+model. `tools:` takes a preset (`read-only`, `edit`, `execute`) or a
+tool list. `autonomy` is `inherit`, `off`, `low`, `medium`, or
+`high`; lower levels clamp dangerous tools.
 
-```text
-/subagents          # mission control: RUNS and AGENT TEAM tabs
-/subagents list     # files
-/subagents new      # create one (10-step wizard)
-/subagents tasks    # live and done runs
-/subagents trash    # restore a deleted file
-/subagents agent-teams     # open the AGENT TEAM tab
-/subagents agent-teams on  # let new Task legs join the shared board
-/subagents agent-teams off # stop new joins; keep the board
-/subagents agent-teams <prompt> [@a,@b]  # one task and one worker per leg
-/subagents finish <prompt> [@a,@b] # smallest matched roster (max 4)
-/delegate <prompt>  # one prompt on explorer + worker
-/delegate reports   # compact status of the latest delegate
-/delegate report <name> # one leg's full report
-/delegate open <name>   # one leg's live session
-/delegate status        # live legs only
-```
+The body is the subagent's standing prompt. Keep it about how to work,
+not about one task.
 
-The lead follows one ladder: local work, then one `Task`, then
-`/delegate` (or a parallel Task pair), then an agent team when work is shared or
-has blockers. `AgentTeam { action: "start", prompt }` creates one board task
-and one worker per leg for broad independent fan-out. The policy is a
-prompt, not a hidden router.
+## Commands
 
-Migration: `/team` → `/subagents agent-teams` (or the AGENT TEAM tab);
-`/finish` → `/subagents finish` (or `f`). `/delegate` is unchanged.
-Agent-team fan-out now lives at `/subagents agent-teams <prompt>`.
+| Command | What it does |
+| --- | --- |
+| `/subagents <prompt>` | Run the smallest matched roster (max 4). Unknown text starts a run. |
+| `/subagents run <prompt>` | The same run path, written out. |
+| `/subagents @a,@b <prompt>` | Run a named set. |
+| `/subagents team <prompt>` | Start a team: one board task and worker per leg. |
+| `/subagents team` | Open the Team tab. |
+| `/subagents team on` / `off` | Let new task legs join the shared board, or stop new joins. |
+| `/subagents new` | Create a subagent: quick or full settings. |
+| `/subagents list` | Browse subagent files. |
+| `/subagents tasks` | This session's runs. |
+| `/subagents trash` | Restore a deleted subagent file. |
+| `/subagents help` | The short help screen. |
+| `/subagents <name>` | Open one subagent. |
+| `/delegate <prompt>` | Run one prompt on explorer and worker. |
 
-Restart Pi after upgrading: the old `Team` tool is now `AgentTeam`, and
-`TeamMessage` is now `AgentTeamMessage`. The command is `/subagents agent-teams`;
-`/subagents team` and `/subagents agent-team` still work as aliases. Run
-`node --experimental-strip-types tools/migrate-agent-team.mts --write` once to
-rename the saved state and journal keys. The default is a dry run, `--verify`
-reports leftovers, and backups stay beside each file.
+`finish`, `agent-team`, and `agent-teams` remain aliases. `/delegate`
+keeps its own report and open commands.
 
-Open a run's transcript with `/subagents tasks` → **Open session**, or
-`/delegate open <name>` for one delegate leg. Live runs stream the answer as it is
-written (`▍` marks the end), finished runs show the saved history, and
-`esc` returns to the menu without touching the run. The view is
-read-only; the newest 300 KB stays, older lines collapse into one
-hidden row. Long tool output keeps Pi's 10-line preview and expands with
-`ctrl+o`.
+## Limits and safety
 
-The viewer has three tabs (`1 transcript`, `2 tools`, `3 errors`), `y`
-copies the visible tab, `e` jumps to the next error, and `/` searches
-the transcript with a literal, case-insensitive phrase (`n`/`N` step,
-the header shows `3/12`). While any leg is
-live, `/subagents` opens mission control: queued, running, done and
-failed runs, grouped by run, with `enter` open, `s` steer, `x` stop, `r`
-retry, `c` copy, and `f` finish. `tab` switches to the AGENT TEAM tab, where
-`t` toggles agent team mode, `n` creates, `e` edits, `a` assigns, `c` claims,
-`r` releases, `x` completes, `d` deletes, `s` starts an agent team, and `o`
-opens the run linked to the selected task. A completed task keeps its
-result (2,000 characters) and the detail pane shows both.
-Pi's own footer shows `⇄` live progress; each settled leg posts one card
-with its report behind `ctrl+o`.
+- A run gets a fresh context. It does not see the parent transcript.
+- `tools: read-only` cannot edit files. `edit` can change files.
+  `execute` adds edit, write, and shell tools.
+- `paths` fences writes to workspace-relative folders. A shell is not
+  fenced, so a shell leg cannot use `paths`.
+- MCP and the package's destructive-call gate are opt-in and need a
+  medium or higher autonomy.
+- Live runs default to 12; `liveCap` accepts 1–64. Extra legs wait in a
+  queue.
+- A run gets a 3,600 s timeout when no budget is set. `budget: { }`
+  explicitly means no spending caps.
+- A 900 s silence watchdog stops a hung child.
+- Esc, `/reload`, or quitting Pi stops live children.
+- `finishHook` can run one local shell command per finished run. It is
+  read from user settings, or from a trusted project's settings, never
+  from an agent file.
 
-Delegate legs and agent-team starts are background parallel runs. Past the
-live cap (default 12, `liveCap` 1–64) they wait in a queue and start as
-slots free; nothing is dropped. Name legs with `@explorer,@tester` to
-narrow a run. AgentTeam start creates one board task per leg, so a stopped run
-leaves its queued tasks pending; delete them in the AGENT TEAM tab. Delegate
-reports are one line per leg by default and cap at 200 rows; a 1000-leg
-board sends about 13 KB instead of 1.4 MB.
+## Settings
 
-## Configure
-
-Four levels, highest first: per-run switch, `pi-subagents` settings, file
-field, built-in default.
-
-**File.** `/subagents list` → pick → **Edit** changes `description`,
-`model`, `thinkingLevel`, `tools`, `paths`, `autonomy`, `promptPrefix`,
-`codemode`, `mcp`, `gates`, `context`, and each budget cap without
-touching the rest.
-
-```yaml
-codemode: off      # off | on | only (true/false also work)
-mcp: true          # opt-in MCP; medium+ only, codemode on/only, no paths
-gates: on          # block a fixed destructive-call list inside this child
-context: on        # load AGENTS.md into this child; the run notes the cost
-budget: { timeoutSec: 600, maxReportChars: 4000 }
-promptPrefix: "Map first. Cite file:line."
-paths: [src, docs]  # optional: workspace-relative; outside, absolute, and symlink escapes refused; bash is off
-```
-
-`promptPrefix` is a fixed one-liner (≤400 chars) placed before every task
-that subagent receives; the six starters ship one — `/subagents agent-teams <prompt>`, `Task`, each parallel leg, every chain
-step, and resumes. It carries durable framing, never task-specific steps.
-
-`only` (or omitted) gives scripting alone, `on` adds it beside normal
-tools, `off` removes it. `mcp: true` opens the servers in `mcp.json` for
-this child; scripts call them as `tools.mcp__<server>__<tool>`. Each live
-leg opens its own connections. OAuth servers need a parent `/mcp` sign-in
-first. MCP is refused with `autonomy` `off`/`low`, with `codemode: off`,
-and with `paths`; MCP tools are not path-fenced.
-
-`gates: on` is the package's own deny list inside the child (`rm -rf`,
-`sudo`, `git push --force`, destructive MCP tools, and more). It blocks and
-journals; a child has no UI, so it never prompts. `context: on` loads
-AGENTS.md for that child only and adds one note such as
-`context: 1 file, 48 chars (AGENTS.md)`.
-
-**Run.** `Task` and `subagent` take per-run switches; the file is not
-modified. They apply to single runs, fan-out, chains, and resumes.
-
-```json
-{
-  "subagent_type": "worker",
-  "description": "Quick review",
-  "prompt": "…",
-  "codemode": "off",
-  "budget": { "timeoutSec": 300 }
-}
-```
-
-**Settings.** `~/.pi/agent/settings.json`, or the project's
-`.pi/settings.json`:
+Global defaults live in `~/.pi/agent/settings.json` (or
+`.pi/settings.json`):
 
 ```json
 {
   "pi-subagents": {
-    "codemode": "off",
-    "model": "acme/fast",
+    "model": "provider/model",
+    "tools": ["read", "grep"],
     "autonomy": "low",
+    "budget": { "timeoutSec": 600 },
     "liveCap": 8,
-    "finishHook": "cat >> ~/pi-legs.ndjson"
+    "roundBudgetTokens": 500000,
+    "roundBudgetMinutes": 30,
+    "codemode": "off",
+    "settleNotify": true
   }
 }
 ```
 
-`model`, `tools`, and `autonomy` replace the file's value; `budget` merges
-key by key. Invalid values are ignored, and the block is read on every
-launch. `liveCap` (1–64) is the live-task ceiling. `finishHook` is a shell
-command; it is read from user settings always, and from project settings
-only when the folder is trusted. No agent file can set it. `"alias": false`
-stops the `subagent` compatibility tool from registering; that one is read
-at load, so `/reload` after changing it.
+Settings replace the file's value; budgets merge key by key. A per-run
+`Task` switch wins over both. Invalid values are ignored.
 
-Defaults: `codemode: only`, `mcp: off`, `gates: off`, `context: off`, inherited model, file tools,
-`inherit` autonomy, `timeoutSec: 3600`. Safety limits: 12 live tasks by default
-(`liveCap` 1–64), 900 s stall watchdog, 300 s wind-down, 10 s hard-stop
-grace.
-
-## Capabilities
-
-- **Task / `subagent`** — one run, one report.
-- **Background** — `run_in_background: true`; the finished leg wakes the
-  parent with its report, so the parent ends its turn instead of polling.
-- **Resume** — `resume: task_id` continues a done task; survives a restart.
-- **Return** — `return: ["files", "risks"]` makes a single report end with
-  those lines; only the final contiguous block counts, and missing fields
-  auto-label the run `verification`.
-- **Fan-out** — `parallel[]`, up to the live cap (default 12).
-- **AgentTeam start / Delegate** — `/subagents agent-teams <prompt>` creates one board task
-  and one worker per leg; each task inherits its subagent's `paths` as write
-  scopes, and an unscoped leg warns. `/delegate` runs explorer + worker. Legs
-  past the live cap wait in a queue.
-- **Finish** — `/subagents finish <prompt>` (or `f` in RUNS) picks the
-  smallest matched roster (max 4, never above `liveCap`).
-- **Agent teams** — `/subagents agent-teams on` or the AGENT TEAM tab opens a shared
-  board. `AgentTeam { action: "start", prompt }` also creates one task and one
-  worker per leg. Every leg launched with `Task` joins under a unique name,
-  can list/claim/complete tasks, message an agent teammate, and wait for a named
-  run. Write scopes reserve paths while a task is in progress; a
-  read-only `AgentTeam resolve` names the blocker, and a bounded session
-  queue holds mail for a finished member. Tasks remember why they came
-  back. Tasks survive `/reload`; ready tasks never start an agent.
-- **Mission control** — one `/subagents` surface with RUNS and AGENT TEAM tabs,
-  native footer progress, settled cards, and viewer tabs.
-- **TaskControl** — `steer`, `stop`, and `retry` a task from the model or
-  the board (`s`, `x`, `r`).
-- **Paths fence** — a subagent may name workspace-relative folders it writes
-  into; `write`/`edit` outside them, or through a symlink escape, are refused,
-  and `bash`/`powershell` are off because a shell cannot be fenced.
-- **Chains** — `chain[]`, fresh context per step.
-- **Temp subagents** — `temp_definition`, session-only.
-- **Codemode** — one script per turn, with a worker pool.
-- **Guards** — timeout, turns, tokens, stall, wind-down, hard stop.
-- **Stop** — Esc, reload, or quit stops every live run.
-- **Finish signal** — the footer keeps each finished leg (`✓`, `✗`, `⊘`) for
-  8 s, newest three plus `+N`.
-- **Finish hook** — `finishHook` runs one shell command per finished leg
-  with a JSON line: `event`, `task_id`, `subagent`, `status`, `ms`, `chars`,
-  `model`, `cwd`, and `error` when it failed. User settings always; project
-  settings only when the folder is trusted; never an agent file.
-- **Failure label** — `TaskOutput(task_id, failure: "spec" | "coordination" |
-  "verification")` labels a failed run once, never by inference;
-  `/delegate reports` shows `[spec]` beside that leg.
+The full field reference, team controls, and advanced options are in
+[Usage](docs/usage.md).
 
 ## Docs
 
-- [Usage](docs/usage.md) — fields, menus, delegation, fan-out, temp
-  subagents, chains, persistence, starters.
-- [Codemode](docs/codemode.md) — modes, worker pool, measured A/B.
-- [Budgets and guards](docs/budgets.md) — ceilings, hard stop, stall,
-  wind-down, token accounting.
-- [Runtime](docs/runtime.md) — footer, compaction, stop, rules, 400,
-  journal and watcher.
-- [Design](docs/design.md) — layers, 250-line rule, harness growth,
-  paper adoption.
+- [Usage](docs/usage.md) — the user guide, from one prompt to teams.
+- [Runtime](docs/runtime.md) — what happens inside a run.
+- [Design](docs/design.md) — layers and trade-offs.
+- [Budgets](docs/budgets.md) — limits and what a stopped run returns.
+- [Codemode](docs/codemode.md) — scripting modes and workers.
 
 ## Develop
 
 ```bash
 npm ci
-npm run check   # format, lint, typecheck, tests
-npm run arch    # architecture tests only
-npm run coverage      # line/branch/function coverage, no gate
-PI_IT_LIVE=1 PI_IT_MODEL=provider/model npm run smoke:live  # real Task/AgentTeam/steer/resume
-npm run bench:launch   # local render and admission timings
-npm run bench:layers  # viewer paint, streaming, and state save
-npm run bench:finish  # roster pick latency over the six starters
-PI_DELEGATE_E2E=1 npm run e2e:delegate # real RPC run (spends model calls)
-npm run e2e           # real model delegate probe (spends model calls)
-npm run e2e:fixtures  # full forced-answer suite: agent-team start, delegate, defaults, chain, parallel, abort
+npm run check
+npm run arch
+npm run e2e:fixtures
 ```
 
-Pi loads the extension with jiti, so there is no build step. `npm run
-check` runs the formatter check, Oxlint, `tsc --noEmit`, and the test
-suite. `npm run e2e` uses your configured model and spends calls.
-`npm run e2e:fixtures` keeps the full forced-response suite in a temp home,
-so it needs no keys or network. Failures write logs to `artifacts/e2e/`.
+Pi loads the extension with jiti; there is no build step. The e2e fixture
+suite uses a local fake provider and spends no model calls.
 
 ## License
 
