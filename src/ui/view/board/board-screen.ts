@@ -60,7 +60,22 @@ function displayLines(
 	width: number,
 	cursor: number,
 	theme: BoardRender["theme"],
+	hidden?: { failed: number; stopped: number },
 ): Line[] {
+	if (rows.length === 0) {
+		const total = hidden ? hidden.failed + hidden.stopped : 0;
+		if (total > 0) {
+			return [
+				{ kind: "row", text: theme.fg("muted", "No visible runs.") },
+				{ kind: "row", text: theme.fg("dim", `Press e to show ${total} hidden.`) },
+			];
+		}
+		return [
+			{ kind: "row", text: theme.fg("muted", "No runs yet.") },
+			{ kind: "row", text: theme.fg("dim", "Press enter to run something.") },
+			{ kind: "row", text: theme.fg("dim", "Or /subagents new to create a subagent.") },
+		];
+	}
 	const out: Line[] = [];
 	let section: BoardSection | undefined;
 	let runId: string | undefined;
@@ -92,7 +107,7 @@ export function renderBoard(rows: BoardRow[], opts: BoardRender): string[] {
 	const wide = width >= 96;
 	const listWidth = wide ? Math.min(74, Math.max(56, Math.floor(width * 0.62))) : width;
 	const detailWidth = width - listWidth - 3;
-	const lines = displayLines(rows, listWidth, cursor, theme);
+	const lines = displayLines(rows, listWidth, cursor, theme, opts.hidden);
 	const selected = lines.findIndex((line) => line.row === cursor);
 	let top = 0;
 	if (selected >= 0 && lines.length > bodyRows) {

@@ -24,7 +24,19 @@ export interface HiddenRows {
 export function boardHint(rows: readonly BoardRow[], cursor: number, hidden?: HiddenRows): string {
 	const total = hidden ? hidden.failed + hidden.stopped : 0;
 	const toggle = total > 0 ? [hidden?.hidden ? `e show ${total} hidden` : "e hide hidden"] : [];
-	const parts = ["↑↓", ...actionKeys(rows[cursor]), ...toggle, "f finish", "tab", "esc"];
-	parts.push(rows.length === 0 ? "0/0" : `${cursor + 1}/${rows.length}`);
+	if (rows.length === 0) {
+		return ["enter run", "? help", ...toggle, "f finish", "tab", "esc", "0/0"].join(" · ");
+	}
+	const parts = [
+		"↑↓",
+		...actionKeys(rows[cursor]),
+		...toggle,
+		"n run",
+		"? help",
+		"f finish",
+		"tab",
+		"esc",
+		`${cursor + 1}/${rows.length}`,
+	];
 	return parts.join(" · ");
 }

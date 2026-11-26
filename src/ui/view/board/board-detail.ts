@@ -38,7 +38,13 @@ export function detailLines(
 	theme: Pick<Theme, "fg" | "bold">,
 	pane: DetailPane = {},
 ): string[] {
-	if (!row) return [theme.fg("dim", "No run selected")];
+	if (!row) {
+		return [
+			theme.fg("muted", "No runs yet."),
+			theme.fg("dim", "Press enter to run something."),
+			theme.fg("dim", "Or /subagents new to create a subagent."),
+		];
+	}
 	const state = row.section === "queued" ? "QUEUED" : row.section.toUpperCase();
 	const metrics = [
 		row.section === "queued" ? "waiting for a slot" : `${row.turns}t · ${row.elapsedSec}s`,

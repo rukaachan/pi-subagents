@@ -235,4 +235,47 @@ describe("mission control", () => {
 		finish.v.handleInput("f");
 		assert.deepEqual(finish.actions, [{ kind: "finish" }]);
 	});
+
+	it("shows the first-use panel and the run footer", () => {
+		const empty = data();
+		const out = renderWorkspace({
+			...empty,
+			tab: "runs",
+			width: 120,
+			height: 12,
+			runsCursor: 0,
+			agentTeamCursor: 0,
+			theme: plainTheme() as never,
+		});
+		const all = out.join("\n");
+		assert.match(all, /No runs yet\./);
+		assert.match(all, /Press enter to run something\./);
+		assert.match(all, /\/subagents new to create a subagent\./);
+		const footer = out.at(-2) ?? "";
+		assert.match(footer, /enter run/);
+		assert.match(footer, /\? help/);
+		assert.match(footer, /f finish/);
+		assert.match(footer, /0\/0/);
+	});
+
+	it("runs from an empty board with Enter or n", () => {
+		for (const key of ["\r", "n"]) {
+			const made = view(data(), "runs");
+			made.v.handleInput(key);
+			assert.deepEqual(made.actions, [{ kind: "finish" }], key);
+		}
+	});
+
+	it("keeps n as run when rows exist and opens help with ?", () => {
+		const runs = board([rec({ taskId: "task-1", startedAt: 1_000 })], ["task-1"]);
+		const made = view(data({ runs }), "runs");
+		made.v.handleInput("n");
+		assert.deepEqual(made.actions, [{ kind: "finish" }]);
+		const help = view(data({ runs }), "runs");
+		help.v.handleInput("?");
+		assert.deepEqual(help.actions, [{ kind: "help" }]);
+		const teamHelp = view(data(), "agent-team");
+		teamHelp.v.handleInput("?");
+		assert.deepEqual(teamHelp.actions, [{ kind: "help" }]);
+	});
 });

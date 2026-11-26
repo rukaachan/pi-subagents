@@ -35,6 +35,10 @@ describe("failed runs", () => {
 			hidden: { failed: 1, stopped: 0, hidden: true },
 		});
 		assert.match(out[0] ?? "", /1 failed/);
+		assert.ok(
+			out.some((line) => line.includes("No visible runs.")),
+			out.join("\n"),
+		);
 		assert.match(out.at(-2) ?? "", /e show 1 hidden/);
 		assert.equal(
 			out.some((line) => line.includes("✗")),

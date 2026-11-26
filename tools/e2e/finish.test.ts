@@ -98,4 +98,23 @@ describe("e2e: /subagents finish", () => {
 			);
 		});
 	});
+
+	it("takes unknown bare text as a quick prompt", { timeout: 120_000 }, async () => {
+		await scenario("finish-bare", async ({ rpc, home }) => {
+			const started = await command(rpc, "/subagents review the plan for gaps", /finish ·/);
+			assert.match(started, /2 started/);
+			assert.match(started, /code-reviewer/);
+			await waitFor(() => hooks(home).length >= 2, "two finish hooks");
+		});
+	});
+
+	it("prints help for ? without starting a run", { timeout: 120_000 }, async () => {
+		await scenario("finish-help", async ({ rpc, home }) => {
+			const from = rpc.events.length;
+			await rpc.prompt("/subagents ?", { waitSettled: false });
+			const notice = await rpc.waitForNotice(/Subagents — quick control/, 10_000, from);
+			assert.match(notice, /Board keys/);
+			assert.equal(hooks(home).length, 0);
+		});
+	});
 });

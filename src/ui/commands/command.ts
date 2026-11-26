@@ -2,16 +2,15 @@
  * pi-subagents: the /subagents command.
  */
 
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { discoverSubagents } from "../../infra/files/index.ts";
-import { runCreateWizard } from "../menu/root/index.ts";
 import { runListMenu } from "../menu/root/index.ts";
 import { openWorkspace } from "../menu/board/index.ts";
 import { runSubagentDetail } from "../menu/root/index.ts";
 import { showTaskList } from "../menu/board/index.ts";
 import { showTrashList } from "../menu/board/index.ts";
 import { ledger } from "../../app/session/index.ts";
-import { shortPath } from "../view/text/index.ts";
+import { helpText, shortPath } from "../view/text/index.ts";
 import { subagentRow, taskRow } from "../view/text/index.ts";
 import { subagentDetail } from "../view/run/index.ts";
 import type { TaskStorePort } from "../../domain/task/index.ts";
@@ -23,6 +22,72 @@ import { startFinish } from "../../app/launch/index.ts";
 import type { AppDeps } from "../../app/index.ts";
 import { finishNotice } from "../view/run/index.ts";
 import { agentTeamText } from "../view/workspace/index.ts";
+import { runNewSubagent } from "./new-subagent.ts";
+import { routeSubagents, type SubagentsIntent } from "./route.ts";
+
+function quickRun(
+	store: TaskStorePort,
+	ctx: ExtensionCommandContext,
+	deps: AppDeps,
+	intent: Extract<SubagentsIntent, { kind: "quick" }>,
+): void {
+	if (!intent.prompt) {
+		ctx.ui.notify("Add a prompt: /subagents <prompt>", "warning");
+		return;
+	}
+	const result = startFinish(store, intent.prompt, ctx, deps);
+	if (!result.ok) {
+		ctx.ui.notify(result.error, result.usage ? "info" : "error");
+		return;
+	}
+	ctx.ui.notify(
+		finishNotice(
+			result.start.run.legs,
+			result.start.started,
+			result.start.queued,
+			result.start.picks,
+			result.start.dropped,
+		),
+		"info",
+	);
+}
+
+async function teamStart(
+	store: TaskStorePort,
+	ctx: ExtensionCommandContext,
+	deps: AppDeps,
+	intent: Extract<SubagentsIntent, { kind: "team" }>,
+): Promise<void> {
+	if (!intent.prompt || intent.prompt.toLowerCase() === "start") {
+		ctx.ui.notify("Add a prompt: /subagents team <prompt> [@a,@b]", "warning");
+		return;
+	}
+	const parsed = parseLaunchArgs(intent.prompt);
+	if (!parsed.ok) {
+		ctx.ui.notify(`/subagents team: ${parsed.error}`, "warning");
+		return;
+	}
+	const result = await startAgentTeamLaunch(
+		store,
+		{
+			prompt: parsed.request.prompt,
+			...(parsed.request.roster ? { roster: parsed.request.roster } : {}),
+		},
+		ctx,
+		deps,
+	);
+	if (!result.ok) {
+		ctx.ui.notify(result.error, "error");
+		return;
+	}
+	const rows = result.tasks.map((leg) => `${leg.name} — ${leg.taskId}`).join(" · ");
+	const warning =
+		result.warnings && result.warnings.length > 0 ? `\nWarning: ${result.warnings.join(" ")}` : "";
+	ctx.ui.notify(
+		`AgentTeam started · ${result.started} started${result.queued ? ` · ${result.queued} queued` : ""}\n${rows}${warning}`,
+		"info",
+	);
+}
 
 export function registerSubagentsCommand(
 	pi: ExtensionAPI,
@@ -30,9 +95,21 @@ export function registerSubagentsCommand(
 	deps: AppDeps,
 ): void {
 	pi.registerCommand("subagents", {
-		description: "Mission control; list, tasks, agent-teams, finish, trash, new, or a name",
+		description: "Run a prompt, open runs, create subagents, or manage teams",
 		getArgumentCompletions: (prefix) => {
-			const words = ["list", "new", "tasks", "trash", "agent-teams", "finish"];
+			const words = [
+				"run",
+				"team",
+				"agent-team",
+				"agent-teams",
+				"help",
+				"?",
+				"new",
+				"list",
+				"tasks",
+				"trash",
+				"finish",
+			];
 			try {
 				const found = discoverSubagents(process.cwd());
 				for (const sub of found.subagents) words.push(sub.name);
@@ -43,14 +120,29 @@ export function registerSubagentsCommand(
 			return hits.length > 0 ? hits.map((value) => ({ value, label: value })) : null;
 		},
 		handler: async (args, ctx) => {
-			const raw = args.trim();
-			const first = (raw.split(/\s+/, 1)[0] ?? "").toLowerCase();
-			const teamWord = first === "agent-teams" || first === "agent-team" || first === "team";
-			const query = teamWord
-				? `agent-teams${raw.slice(first.length)}`.toLowerCase()
-				: raw.toLowerCase();
+			const intent = routeSubagents(args);
 
-			if (query === "agent-teams") {
+			if (intent.kind === "board") {
+				await openWorkspace(ctx, store, deps);
+				return;
+			}
+
+			if (intent.kind === "help") {
+				ctx.ui.notify(helpText(), "info");
+				return;
+			}
+
+			if (intent.kind === "quick") {
+				quickRun(store, ctx, deps, intent);
+				return;
+			}
+
+			if (intent.kind === "team") {
+				await teamStart(store, ctx, deps, intent);
+				return;
+			}
+
+			if (intent.kind === "team-board") {
 				if (!ctx.hasUI) {
 					ctx.ui.notify(agentTeamText(), "info");
 					return;
@@ -59,74 +151,19 @@ export function registerSubagentsCommand(
 				return;
 			}
 
-			if (query === "agent-teams on") {
+			if (intent.kind === "team-on") {
 				enableAgentTeam(ctx.sessionManager.getSessionId());
 				ctx.ui.notify("Agent team mode on. New Task legs join the board.", "info");
 				return;
 			}
 
-			if (query === "agent-teams off") {
+			if (intent.kind === "team-off") {
 				disableAgentTeam();
 				ctx.ui.notify("Agent team mode off. Existing tasks stay.", "info");
 				return;
 			}
 
-			if (query === "agent-teams start") {
-				ctx.ui.notify("Add a prompt: /subagents agent-teams <prompt> [@a,@b]", "warning");
-				return;
-			}
-
-			if (query.startsWith("agent-teams ")) {
-				const parsed = parseLaunchArgs(raw.slice("agent-teams".length).trim());
-				if (!parsed.ok) {
-					ctx.ui.notify(`/subagents agent-teams: ${parsed.error}`, "warning");
-					return;
-				}
-				const result = await startAgentTeamLaunch(
-					store,
-					{
-						prompt: parsed.request.prompt,
-						...(parsed.request.roster ? { roster: parsed.request.roster } : {}),
-					},
-					ctx,
-					deps,
-				);
-				if (!result.ok) {
-					ctx.ui.notify(result.error, "error");
-					return;
-				}
-				const rows = result.tasks.map((leg) => `${leg.name} — ${leg.taskId}`).join(" · ");
-				const warning =
-					result.warnings && result.warnings.length > 0
-						? `\nWarning: ${result.warnings.join(" ")}`
-						: "";
-				ctx.ui.notify(
-					`AgentTeam started · ${result.started} started${result.queued ? ` · ${result.queued} queued` : ""}\n${rows}${warning}`,
-					"info",
-				);
-				return;
-			}
-
-			if (query === "finish" || query.startsWith("finish ")) {
-				const result = startFinish(store, raw.slice("finish".length).trim(), ctx, deps);
-				if (!result.ok) {
-					ctx.ui.notify(result.error, result.usage ? "info" : "error");
-					return;
-				}
-				ctx.ui.notify(
-					finishNotice(
-						result.start.run.legs,
-						result.start.started,
-						result.start.queued,
-						result.start.picks,
-						result.start.dropped,
-					),
-					"info",
-				);
-				return;
-			}
-
-			if (query === "tasks") {
+			if (intent.kind === "tasks") {
 				if (!ctx.hasUI) {
 					const tasks = scopeTasks(store.list().toReversed(), {
 						cwd: ctx.cwd,
@@ -142,7 +179,7 @@ export function registerSubagentsCommand(
 				return;
 			}
 
-			if (query === "trash") {
+			if (intent.kind === "trash") {
 				const { userSubagentsDir } = discoverSubagents(ctx.cwd);
 				if (!ctx.hasUI) {
 					const { listTrash } = await import("../../infra/files/index.ts");
@@ -159,7 +196,7 @@ export function registerSubagentsCommand(
 				return;
 			}
 
-			if (query === "list") {
+			if (intent.kind === "list") {
 				const { subagents, errors, userSubagentsDir, projectSubagentsDir } = discoverSubagents(
 					ctx.cwd,
 				);
@@ -180,32 +217,27 @@ export function registerSubagentsCommand(
 				return;
 			}
 
-			if (query === "new") {
+			if (intent.kind === "new") {
 				if (!ctx.hasUI) {
 					ctx.ui.notify("Create needs UI. Add a .md file by hand instead.", "warning");
 					return;
 				}
 				const { userSubagentsDir } = discoverSubagents(ctx.cwd);
-				await runCreateWizard(ctx, userSubagentsDir);
+				await runNewSubagent(ctx, userSubagentsDir);
 				return;
 			}
 
-			if (query) {
-				const { subagents } = discoverSubagents(ctx.cwd);
-				const sub = subagents.find((s) => s.name.toLowerCase() === query);
-				if (!sub) {
-					ctx.ui.notify(`Unknown subagent "${raw}".`, "error");
-					return;
-				}
-				if (!ctx.hasUI) {
-					ctx.ui.notify(subagentDetail(sub, ledger.bySubagent()[sub.name]), "info");
-					return;
-				}
-				await runSubagentDetail(ctx, sub);
+			const { subagents } = discoverSubagents(ctx.cwd);
+			const sub = subagents.find((s) => s.name.toLowerCase() === intent.name.toLowerCase());
+			if (!sub) {
+				quickRun(store, ctx, deps, { kind: "quick", prompt: intent.name });
 				return;
 			}
-
-			await openWorkspace(ctx, store, deps);
+			if (!ctx.hasUI) {
+				ctx.ui.notify(subagentDetail(sub, ledger.bySubagent()[sub.name]), "info");
+				return;
+			}
+			await runSubagentDetail(ctx, sub);
 		},
 	});
 }

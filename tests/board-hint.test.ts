@@ -25,12 +25,15 @@ describe("the board footer", () => {
 
 		const done = hint(rec({ taskId: "c", status: "done", endedAt: 2_000 }));
 		assert.doesNotMatch(done, /steer|retry|stop/);
-		assert.ok(visibleWidth(done) < 60, done);
+		assert.match(done, /n run/);
+		assert.match(done, /\? help/);
+		assert.ok(visibleWidth(done) < 80, done);
 	});
 
-	it("stays short with no rows", () => {
+	it("offers a first run with no rows", () => {
 		const empty = boardHint([], 0);
-		assert.equal(empty.includes("enter"), false);
+		assert.match(empty, /enter run/);
+		assert.match(empty, /\? help/);
 		assert.match(empty, /0\/0$/);
 	});
 

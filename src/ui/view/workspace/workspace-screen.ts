@@ -33,6 +33,7 @@ export type WorkspaceAction =
 	| { kind: "agent-team-start" }
 	| { kind: "agent-team-verify"; taskId: string }
 	| { kind: "agent-team-advise"; taskId: string }
+	| { kind: "help" }
 	| { kind: "finish" }
 	| { kind: "close" };
 

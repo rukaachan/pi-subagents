@@ -170,7 +170,7 @@ function agentTeamHint(rows: readonly AgentTeamRow[], cursor: number): string {
 	if (status === "in_review") parts.push("v verify");
 	if (status && status !== "deleted") parts.push("i advice", "e edit", "d delete");
 	if (rows[cursor]?.view.task.runId) parts.push("o open run");
-	parts.push("n new", "s start", "tab", "esc");
+	parts.push("n new", "s start", "? help", "tab", "esc");
 	return parts.join(" · ");
 }
 

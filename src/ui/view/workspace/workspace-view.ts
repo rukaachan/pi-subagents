@@ -135,6 +135,8 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 			runsCursor = Math.max(0, deps.runs().length - 1);
 			return sync();
 		}
+		if (key === "n") return emit({ kind: "finish" });
+		if (!row && matchesKey(key, Key.enter)) return emit({ kind: "finish" });
 		if (!row) return;
 		if (matchesKey(key, Key.enter) && row.openable)
 			return emit({ kind: "open", taskId: row.taskId });
@@ -199,6 +201,7 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 			}
 			if (key === "1") return switchTab("runs");
 			if (key === "2") return switchTab("agent-team");
+			if (key === "?") return emit({ kind: "help" });
 			if (key === "f") return emit({ kind: "finish" });
 			if (key === "e" && tab === "runs" && hiddenTotal()) {
 				deps.toggleHidden?.();
