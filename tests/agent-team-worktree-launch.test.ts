@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
@@ -21,6 +21,8 @@ let dir = "";
 
 beforeEach(() => {
 	dir = mkdtempSync(join(tmpdir(), "pi-team-wt-launch-"));
+	mkdirSync(join(dir, "subagents"));
+	copyFileSync(join(process.cwd(), "subagents", "worker.md"), join(dir, "subagents", "worker.md"));
 	beginAgentTeamSession("s-wt-launch");
 	disableAgentTeam();
 });
