@@ -7,7 +7,8 @@ import type { InMemoryLedger } from "./ledger.ts";
 import type { TaskStorePort } from "../../domain/task/index.ts";
 import type { TaskRecord } from "../../domain/task/index.ts";
 import { freezeRestored } from "../../domain/task/index.ts";
-import { restoreAgentTeam, agentTeamSnapshot } from "../agent-team/board/index.ts";
+import { agentTeamBoard, agentTeamSnapshot, restoreAgentTeam } from "../agent-team/board/index.ts";
+import { mergeAgentTeamLedger } from "../../domain/agent-team/index.ts";
 import { coldMailSnapshot, restoreColdMail } from "../agent-team/channel/index.ts";
 import { releaseOrphanedTasks } from "../agent-team/board/index.ts";
 import { findStateTask } from "../../infra/state/index.ts";
@@ -17,6 +18,8 @@ import {
 	capRecord,
 	defaultStatePath,
 	loadState,
+	loadWorkspaceLedger,
+	saveWorkspaceLedger,
 	STATE_VERSION,
 	type PersistedState,
 } from "../../infra/state/index.ts";
@@ -59,9 +62,13 @@ export function restoreInto(
 	ledger: InMemoryLedger,
 	statePath: string,
 	port: StatePort,
+	cwd?: string,
 ): number {
 	const state = port.load(statePath);
-	if (!state) return 0;
+	if (!state) {
+		if (cwd) restoreWorkspaceLedger(statePath, cwd);
+		return 0;
+	}
 	// Rows that were live cannot finish: count them as errors so totals add up.
 	const interrupted = state.tasks.filter((t) => t.status === "running");
 	if (state.agentTeam) {
@@ -69,6 +76,7 @@ export function restoreInto(
 		restoreColdMail(state.agentTeam.coldMail);
 		releaseOrphanedTasks();
 	}
+	if (cwd) restoreWorkspaceLedger(statePath, cwd);
 	store.restore(state.tasks);
 	ledger.restore(state.ledger);
 	ledger.clearRunning();
@@ -77,6 +85,20 @@ export function restoreInto(
 		if (row && row.total > row.done + row.error) ledger.finish(rec.subagentName, "error");
 	}
 	return state.tasks.length;
+}
+
+let ledgerWarned = false;
+
+function restoreWorkspaceLedger(statePath: string, cwd: string): void {
+	const loaded = loadWorkspaceLedger(statePath, cwd);
+	if (loaded.status === "corrupt" && !ledgerWarned) {
+		ledgerWarned = true;
+		journalWrite({
+			event: "state_error",
+			message: "Workspace ledger is unreadable; starting fresh.",
+		});
+	}
+	if (loaded.entries.length > 0) mergeAgentTeamLedger(agentTeamBoard(), loaded.entries);
 }
 
 export const SAVE_DEBOUNCE_MS = 250;
@@ -93,6 +115,7 @@ export function attachPersistence(
 	port: StatePort,
 	statePath = defaultStatePath(),
 	onError?: (message: string) => void,
+	cwd = process.cwd(),
 ): () => void {
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	// Every save gets a generation. A synchronous flush bumps it, so an async
@@ -105,6 +128,9 @@ export function attachPersistence(
 		lastError = error;
 		onError?.(error);
 	};
+	const saveLedger = () => {
+		report(saveWorkspaceLedger(statePath, cwd, agentTeamBoard().ledger).error);
+	};
 	const flush = () => {
 		if (timer) {
 			clearTimeout(timer);
@@ -112,6 +138,7 @@ export function attachPersistence(
 		}
 		generation += 1;
 		report(port.save(statePath, port.encode(serializeState(store, ledger))).error);
+		saveLedger();
 	};
 	const schedule = () => {
 		if (timer) return;
@@ -124,7 +151,10 @@ export function attachPersistence(
 			// and rename, which block on the file system, run off it.
 			void port
 				.saveAsync(statePath, json, () => current === generation)
-				.then((result) => report(result.error));
+				.then((result) => {
+					saveLedger();
+					report(result.error);
+				});
 		}, SAVE_DEBOUNCE_MS);
 	};
 	const onExit = () => flush();

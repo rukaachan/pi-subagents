@@ -61,7 +61,7 @@ export function createSessionRuntime(input: RuntimeDeps): SessionRuntime {
 	}
 
 	function restoreIntoCurrent(cwd: string, sessionId?: string): number {
-		const fromSession = restoreInto(store, ledger, statePath, deps.state);
+		const fromSession = restoreInto(store, ledger, statePath, deps.state, cwd);
 		if (fromSession > 0 || !sessionId || process.env.PI_SUBAGENTS_STATE?.trim()) return fromSession;
 		return restoreLegacySession(cwd, sessionId);
 	}
@@ -87,7 +87,7 @@ export function createSessionRuntime(input: RuntimeDeps): SessionRuntime {
 		statePath = sessionFile(cwd, sessionId);
 		restoredRows = restoreIntoCurrent(cwd, sessionId);
 		setAgentTeamChangeHook(() => store.touch());
-		detach = attachPersistence(store, ledger, deps.state, statePath, onError);
+		detach = attachPersistence(store, ledger, deps.state, statePath, onError, cwd);
 	}
 
 	return {
