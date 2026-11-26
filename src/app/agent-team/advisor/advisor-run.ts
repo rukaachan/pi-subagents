@@ -11,15 +11,15 @@ import { MAX_LIVE_TASKS } from "../../../domain/task/index.ts";
 import type { TaskStorePort } from "../../../domain/task/index.ts";
 import { MAX_AGENT_TEAM_QUESTION } from "../../../domain/agent-team/index.ts";
 import { journalWrite } from "../../../telemetry/journal/index.ts";
-import { launchBackground, stopTaskById } from "../../run/index.ts";
+import { launchBackground } from "../../run/index.ts";
 import { readGlobalConfig } from "../../session/index.ts";
 import { agentTeamSummary, getTask } from "../board/index.ts";
+import { waitForRunText } from "./wait.ts";
 
-const ADVISOR_TIMEOUT_MS = 120_000;
-const POLL_MS = 50;
+export const ADVISOR_TIMEOUT_MS = 120_000;
 let advising = false;
 
-function readOnly(sub: SubagentConfig): SubagentConfig {
+export function readOnly(sub: SubagentConfig): SubagentConfig {
 	return {
 		...sub,
 		tools: ["read", "grep", "find", "ls"],
@@ -29,11 +29,11 @@ function readOnly(sub: SubagentConfig): SubagentConfig {
 	};
 }
 
-function pick(subs: readonly SubagentConfig[]): SubagentConfig | undefined {
+export function pick(subs: readonly SubagentConfig[]): SubagentConfig | undefined {
 	return subs.find((sub) => sub.name === "advisor") ?? subs.find((sub) => sub.name === "planner");
 }
 
-function fail(taskId: string | undefined, error: string): { ok: false; error: string } {
+export function fail(taskId: string | undefined, error: string): { ok: false; error: string } {
 	journalWrite({
 		event: "agent_team_advice",
 		chars: 0,
@@ -42,36 +42,6 @@ function fail(taskId: string | undefined, error: string): { ok: false; error: st
 		...(taskId ? { taskId } : {}),
 	});
 	return { ok: false, error };
-}
-
-function hold(ms: number): Promise<void> {
-	return new Promise((resolve) => {
-		setTimeout(resolve, ms);
-	});
-}
-
-async function waitForAdvice(
-	store: TaskStorePort,
-	runId: string,
-	taskId: string | undefined,
-): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
-	const deadline = Date.now() + ADVISOR_TIMEOUT_MS;
-	for (;;) {
-		const rec = store.get(runId);
-		if (!rec) return fail(taskId, "The advisor run disappeared before it answered.");
-		if (rec.status === "done") {
-			const text = rec.result?.text.trim();
-			return text ? { ok: true, text } : fail(taskId, "The advisor returned no advice.");
-		}
-		if (rec.status === "error" || rec.status === "stopped") {
-			return fail(taskId, rec.error ?? "The advisor run stopped.");
-		}
-		if (Date.now() >= deadline) {
-			stopTaskById(store, runId, "advisor timeout");
-			return fail(taskId, "Advisor timed out after 120s.");
-		}
-		await hold(POLL_MS);
-	}
 }
 
 export async function adviseAgentTeam(
@@ -114,7 +84,7 @@ export async function adviseAgentTeam(
 			agentTeamRole: "advisor",
 			agentTeamOrigin: "task",
 		});
-		const result = await waitForAdvice(store, runId, taskId);
+		const result = await waitForRunText(store, runId, ADVISOR_TIMEOUT_MS, "advisor");
 		if (result.ok) {
 			journalWrite({
 				event: "agent_team_advice",

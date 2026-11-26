@@ -7,11 +7,11 @@ import { discoverSubagents } from "../../../infra/files/index.ts";
 import { withTemps } from "../../../domain/run/index.ts";
 import { MAX_AGENT_TEAM_RESULT } from "../../../domain/agent-team/index.ts";
 import { VERIFIER_BRIEF } from "../../../domain/policy/index.ts";
-import type { SubagentConfig } from "../../../domain/subagent/index.ts";
 import type { TaskStorePort } from "../../../domain/task/index.ts";
 import { launchBackground } from "../../run/index.ts";
 import type { ChildDeps } from "../../run/index.ts";
 import { agentTeamEnabled, getTask, linkVerifyRun } from "../board/index.ts";
+import { pick } from "./pick.ts";
 import { journalWrite } from "../../../telemetry/journal/index.ts";
 
 export function verifierPrompt(
@@ -32,14 +32,6 @@ export function verifierPrompt(
 		`Call AgentTeam { action: "verify", task_id: "${taskId}", expected_revision: <current>, verdict: "pass" | "fail", note: "short reason", fact: "one checked fact", excluded: "one dead end" }.`,
 		"Send fact on pass or excluded on fail, never both; leave the other out.",
 	].join("\n");
-}
-
-function pick(
-	verifyWith: string | undefined,
-	subs: readonly SubagentConfig[],
-): SubagentConfig | undefined {
-	const wanted = verifyWith ?? "code-reviewer";
-	return subs.find((sub) => sub.name === wanted) ?? subs.find((sub) => sub.name === "tester");
 }
 
 /** Launch one verifier run; a missing verifier leaves the task in review. */

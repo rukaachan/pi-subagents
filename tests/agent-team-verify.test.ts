@@ -21,7 +21,7 @@ function setup(acceptance?: string): AgentTeamTask {
 	const board = newAgentTeam("s-1");
 	const created = createAgentTeamTask(
 		board,
-		{ subject: "one", description: "", acceptance, origin: "task" },
+		{ subject: "one", description: "", acceptance, origin: "task", round: 2 },
 		10,
 	);
 	assert.ok(created.ok);
@@ -119,6 +119,8 @@ describe("agent team verification", () => {
 		assert.equal(result.task.verifiedAt, 40);
 		assert.equal(result.task.attempts?.[0]?.outcome, "passed");
 		assert.equal(result.task.attempts?.[0]?.owner, "alice");
+		assert.equal(result.task.attempts?.[0]?.method, "checked");
+		assert.equal(result.task.attempts?.[0]?.round, 2);
 	});
 
 	it("fails review back to pending with the note", () => {
@@ -147,6 +149,8 @@ describe("agent team verification", () => {
 		assert.equal(result.task.attempts?.[0]?.outcome, "failed");
 		assert.equal(result.task.attempts?.[0]?.owner, "alice");
 		assert.equal(result.task.attempts?.[0]?.error, "test still red");
+		assert.equal(result.task.attempts?.[0]?.method, "test still red");
+		assert.equal(result.task.attempts?.[0]?.round, 2);
 	});
 
 	it("requires a note for a failed verdict and a lead override", () => {
