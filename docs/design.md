@@ -151,7 +151,6 @@ Pi exited is frozen as an interrupted error on restore.
 
 ## Limits
 
-- Linux only.
 - Path-based local package install.
 - No build step; Pi loads TypeScript through jiti.
 - 12 live legs by default; `liveCap` accepts 1–64.

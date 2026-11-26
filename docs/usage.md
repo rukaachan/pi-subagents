@@ -263,7 +263,7 @@ Project settings are read only when the project is trusted.
 - Report caps are per subagent or per run; the default starter cap is 6,000 characters.
 - State is capped at 2 MB per file. History keeps the newest 60 messages
   and 24,000 characters.
-- Linux only. A path-based install breaks if the checkout moves.
+- A path-based install breaks if the checkout moves.
 
 ## Troubleshooting
 
