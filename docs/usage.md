@@ -459,9 +459,10 @@ section: plan, create tasks, split write scopes, delegate, then wait.
 Only the lead spawns; an agent teammate cannot delegate further.
 
 In the AGENT TEAM tab, a task waiting for a verdict shows `?` and the header
-counts `N review` and `N facts`. `v` records a pass or fail (a lead override
-is journaled), and `i` asks the advisor. The detail pane shows the acceptance
-text, the verifier run, the verdict, and the two newest attempts.
+counts `N review` and `N facts`. `v` records a pass or fail: the lead's
+reason is journaled, and an optional fact or dead end is kept. `i` asks the
+advisor. The detail pane shows the acceptance text, the verifier run, the
+verdict, and the two newest attempts.
 
 `AgentTeamMessage` sends to a live member first. A known finished member gets
 a bounded session queue (8 messages or 8,000 characters): the send result

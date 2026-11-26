@@ -19,6 +19,7 @@ import type { TaskStorePort } from "../../../domain/task/index.ts";
 import { pickFromList } from "../../index.ts";
 import { shortText } from "../../view/text/index.ts";
 import type { WorkspaceAction } from "../../view/workspace/index.ts";
+import { detailFlow } from "./agent-team-detail.ts";
 
 function notice(ctx: ExtensionCommandContext, text: string, kind: "info" | "error" = "info"): void {
 	ctx.ui.notify(text, kind);
@@ -124,10 +125,28 @@ async function verifyFlow(ctx: ExtensionCommandContext, taskId: string): Promise
 		],
 	});
 	if (verdict !== "pass" && verdict !== "fail") return;
-	if (verdict === "pass") return update(ctx, view, "verify", { verdict: "pass" });
-	const note = await input(ctx, "Why did it fail?");
+	const pass = verdict === "pass";
+	const note = await input(ctx, pass ? "Why pass? (journaled)" : "Why did it fail?");
 	if (note === undefined) return;
-	update(ctx, view, "verify", { verdict: "fail", note });
+	if (!note.trim()) {
+		notice(
+			ctx,
+			pass ? "A lead override needs a note." : "A failed verification needs a note.",
+			"error",
+		);
+		return;
+	}
+	const extra = await input(
+		ctx,
+		pass ? "Fact to keep (optional)" : "Dead end to record (optional)",
+	);
+	if (extra === undefined) return;
+	update(ctx, view, "verify", {
+		verdict,
+		override: true,
+		note,
+		...(extra.trim() ? (pass ? { fact: extra.trim() } : { excluded: extra.trim() }) : {}),
+	});
 }
 
 async function adviseFlow(
@@ -179,31 +198,6 @@ async function startFlow(
 		ctx,
 		`AgentTeam started · ${result.started} started${result.queued ? ` · ${result.queued} queued` : ""}\n${rows}${warning}`,
 	);
-}
-
-function detailText(view: AgentTeamTaskView): string {
-	const task = view.task;
-	return [
-		`${task.id} [${task.status}] rev ${task.revision} · ${task.subject}`,
-		`owner: ${task.owner ?? "unowned"} · scopes: ${task.writeScopes.join(",") || "none"}`,
-		view.blockedByOpen.length ? `blocked by: ${view.blockedByOpen.join(",")}` : "",
-		task.lastError ? `last ${task.lastOwner ?? "run"}: ${task.lastError}` : "",
-		...(task.attempts
-			?.slice(-2)
-			.map((attempt) =>
-				attempt.outcome === "passed"
-					? `passed by ${attempt.owner ?? "run"}`
-					: `${attempt.outcome}${attempt.owner ? ` by ${attempt.owner}` : ""}${attempt.error ? `: ${attempt.error}` : ""}`,
-			) ?? []),
-		task.description || "(no description)",
-	]
-		.filter(Boolean)
-		.join("\n");
-}
-
-async function detailFlow(ctx: ExtensionCommandContext, taskId: string): Promise<void> {
-	const view = taskOf(ctx, taskId);
-	if (view) notice(ctx, detailText(view));
 }
 
 export async function runAgentTeamAction(
