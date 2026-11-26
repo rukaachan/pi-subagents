@@ -24,6 +24,7 @@ describe("team tool schemas", () => {
 		assert.equal(action?.type, "string");
 		assert.deepEqual(action?.enum, [
 			"start",
+			"round",
 			"status",
 			"list",
 			"get",
@@ -38,6 +39,9 @@ describe("team tool schemas", () => {
 			"delete",
 			"verify",
 			"advise",
+			"brief",
+			"worktree",
+			"promote",
 		]);
 		assert.equal(agentTeam.properties?.status?.type, "string");
 		assert.deepEqual(agentTeam.properties?.status?.enum, [

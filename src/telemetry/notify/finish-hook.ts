@@ -7,6 +7,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 export const FINISH_HOOK_TIMEOUT_MS = 5000;
 export const MAX_COMMAND_CHARS = 1000;
 const MAX_ERROR_CHARS = 300;
+export const MAX_REPORT_CHARS = 2_000;
 
 export interface FinishPayload {
 	event: "subagent_end";
@@ -18,11 +19,13 @@ export interface FinishPayload {
 	model?: string;
 	cwd: string;
 	error?: string;
+	report?: string;
 }
 
 export function finishPayload(input: Omit<FinishPayload, "event">): FinishPayload {
-	const { error: raw, ...rest } = input;
+	const { error: raw, report: rawReport, ...rest } = input;
 	const error = raw?.replace(/\s+/g, " ").trim();
+	const report = rawReport?.trim();
 	return {
 		...rest,
 		event: "subagent_end",
@@ -30,6 +33,14 @@ export function finishPayload(input: Omit<FinishPayload, "event">): FinishPayloa
 			? {
 					error:
 						error.length <= MAX_ERROR_CHARS ? error : `${error.slice(0, MAX_ERROR_CHARS - 1)}…`,
+				}
+			: {}),
+		...(report
+			? {
+					report:
+						report.length <= MAX_REPORT_CHARS
+							? report
+							: `${report.slice(0, MAX_REPORT_CHARS - 1)}…`,
 				}
 			: {}),
 	};

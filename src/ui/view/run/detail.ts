@@ -7,6 +7,7 @@ import type { TaskRecord } from "../../../domain/task/index.ts";
 import { formatElapsed } from "../../../telemetry/live/index.ts";
 import { kvTable, shortPath, shortText, sourceBadge, usageLine } from "../text/index.ts";
 import { chainStrip, parallelStrip } from "../text/index.ts";
+import { whyText } from "./why.ts";
 
 export interface LiveRunInfo {
 	status?: string;
@@ -41,6 +42,9 @@ export function taskDetail(rec: TaskRecord, live?: LiveRunInfo): string {
 			rec.result.text.length > 2000 ? `${rec.result.text.slice(0, 2000)}\n…(cut)` : rec.result.text,
 		);
 		if (rec.result.notes.length > 0) out.push(`[notes: ${rec.result.notes.join(" ")}]`);
+		if (rec.status === "error" || rec.status === "stopped") {
+			out.push("─── why ───", whyText(rec));
+		}
 		return out.join("\n");
 	}
 	if (rec.status === "stopped") head.push(["stopped", rec.error ?? "interrupted"]);
@@ -64,7 +68,9 @@ export function taskDetail(rec: TaskRecord, live?: LiveRunInfo): string {
 	} else {
 		head.push(["state", "still running — poll again"]);
 	}
-	return kvTable(head);
+	const why =
+		rec.status === "error" || rec.status === "stopped" ? `\n─── why ───\n${whyText(rec)}` : "";
+	return `${kvTable(head)}${why}`;
 }
 
 function spawnLine(spawns: {

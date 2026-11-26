@@ -142,8 +142,21 @@ a blocker reference still resolves; a task that still blocks a live task
 cannot be deleted until that dependency is cleared. Caps: 128 live tasks,
 32 members, 2,000-character descriptions, and 20 scopes or blockers per
 task. Idle members are evicted; a 33rd join is refused when all 32 own live
-tasks, and a start takes at most 32 legs. The board list and AGENT TEAM tab show the
-whole board, up to 128 tasks.
+tasks, and a start takes at most 32 legs. Text caps: 2,000 per description,
+500 per acceptance, 500 per fact or dead end, 300 per note, 1,000 per
+question, 2,000 per brief, 4,000 per promoted draft, 512 per worktree path.
+The board list and AGENT TEAM tab show the
+whole board, up to 128 tasks. The same state carries the newest five rounds:
+`{ id, prompt, taskIds, brief?, budget: { tokens, ms }, startedAt }`. A round
+is capped at 12 legs and 5 rounds per team; a new round is refused while the
+previous one is over its budget. Round spend is the sum of the task results'
+input and output tokens; wall time is from `startedAt`. `force` skips only
+the previous-round check, never the hard caps of 5,000,000 tokens or 6 hours.
+A task may carry `round`, `crossVerify`, `crossVerdict`, `crossVerifiedBy`,
+`crossVerifiedAt`, `crossVerifyRunId`, `isolation`, and a `worktree` record
+`{ path, base, createdAt, mergedAt? }`. All of these are validated on read:
+an unknown isolation becomes shared, a bad path drops the worktree, and a
+bad round link is ignored.
 
 A member name is tied to the run that created it, so a retried
 background leg rejoins as the same member and can finish the task it
@@ -163,7 +176,8 @@ A claim, a reassign, or an in-progress scope edit checks the board for
 another in-progress task whose scopes overlap. The update is refused
 with the blocking task id, scope, and owner. Pending and completed tasks
 reserve nothing; a task with no scopes locks nothing. This is a board
-reservation, not a filesystem sandbox: `bash` still writes anywhere.
+reservation, not a filesystem sandbox. Files are shared unless the task uses
+`isolation: "worktree"`; `bash` can still write anywhere.
 
 `AgentTeam { action: "resolve" }` is the read-only escape. It is lead-only,
 takes `task_id`, and returns each blocker's revision, status, owner, and
@@ -190,9 +204,16 @@ task; a fail returns it to pending with the note in `last_error`; a verifier
 error leaves it in review. A pass may carry one `fact`; a fail may carry one
 `excluded` dead end. Both land on the team ledger, and `taskPrompt` prepends
 the newest facts and dead ends to later worker prompts. The board also keeps
-the newest five attempts per task with the owner and error. `advise` launches
-one read-only `advisor` run (fallback `planner`) with a board snapshot and a
-120-second wait; it cannot mutate the board.
+the newest five attempts per task with the owner and error. `advise` and
+`brief` launch one read-only `advisor` run (fallback `planner`) with a board
+snapshot and a 120-second wait; neither can mutate the board. A task with
+`cross_verify` stays in review after the task verifier passes; the cross
+reader sees the other in-review rows from the round, gets
+`scope: "cross"`, and its pass is the second gate. The task ledger is merged
+with the project workspace ledger at restore: `agent-team-ledger.json` sits
+beside the state file, version 1, mode 0600, keyed by the first 12 hex of
+`sha1(cwd)`, and keeps at most 20 workspaces with 50 facts and 20 dead ends
+each. A corrupt ledger is ignored and reported once as `state_error`.
 
 `AgentTeam { action: "start", prompt, roster? }` is lead-only and always
 launches. It handles the request before the active gate, validates the
@@ -204,7 +225,15 @@ and calls `startLaunch(store, "agent-team", names, prompt, ctx, { promptFor })`.
 A leg without `paths` is unscoped; the report says parallel edits can
 collide. The existing queue owns the live cap. If task creation fails
 partway, the created tasks are deleted and a board that was off is turned
-back off. A stopped run leaves queued tasks pending; delete them from the
+back off. With `isolation: "worktree"`, each leg gets a detached worktree
+from HEAD at `<tmp>/pi-subagents-worktrees/<sha1(cwd)[:12]>/<task-id>`; the
+child is started with that directory, and the leg prompt says to commit
+there. A non-git workspace or a repository without a commit is refused, and
+the tasks created by that launch are rolled back. The lead manages a worktree
+with `worktree_action`: `status`, `merged` (clean only, then remove and mark
+`mergedAt`), or `remove` (forced, then clear the record). Every outcome is
+journaled as `agent_team_worktree`; the event carries the task id, action,
+ok flag, path, and error, never file contents. A stopped run leaves queued tasks pending; delete them from the
 AGENT TEAM tab. A child tool has no `launch` callback and returns a clear error.
 The enable-only path is the UI switch (`/subagents agent-teams on`, `t`), which
 calls the store directly without starting workers. The AgentTeam schema is

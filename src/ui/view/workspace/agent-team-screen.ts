@@ -13,6 +13,14 @@ export interface AgentTeamRow {
 	live: boolean;
 }
 
+export interface AgentTeamRoundInfo {
+	id: number;
+	tokens: number;
+	ms: number;
+	spent: number;
+	elapsedMs: number;
+}
+
 export interface AgentTeamScreenOptions {
 	width: number;
 	height: number;
@@ -20,6 +28,7 @@ export interface AgentTeamScreenOptions {
 	theme: Pick<Theme, "fg" | "bold">;
 	enabled: boolean;
 	facts?: number;
+	rounds?: readonly AgentTeamRoundInfo[];
 }
 
 const GLYPH = {
@@ -69,6 +78,7 @@ export function agentTeamRowLine(
 	const owner = task.owner ?? "unowned";
 	const flags = [
 		owner,
+		task.round ? `r${task.round}` : "",
 		`rev ${task.revision}`,
 		row.view.ready ? "ready" : "",
 		row.view.blockedByOpen.length ? `blocked ${row.view.blockedByOpen.join(",")}` : "",
@@ -87,6 +97,7 @@ export function agentTeamDetailLines(
 	row: AgentTeamRow | undefined,
 	width: number,
 	theme: Pick<Theme, "fg" | "bold">,
+	rounds?: readonly AgentTeamRoundInfo[],
 ): string[] {
 	if (!row) return [theme.fg("dim", "No team task selected")];
 	const task = row.view.task;
@@ -98,6 +109,13 @@ export function agentTeamDetailLines(
 		theme.fg("dim", `rev ${task.revision} · ${owner}${row.live ? " · live" : ""}`),
 		theme.fg("dim", task.runId ? `run ${task.runId}` : "no run linked"),
 	];
+	if (task.round) {
+		const round = rounds?.find((entry) => entry.id === task.round);
+		const detail = round
+			? ` · ${round.spent}/${round.tokens} tokens · ${Math.round(round.elapsedMs / 60_000)}/${Math.round(round.ms / 60_000)} min`
+			: "";
+		lines.push(theme.fg("dim", `round ${task.round}${detail}`));
+	}
 	if (task.acceptance)
 		lines.push(theme.fg("warning", `acceptance: ${shortText(task.acceptance, 100)}`));
 	if (task.verdict) {
@@ -107,6 +125,16 @@ export function agentTeamDetailLines(
 		);
 	}
 	if (task.verifyRunId) lines.push(theme.fg("dim", `verifier run ${task.verifyRunId}`));
+	if (task.crossVerify) {
+		const who = task.crossVerifiedBy ? ` by ${task.crossVerifiedBy}` : "";
+		const state = task.crossVerdict ?? (task.verdict === "pass" ? "pending" : "waiting");
+		const color =
+			task.crossVerdict === "fail" ? "error" : task.crossVerdict === "pass" ? "success" : "dim";
+		lines.push(theme.fg(color, `cross: ${state}${who}`));
+	}
+	if (task.crossVerifyRunId) {
+		lines.push(theme.fg("dim", `cross run ${task.crossVerifyRunId}`));
+	}
 	if (task.result) lines.push(theme.fg("text", `result: ${shortText(task.result, 120)}`));
 	lines.push(theme.fg("dim", `scopes: ${scopeText(row.view)}`));
 	if (row.view.blockedByOpen.length > 0) {
@@ -163,7 +191,7 @@ export function renderAgentTeamScreen(
 	}
 	const shown = lines.slice(top, top + bodyRows);
 	while (shown.length < bodyRows) shown.push("");
-	const details = wide ? agentTeamDetailLines(rows[cursor], detailWidth, theme) : [];
+	const details = wide ? agentTeamDetailLines(rows[cursor], detailWidth, theme, opts.rounds) : [];
 	const body = shown.map((line, index) => {
 		if (!wide) return line;
 		const clipped = truncateToWidth(line, listWidth, "…");

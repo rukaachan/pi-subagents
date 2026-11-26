@@ -144,6 +144,24 @@ name-based import is ever added, the map should expose only the entry
 | Swappable journal sink: `setJournal(port)`; `fileJournal` is the default                                                      | Tests record events without a file; the entry installs the file adapter once. The file rotates at 2 MB (`JOURNAL_MAX_BYTES`), and the fold reads the last 20,000 lines.  | `tests/journal-port.test.ts`, e2e journal assertions        |
 | Delegation economics: optional `run_end` fields, `report:handoff`, `maxCost`                                                  | Prompt and usage are measured where the driver has them; a missing value stays `n/a` instead of a fake zero. `maxCost` is opt-in and honest when the provider reports 0. | `tests/handoff-report.test.ts`, `tests/budget-cost.test.ts` |
 
+## Agent-team v2 (v0.17)
+
+Ten extensions answered measured gaps, not a wish list. Each keeps the lead
+in charge and adds one bounded record.
+
+| extension          | trade-off                                                                                                                                                                                             |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| rounds             | A round stores one prompt, task ids, a brief, and a token/wall budget. The lead still decides every round; a separate orchestrator would add a second context and a second failure owner.             |
+| round budget       | Both caps bind: tokens catch long thinking, wall time catches a hung child. `force` skips only the previous-round check, never the hard ceiling, and the skip is journaled.                           |
+| cross-verify       | A second reader is opt-in and requires acceptance. It is a second opinion, not a correctness claim; the task gate is the task pass plus, only when opted in, the cross pass.                          |
+| workspace ledger   | Facts and dead ends survive new sessions for the same workspace. It is local-only, mode 0600, keyed by the workspace hash, capped at 20 workspaces, and merged under the newest team ledger.          |
+| worktree isolation | Opt-in per task; the child runs in a detached worktree and commits there. A dirty worktree is never auto-deleted. The lead merges and then removes it, so the main tree is not a shared edit surface. |
+| promote            | A finished, verified task can become a draft starter. Preview is the default; `confirm` writes with `wx`, never overwrites, and drafts are not discovered by the roster.                              |
+| why view           | The detail notice appends the failing step, turns, tokens, last tools, and last error, so a failure is explained without opening the transcript.                                                      |
+| finish report      | The existing finish hook carries up to 2,000 characters of the final report. It is an extension, not a second hook.                                                                                   |
+| roster bench       | `tools/roster-bench.mts` measures the context curve, handoff tax, and success by roster size. It is local evidence, not a CI gate, because the journal is local and provider-dependent.               |
+| bounded attempts   | Five attempts per task are enough to show a loop and small enough to keep the board readable; the full transcript remains the record.                                                                 |
+
 ## Mission control (v0.14)
 
 The UI grew without adding a second source of truth: `TaskRecord` and

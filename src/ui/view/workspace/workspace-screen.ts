@@ -5,7 +5,12 @@
 import { boardHeight, renderBoard } from "../board/index.ts";
 import type { BoardRow } from "../board/index.ts";
 import { truncateToWidth } from "@earendil-works/pi-tui";
-import { renderAgentTeamScreen, agentTeamHeight, type AgentTeamRow } from "./agent-team-screen.ts";
+import {
+	renderAgentTeamScreen,
+	agentTeamHeight,
+	type AgentTeamRow,
+	type AgentTeamRoundInfo,
+} from "./agent-team-screen.ts";
 
 export type WorkspaceTab = "runs" | "agent-team";
 
@@ -34,6 +39,7 @@ export type WorkspaceAction =
 export interface WorkspaceData {
 	runs: BoardRow[];
 	agentTeam: AgentTeamRow[];
+	agentTeamRounds?: AgentTeamRoundInfo[];
 	agentTeamEnabled: boolean;
 	summary: { open: number; done: number; enabled: boolean; facts?: number };
 }
@@ -83,6 +89,7 @@ export function renderWorkspace(opts: WorkspaceRender): string[] {
 					theme: opts.theme,
 					enabled: opts.agentTeamEnabled,
 					...(opts.summary.facts ? { facts: opts.summary.facts } : {}),
+					...(opts.agentTeamRounds ? { rounds: opts.agentTeamRounds } : {}),
 				});
 	const tabs = tabsLine(opts.tab, opts.width, opts.theme);
 	return [base[0] ?? "", tabs, ...base.slice(1)];

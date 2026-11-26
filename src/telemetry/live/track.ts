@@ -191,6 +191,7 @@ export function trackSession(
 					model: final.model,
 					cwd: opts?.cwd ?? process.cwd(),
 					error: final.error,
+					report: final.report,
 				}),
 			);
 		}
@@ -202,6 +203,7 @@ export interface RunEndInfo {
 	status: "done" | "error" | "interrupted";
 	reportChars?: number;
 	promptChars?: number;
+	report?: string;
 	inputTokens?: number;
 	outputTokens?: number;
 	cost?: number;

@@ -123,4 +123,26 @@ describe("agent team memory", () => {
 		assert.doesNotMatch(prompt, /fact 0:/);
 		assert.ok(prompt.length <= 1_500);
 	});
+
+	it("keeps the method and round on an attempt", () => {
+		const { task } = boardWithTask();
+		task.round = 3;
+		recordAgentTeamAttempt(task, {
+			at: 1,
+			outcome: "failed",
+			error: "boom",
+			method: "  try A  ",
+			round: 3,
+		});
+		recordAgentTeamAttempt(task, {
+			at: 2,
+			outcome: "passed",
+			method: "m".repeat(400),
+			round: 0,
+		});
+		assert.equal(task.attempts?.[0]?.method, "try A");
+		assert.equal(task.attempts?.[0]?.round, 3);
+		assert.equal(task.attempts?.[1]?.method?.length, 300);
+		assert.equal(task.attempts?.[1]?.round, undefined);
+	});
 });

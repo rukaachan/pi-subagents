@@ -3,6 +3,7 @@
  */
 
 import { getAgentDir, SettingsManager } from "@earendil-works/pi-coding-agent";
+import { MAX_ROUND_MS, MAX_ROUND_TOKENS } from "../../domain/agent-team/index.ts";
 import { KNOWN_TOOLS, resolveToolPolicy } from "../../domain/subagent/index.ts";
 import type { SubagentAutonomy, SubagentConfig } from "../../domain/subagent/index.ts";
 import { parseCodemodeFlag } from "../../domain/subagent/index.ts";
@@ -21,6 +22,10 @@ export interface GlobalConfig {
 	budget?: SubagentBudget;
 	/** Live subagent legs; invalid values fall back to MAX_LIVE_TASKS. */
 	liveCap?: number;
+	/** Default token budget for one agent-team round. */
+	roundBudgetTokens?: number;
+	/** Default wall-clock budget for one agent-team round. */
+	roundBudgetMinutes?: number;
 	/** Command run once per finished run; never read from an agent file. */
 	finishHook?: string;
 	/** Whether the `subagent` compatibility alias registers. Default true. */
@@ -62,6 +67,10 @@ export function readGlobalConfig(
 		if (budget && typeof budget !== "string") out.budget = budget;
 		const liveCap = parseLiveCap(raw.liveCap);
 		if (liveCap !== undefined) out.liveCap = liveCap;
+		const roundTokens = parseRoundTokens(raw.roundBudgetTokens);
+		if (roundTokens !== undefined) out.roundBudgetTokens = roundTokens;
+		const roundMinutes = parseRoundMinutes(raw.roundBudgetMinutes);
+		if (roundMinutes !== undefined) out.roundBudgetMinutes = roundMinutes;
 		const hookSource = opts.trusted
 			? raw
 			: ((manager.getGlobalSettings() as Record<string, unknown>)["pi-subagents"] as
@@ -87,6 +96,26 @@ export function parseLiveCap(value: unknown): number | undefined {
 				? Number(value)
 				: Number.NaN;
 	return Number.isInteger(n) && n >= MIN_LIVE_CAP && n <= MAX_LIVE_CAP ? n : undefined;
+}
+
+export function parseRoundTokens(value: unknown): number | undefined {
+	const n =
+		typeof value === "number"
+			? value
+			: typeof value === "string" && /^\d+$/.test(value.trim())
+				? Number(value)
+				: Number.NaN;
+	return Number.isInteger(n) && n > 0 ? Math.min(n, MAX_ROUND_TOKENS) : undefined;
+}
+
+export function parseRoundMinutes(value: unknown): number | undefined {
+	const n =
+		typeof value === "number"
+			? value
+			: typeof value === "string" && /^\d+$/.test(value.trim())
+				? Number(value)
+				: Number.NaN;
+	return Number.isInteger(n) && n > 0 ? Math.min(n, MAX_ROUND_MS / 60_000) : undefined;
 }
 
 export function parseFinishHook(value: unknown): string | undefined {

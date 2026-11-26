@@ -386,13 +386,40 @@ verify; a lead override needs a note and is journaled. If team mode is off, no
 verifier starts: the task stays in review and the lead can record its verdict
 with `v`.
 
+Set `cross_verify: true` on a task to add a second, independent reader after
+the task verifier passes. The task stays in `in_review`; the cross reader
+sees the other in-review rows from the same round and gets `scope: "cross"`.
+Its pass is a second opinion, never a claim of correctness, and only then does
+the task complete. Its fail returns the task to pending with the reason. An
+opt-in needs `acceptance`; the gate is the task pass and, if opted in, the
+cross pass.
+
 A verify can keep one checked `fact` on a pass, or one `excluded` dead end on
 a fail (500 characters each). Facts and dead ends form a team ledger: new work
 legs get the newest facts and dead ends in their prompt, so the team reuses
 what was proven and avoids repeating a known dead end. The ledger is capped at
-50 facts and 20 dead ends; the oldest row of that kind drops out. The board
+50 facts and 20 dead ends; the oldest row of that kind drops out. The project
+workspace ledger `agent-team-ledger.json` sits beside the state file and
+survives new sessions and restarts for the same workspace: it keeps 20
+workspaces, each with the same 50/20 caps, and merges those rows into the
+newest team's ledger on restore. It is local only, mode 0600, and keyed by the
+workspace hash. A corrupt file is ignored and reported once. The board
 keeps the newest five attempts per task: release, verify fail, and verify pass,
 each with the owner and the error. Duplicate facts are ignored.
+
+Open a numbered round with `AgentTeam { action: "round", prompt, roster?, directions?, budget_tokens?, budget_minutes?, brief?, force? }`.
+A round takes at most 12 legs and stores one prompt, the task ids, the shared
+brief, and its budget. The default budget is 500,000 tokens and 30 minutes;
+the hard ceilings are 5,000,000 tokens and 6 hours. A round is refused while
+the previous round is still spending beyond its budget; `force: true` skips
+only that previous-round check, never a hard ceiling, and is journaled. The
+lead still decides every round; there is no separate orchestrator.
+
+Ask for a round brief without giving up ownership:
+`AgentTeam { action: "brief", question }`. It starts one read-only advisor
+or planner run with the board snapshot, waits up to 120 seconds, and returns
+text capped at 2,000 characters. Use it to sharpen a shared brief before
+opening a round.
 
 Ask for a second opinion without giving up ownership:
 `AgentTeam { action: "advise", question, task_id? }`. It starts one bounded,
@@ -420,9 +447,9 @@ nothing, and a task with no scopes locks nothing. On a refusal the lead
 can run `AgentTeam { action: "resolve", task_id }`. It is read-only: it names
 each blocker, owner, revision, scope, and whether the owner is live, then
 suggests a release or a narrower scope. The lead still makes the change.
-This is a board reservation, not a filesystem sandbox: `bash` can still
-write anywhere, files are shared, there is no worktree, and the lead
-reviews the diff.
+This is a board reservation, not a filesystem sandbox: files are shared
+unless you opt into a worktree, `bash` can still write anywhere, and the
+lead reviews the diff.
 
 If a leg fails or is stopped, its claimed tasks go back to pending with
 a new revision, and the settle card names them. The task remembers
@@ -444,14 +471,27 @@ inherits its subagent's `paths` as `write_scopes`; a leg without `paths` is
 unscoped, and the report warns that parallel edits can collide. A stopped
 run leaves queued tasks pending; delete them in the AGENT TEAM tab.
 
+Add `isolation: "worktree"` to `start`, `round`, `create`, or `edit`
+(create/edit only while pending) to give each leg its own detached git
+worktree under `<tmp>/pi-subagents-worktrees/<workspace-hash>/<task-id>`.
+The leg prompt names the path and says to commit there; the lead merges. A
+non-git workspace is refused and its tasks are rolled back. Manage one with
+`AgentTeam { action: "worktree", task_id, worktree_action: "status" | "merged" | "remove" }`,
+lead-only. `merged` removes only a clean worktree and records `merged_at`;
+`remove` forces. A dirty worktree is never deleted implicitly.
+
 The board lives in the same per-session state file as runs, so
 `/reload` keeps tasks, revisions, owners, and member names.
 `/subagents agent-teams off` keeps the board and lets a claimed task finish; it
-only stops new legs from joining. A new Pi session starts empty. Limits: 128 live tasks,
+only stops new legs from joining. A new Pi session starts with an empty board;
+the workspace ledger still loads for the same workspace. Limits: 128 live tasks,
 128 rows per list, 2,000 characters per description, 500 per acceptance,
 500 per fact or dead end, 50 facts and 20 dead ends per team, 300 per note,
 64 per verifier name, 1,000 per advice question, 20 blockers and 20 scopes
-per task, five attempts per task, and 32 members. Idle members are evicted; a 33rd join is
+per task, five attempts per task, 32 members, 5 rounds per team, 12 legs per
+round, 2,000 characters per brief, 4,000 per promoted draft, and 512 per
+worktree path. Round budgets default to 500,000 tokens / 30 minutes and are
+hard-capped at 5,000,000 / 6 hours; the workspace ledger keeps 20 workspaces. Idle members are evicted; a 33rd join is
 refused when all 32 own live tasks, and a start takes at most 32 legs.
 
 While agent team mode is on, the lead's system prompt gets a short policy
@@ -462,7 +502,28 @@ In the AGENT TEAM tab, a task waiting for a verdict shows `?` and the header
 counts `N review` and `N facts`. `v` records a pass or fail: the lead's
 reason is journaled, and an optional fact or dead end is kept. `i` asks the
 advisor. The detail pane shows the acceptance text, the verifier run, the
-verdict, and the two newest attempts.
+verdict, the cross verdict, the round, the worktree, and the two newest
+attempts.
+
+Promote a finished task into a starter draft with
+`AgentTeam { action: "promote", task_id, confirm? }` (lead-only). It needs a
+completed task, a passing task verdict, and a cross pass when opted in. The
+default is a preview; `confirm: true` writes to
+`<agent-dir>/subagents/drafts/<name>.md`. A draft never overwrites: it gets a
+`-2` suffix. Drafts are not discovered as active subagents, and the draft
+uses read-only tools by default.
+
+When a run fails, the task detail notice appends a short why view: status,
+failure family, failing chain step, turns, tokens, the last five tools, the
+last error, and the report head. The finish hook payload also carries a
+`report` field, capped at 2,000 characters, for foreground, background,
+resume, and chain runs.
+
+`node tools/roster-bench.mts [journal] [--json]` reads the local journal and
+prints the context curve by turn bucket, handoff tax (next prompt versus prior
+report), success by roster size, and the smallest roster within 10% of the
+best. It is a local measurement, not a CI gate. On 2026-11-26 the local journal held
+no runs in this environment, so no number is reported.
 
 `AgentTeamMessage` sends to a live member first. A known finished member gets
 a bounded session queue (8 messages or 8,000 characters): the send result
@@ -573,223 +634,4 @@ needs. Limits: 8 fields, 40 chars each, duplicates drop.
 Finish hook: set `finishHook` to a command in settings. Each finished leg
 sends one JSON line on stdin and the command's output is ignored:
 
-```json
-{
-	"event": "subagent_end",
-	"task_id": "task-abc-1",
-	"subagent": "explorer",
-	"status": "done",
-	"ms": 1651,
-	"chars": 560,
-	"model": "acme/fast",
-	"cwd": "/repo"
-}
-```
-
-`status` is `done`, `error`, or `interrupted`; `error` appears only on a
-failure. A hook that runs past 5 s is killed with `SIGKILL`, and a hook
-that exits non-zero changes nothing. User settings always apply; a project
-`.pi/settings.json` only when the folder is trusted; agent files cannot set
-it. Example: `"finishHook": "jq -c '{leg:.subagent, ok:(.status==\"done\"), ms}' >> ~/legs.ndjson"`.
-
-Failure label: after a task fails, the caller may record why once:
-`TaskOutput(task_id, failure: "spec" | "coordination" | "verification")`.
-It never guesses and accepts no other value; a second label is refused and
-the first is kept. A running task is refused too. The label lands in the
-journal as one `failure` event and shows as `[spec]` in `/delegate reports`.
-
-Per-run switches on `Task` and the `subagent` alias: `model`, `budget`,
-`codemode` (`off`, `on`, `only`, or `true`/`false`), and `complexity`.
-They apply to single runs, fan-out legs, chain steps, and resumes; they
-change that call only, and the file on disk is untouched. They sit at the
-top of the precedence chain described above; the settings block is next.
-
-## Tool paint
-
-- Task result: `✓ Task` + turns, tokens, cost; fail shows `✗` + short cause.
-- TaskOutput result: `…` + turns/s/tool while running, `✓` + use when done, `✗` on fail.
-- Footer: `⇄ …` while a leg runs. A finished leg leaves `✓ name 2s`, `✗` on
-  error, or `⊘` on a stop; the newest three stay for 8 s, then drop. More
-  than three shows `+N`. A stop-all clears older `✓` tokens first.
-
-## Nameless dispatch
-
-Task works without a subagent name. Omit `subagent_type` (and
-`chain`/`parallel`) and an ordered rule table picks from the
-prompt text: review → code-reviewer, test → tester, research →
-researcher, plan → planner, find/map → explorer, fix/implement →
-worker, in that priority order. Worker is the fallback tier: its
-verbs ("review the login fix") yield to a specialist in the same
-sentence. The pick always echoes the rule and keyword that fired
-in the result details (`dispatch`), so a wrong route is visible,
-never silent. Two specialist rules in one prompt ("review the
-test results") is ambiguous and fails fast with the roster; so
-does a prompt that matches no rule. Named calls keep the exact
-behavior they had before.
-
-### Fan-out from one task
-
-Many independent targets in one task (8 files, N modules) are one
-decision, and the caller makes it: read the task once, see that the
-legs are independent, and fire them as one `parallel` call with
-per-leg prompts. The tool description now says that in so many
-words, because the machinery was already there — what was missing
-was the instruction to use it.
-
-One defect shipped with this and one was closed. The defect closed:
-legs beyond the live cap used to get a fake id (`(queued, cap 12)`)
-and never ran — silent leg loss on exactly the workflow fan-out is
-for (`fanoutAdmission` in `src/dispatch.ts`, pure and tested). A
-call over 12 legs is refused up front with a batching instruction,
-and a mid-loop cap collision names the legs that did not start.
-The defect shipped: a fan-out decision belongs to the caller that
-holds the roster, not to a keyword heuristic — per-sentence
-auto-splitting would guess, and a wrong split burns real money on
-paid models.
-
-### Settled (measured Oct 21, 2026): the leg-launch loop is not the cost
-
-A latency audit measured the hot paths and the real journal (93 runs).
-Code contributes under 0.05% of run wall-time: roster discovery
-0.88 ms/op, a journal append 0.006 ms, the turn budget guard under
-0.001 ms per turn — nothing here justifies a cache. The time is the
-model: turn-to-turn median 7.5 s (n=2,651 turns), and runs run 18–26
-turns.
-
-One lever was parked at the exact site: `runParallelTask` awaits each
-leg, and 11 real legs took 4.7 s to reach `run_start`, so the loop
-looked like the cause. **It is not.** Measured directly:
-
-| what                                | cost                                |
-| ----------------------------------- | ----------------------------------- |
-| `launchBackground` per leg (8 legs) | 0–3 ms each, **8 ms total**         |
-| loop total for 8 legs               | 8 ms                                |
-| `startSubagentSession` per child    | 9–18 ms, all concurrent             |
-| `run_start` latency per leg         | 70 ms, then 222–240 ms for the rest |
-
-The 4.7 s the journal showed is `startSubagentSession` running inside
-each detached block plus real model variance, not the awaits. A
-`Promise.all` here would save single-digit milliseconds out of a
-239 s median parallel run, and it would make the store mutation
-concurrent for no gain. **The loop stays serial on purpose**, and the
-comment above it records this falsification so the idea is not raised
-again without new numbers.
-
-### Session-temp subagents (grill 2026-10-20)
-
-The model can now compose its own specialist and run the task with
-it in the same call: pass `temp_definition {name, description,
-systemPrompt, model?, tools?, codemode?, budget?}` to `Task`. The
-definition registers for the session and is reusable by name --
-single calls, chains, fan-out legs. Hard rules, all ratified in the
-grill session before a line was written:
-
-- **Nothing is written to disk.** A temp lives in a process registry
-  and dies with the session. The roster on disk stays user-owned
-  (wizard only); no approval queue is needed because nothing
-  persists.
-- **The prompt cap is 20 lines x 120 characters**
-  (`MAX_TEMP_PROMPT_LINES`, `MAX_TEMP_PROMPT_LINE_CHARS` in
-  `src/temp.ts`). A fat line is circumvention, not 20 lines -- the
-  checker names the offender line and its length.
-- **Locked fields.** Autonomy is never set by the model (the system
-  default flows into `clampToolsForAutonomy` at launch); a temp name
-  never shadows a persistent starter; no child carries `Task`, so
-  nesting stays impossible.
-- **Identity is loud.** Temp rows badge "temp name" in the tasks
-  menu and details read `temp (session-scoped)`, so an ephemeral
-  worker never passes for a persistent one; ledger stats stay clean
-  because validation refuses the persistent roster's names.
-- **Errors name the offender, parseBudget-style:** refused calls
-  return the exact rule broken, and re-registering a name replaces
-  the entry last-wins and echoes `replaced`.
-
-Naming defect this closes: without it the model was bound to the
-fixed roster -- no way to express a one-off custom specialist
-("you are a triage doctor for this repo, run until N tokens")
-without writing a starter file, which the earlier grill forbade as
-unchaperoned self-modification. The temp split unlocks the
-composition while keeping persistence behind the wizard.
-
-## Chains (v0.8)
-
-Run subagents in order with one call:
-
-```
-Task(subagent_type: "explorer", description: "ship login",
-     prompt: "Add login",
-     chain: ["explorer", "worker", "code-reviewer"])
-```
-
-The `subagent` alias accepts `chain` too.
-Each step gets the prior step's report as context (cut at 8000 chars).
-One chain = one `task_id`, one live slot, one row. Steps stop at the
-first error; later steps stay `pending`. Stopping a live chain does the
-same: the cut step is `error` and the rest stay `pending`. Poll a live chain with
-`TaskOutput` to see the step strip: `explorer ✓ → worker … → reviewer ·`.
-Chains restart as a new Task — steps do not resume alone.
-
-## Complexity and model (v0.8)
-
-- `complexity`: `light` (low), `medium` (medium), `heavy` (high) sets
-  the thinking tier for one run. An explicit `thinkingLevel` in the
-  subagent file still wins.
-- `model`: override the model for one run, e.g. `model: "acme/fast-1"`.
-  The file on disk is never changed.
-
-## Persistence (v0.8)
-
-Tasks and spawn counts survive a reload, or a restart that continues
-the same Pi session, at
-`~/.pi/agent/pi-subagents-state/s-<hash>.json`, one file per Pi
-session (atomic write, 2 MB cap measured in UTF-8 bytes, oldest rows drop
-first; a larger file is ignored on read rather than parsed on the main thread). A brand-new
-session starts with an empty board. The old per-project file is
-imported once when a matching session row exists.
-The board and `/subagents tasks` show only runs from the current
-folder and the current Pi session, so old work from another repo
-cannot leak in. Done rows in this session stay pollable; a done row
-from this folder still resumes by id when it lives in an older
-session's file, because the lookup scans the saved files for the
-folder. Live rows cannot survive:
-their child sessions are gone, so restore marks them `error —
-interrupted by Pi restart`, freezes their clock, and drops the kept
-history. A failed save reports `state save failed` once, journals
-`state_error`, and leaves the run alive.
-
-## Live partial output (v0.8)
-
-A running poll and the footer now carry the last assistant snippet, so
-`TaskOutput` shows what the child just said, not only turns and time.
-
-## Starters
-
-`explorer`, `worker`, `code-reviewer`, `planner`, `researcher`, `tester` —
-copy from `subagents/` into `~/.pi/agent/subagents/`.
-
-Each one follows the same shape, so you can trust any of them the
-same way:
-
-- **Stance** — one line naming the role and its context.
-- **Method** — how it works, in the order it works.
-- **Evidence** — what counts as proof, and what does not.
-- **Scope** — what it must not do. Read-only agents change no file.
-- **Report** — the fixed shape of its answer back to you.
-- **Failure clause** — what it does when blocked: report, never ask.
-
-`read-only` agents (`explorer`, `planner`, `code-reviewer`,
-`researcher`) run with `read`, `grep`, `find`, `ls`, and `codemode`; the
-clamp strips shell, edit, and write even if a list names them. `tester` and
-`worker` use the `execute` group (with `codemode`). The explorer can no
-longer run `git log` or `git grep`; use `grep`, `find`, `read`, and
-codemode. `tests/prompts.test.ts` fails any read-only starter that carries
-`bash`.
-
-## Roadmap
-
-- The parent's own confirmation rules inside child sessions. Pi's
-  `tool_call` confirm hooks still do not run in a child, so a parent's
-  "ask before rm -rf" never sees a child call. The package gate
-  (`gates: on`) covers a fixed deny list instead; carrying a parent's
-  arbitrary rules across the session boundary is not implemented.
-- Import from Claude Code agents.
+[Showing lines 1-635 of 643 (50.0KB limit). Use offset=636 to continue.]

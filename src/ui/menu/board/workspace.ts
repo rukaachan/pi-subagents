@@ -6,24 +6,21 @@ import { copyToClipboard, type ExtensionCommandContext } from "@earendil-works/p
 import type { AppDeps } from "../../../app/index.ts";
 import { inModal } from "../../../app/stop/index.ts";
 import { liveSession } from "../../../app/live/index.ts";
-import { liveMember } from "../../../app/agent-team/channel/index.ts";
-import { MAX_AGENT_TEAM_TASKS } from "../../../domain/agent-team/index.ts";
 import {
 	disableAgentTeam,
 	enableAgentTeam,
-	taskList,
 	agentTeamEnabled,
 	agentTeamSummary,
 } from "../../../app/agent-team/board/index.ts";
 import { retryTask, steerTask, stopTaskById } from "../../../app/run/index.ts";
-import { linkedRun } from "../../../app/agent-team/board/index.ts";
+import { linkedRun } from "../../../app/agent-team/run/index.ts";
 import { startFinish } from "../../../app/launch/index.ts";
 import { scopeTasks, type TaskScope } from "../../../app/session/index.ts";
 import type { TaskStorePort } from "../../../domain/task/index.ts";
 import { buildBoard, type BoardRow } from "../../view/board/index.ts";
 import { taskRow } from "../../view/text/index.ts";
 import { recentSteps } from "./task-list.ts";
-import { buildAgentTeamRows, type AgentTeamRow } from "../../view/workspace/index.ts";
+import { agentTeamRows, roundRows } from "./agent-team-rows.ts";
 import { agentTeamText } from "../../view/workspace/index.ts";
 import {
 	workspaceHeight,
@@ -46,12 +43,6 @@ function runsOf(store: TaskStorePort, scope: TaskScope): BoardRow[] {
 	return buildBoard(scopeTasks(store.list(), scope), { live: (id) => !!liveSession(id) });
 }
 
-function agentTeamRows(): AgentTeamRow[] {
-	return buildAgentTeamRows(taskList({ limit: MAX_AGENT_TEAM_TASKS }), (name) =>
-		Boolean(liveMember(name)),
-	);
-}
-
 function dataOf(
 	store: TaskStorePort,
 	scope: TaskScope,
@@ -60,6 +51,7 @@ function dataOf(
 	return {
 		runs,
 		agentTeam: agentTeamRows(),
+		agentTeamRounds: roundRows(store),
 		agentTeamEnabled: agentTeamEnabled(),
 		summary: agentTeamSummary(),
 	};

@@ -11,6 +11,10 @@ export function detailText(view: AgentTeamTaskView): string {
 	return [
 		`${task.id} [${task.status}] rev ${task.revision} · ${task.subject}`,
 		`owner: ${task.owner ?? "unowned"} · scopes: ${task.writeScopes.join(",") || "none"}`,
+		task.round ? `round: ${task.round}` : "",
+		task.crossVerify
+			? `cross: ${task.crossVerdict ?? (task.verdict === "pass" ? "pending" : "waiting")}${task.crossVerifiedBy ? ` by ${task.crossVerifiedBy}` : ""}`
+			: "",
 		view.blockedByOpen.length ? `blocked by: ${view.blockedByOpen.join(",")}` : "",
 		task.lastError ? `last ${task.lastOwner ?? "run"}: ${task.lastError}` : "",
 		...(task.attempts

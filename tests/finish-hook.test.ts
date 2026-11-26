@@ -4,7 +4,12 @@ import { once } from "node:events";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { finishPayload, MAX_COMMAND_CHARS, runFinishHook } from "../src/telemetry/notify/index.ts";
+import {
+	finishPayload,
+	MAX_COMMAND_CHARS,
+	MAX_REPORT_CHARS,
+	runFinishHook,
+} from "../src/telemetry/notify/index.ts";
 
 const payload = finishPayload({
 	task_id: "task-1",
@@ -23,6 +28,13 @@ describe("finish payload", () => {
 		assert.equal(payload.status, "done");
 		assert.equal(payload.ms, 1234);
 		assert.equal(payload.chars, 560);
+	});
+
+	it("caps and drops a blank report", () => {
+		const report = finishPayload({ ...payload, report: "r".repeat(MAX_REPORT_CHARS + 50) });
+		assert.equal(report.report?.length, MAX_REPORT_CHARS);
+		assert.ok(report.report?.endsWith("…"));
+		assert.equal(finishPayload({ ...payload, report: "  " }).report, undefined);
 	});
 
 	it("clips a long error and drops a blank one", () => {

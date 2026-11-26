@@ -57,6 +57,25 @@ describe("readGlobalConfig", () => {
 		}
 	});
 
+	it("reads and caps the round budgets", () => {
+		const s = withSettings({ roundBudgetTokens: 12_000_000, roundBudgetMinutes: 1_000 });
+		try {
+			const g = readGlobalConfig(s.cwd, s.agentDir);
+			assert.equal(g.roundBudgetTokens, 5_000_000);
+			assert.equal(g.roundBudgetMinutes, 360);
+		} finally {
+			s.done();
+		}
+		const bad = withSettings({ roundBudgetTokens: -1, roundBudgetMinutes: "many" });
+		try {
+			const g = readGlobalConfig(bad.cwd, bad.agentDir);
+			assert.equal(g.roundBudgetTokens, undefined);
+			assert.equal(g.roundBudgetMinutes, undefined);
+		} finally {
+			bad.done();
+		}
+	});
+
 	it("reads the alias switch, and defaults it on", () => {
 		const off = withSettings({ alias: false });
 		try {
