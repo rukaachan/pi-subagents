@@ -91,6 +91,7 @@ export function runChain(
 				});
 				if (!ensured.ok) throw new Error(ensured.error);
 				let teamTaskId = ensured.taskId;
+				let stepCwd = ensured.cwd ?? cwd;
 				const gate = { open: true };
 				const agentTeam = agentTeamChildExtras(sub.name, runId, gate);
 				if (agentTeam && teamTaskId) {
@@ -103,9 +104,10 @@ export function runChain(
 					});
 					if (!assigned.ok) throw new Error(assigned.error);
 					teamTaskId = assigned.taskId;
+					if (assigned.cwd) stepCwd = assigned.cwd;
 				}
 				const teamPrefix = teamTaskId ? `${taskPrompt(teamTaskId)}\n\n` : "";
-				const child = await deps.child.create(sub, cwd, ctx, withGateJournal(agentTeam));
+				const child = await deps.child.create(sub, stepCwd, ctx, withGateJournal(agentTeam));
 				const unbindMail = agentTeam
 					? bindAgentTeamMember(
 							agentTeam.member,
@@ -123,7 +125,7 @@ export function runChain(
 					kind: "chain",
 					hook: sub.finishHook,
 					subagent: sub.name,
-					cwd,
+					cwd: stepCwd,
 					runId: taskId,
 				});
 				const live: LiveStop = liveStop(
@@ -176,6 +178,7 @@ export function runChain(
 					stop({
 						status: "done",
 						reportChars: text.length,
+						report: text,
 						promptChars: step.prompt.length,
 						...usageEnd(rec.result?.usage),
 						model: activeModelId(child.session),

@@ -64,6 +64,7 @@ export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptRe
 	const role = rec.agentTeamRole ?? "worker";
 	const agentTeam = agentTeamChildExtras(sub.name, rec.taskId, gate, role);
 	let teamTaskId = rec.agentTeamTaskId;
+	let runCwd = cwd;
 	if (agentTeam && role === "worker") {
 		const ensured = ensureTask({
 			sub,
@@ -74,6 +75,7 @@ export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptRe
 		});
 		if (!ensured.ok) throw new Error(ensured.error);
 		teamTaskId = ensured.taskId;
+		if (ensured.cwd) runCwd = ensured.cwd;
 		rec.agentTeamTaskId = teamTaskId;
 	}
 	const teamPrefix = teamTaskId
@@ -81,7 +83,7 @@ export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptRe
 		: role === "advisor"
 			? `${taskPrompt("", role)}\n\n`
 			: "";
-	const child = await deps.child.create(sub, cwd, ctx, withGateJournal(agentTeam));
+	const child = await deps.child.create(sub, runCwd, ctx, withGateJournal(agentTeam));
 	const unbindMail = agentTeam
 		? bindAgentTeamMember(
 				agentTeam.member,
@@ -108,7 +110,7 @@ export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptRe
 			kind,
 			hook: sub.finishHook,
 			subagent: sub.name,
-			cwd,
+			cwd: runCwd,
 			...(rec.runId ? { runId: rec.runId } : {}),
 		},
 	);
@@ -175,6 +177,7 @@ export async function runBackgroundAttempt(deps: AttemptDeps): Promise<AttemptRe
 		stop({
 			status: "done",
 			reportChars: rec.result.text.length,
+			report: rec.result.text,
 			promptChars: prompt.length,
 			...usageEnd(rec.result.usage),
 			model: rec.result.model,

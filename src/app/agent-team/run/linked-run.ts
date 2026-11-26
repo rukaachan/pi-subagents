@@ -4,7 +4,7 @@
 
 import type { TaskRecord } from "../../../domain/task/index.ts";
 import type { TaskStorePort } from "../../../domain/task/index.ts";
-import { getTask } from "./agent-team-store.ts";
+import { getTask } from "../board/index.ts";
 
 export type LinkedRun = { ok: true; runId: string; rec: TaskRecord } | { ok: false; error: string };
 

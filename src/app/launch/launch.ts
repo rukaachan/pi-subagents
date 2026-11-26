@@ -119,8 +119,8 @@ export function startLaunch(
 		promptFor?: (name: string, index: number) => string;
 		/** Called when a leg gets its run id, including legs that waited in the queue. */
 		onLeg?: (index: number, taskId: string) => void;
-		/** The board task already created for this leg, if any. */
 		agentTeamTaskIdFor?: (index: number) => string | undefined;
+		cwdFor?: (index: number) => string | undefined;
 	} = {},
 ): LaunchStart {
 	const disk = withTemps(discoverSubagents(ctx.cwd));
@@ -187,7 +187,7 @@ export function startLaunch(
 						withGlobalConfig(base, global),
 						label,
 						legPrompt,
-						ctx.cwd,
+						options.cwdFor?.(index) ?? ctx.cwd,
 						ctx,
 						deps,
 						{

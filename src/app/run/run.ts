@@ -61,6 +61,7 @@ export async function runSubagent(
 	const gate = { open: true };
 	const agentTeam = agentTeamChildExtras(sub.name, agentTeamKey, gate, role);
 	let teamTaskId = options.agentTeamTaskId ?? attach?.agentTeamTaskId;
+	let runCwd = cwd;
 	if (agentTeam && role === "worker" && options.autoTask !== false) {
 		const ensured = ensureTask({
 			sub,
@@ -72,6 +73,7 @@ export async function runSubagent(
 		});
 		if (!ensured.ok) throw new Error(ensured.error);
 		teamTaskId = ensured.taskId;
+		if (ensured.cwd) runCwd = ensured.cwd;
 		if (attach && teamTaskId) attach.agentTeamTaskId = teamTaskId;
 	}
 	const teamPrefix = teamTaskId
@@ -79,7 +81,7 @@ export async function runSubagent(
 		: role === "advisor"
 			? `${taskPrompt("", role)}\n\n`
 			: "";
-	const child = await deps.child.create(sub, cwd, ctx, withGateJournal(agentTeam));
+	const child = await deps.child.create(sub, runCwd, ctx, withGateJournal(agentTeam));
 	const unbindMail = agentTeam
 		? bindAgentTeamMember(
 				agentTeam.member,
@@ -97,7 +99,7 @@ export async function runSubagent(
 				kind: "foreground",
 				hook: sub.finishHook,
 				subagent: sub.name,
-				cwd,
+				cwd: runCwd,
 			})
 		: null;
 	// One stop request reaches this run like any other: the row goes, the
@@ -155,6 +157,7 @@ export async function runSubagent(
 		stop?.({
 			status: "done",
 			reportChars: result.text.length,
+			report: result.text,
 			promptChars: task.length,
 			...usageEnd(result.usage),
 			model: result.model,

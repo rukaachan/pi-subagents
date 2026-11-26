@@ -30,7 +30,9 @@ export interface EnsureTaskInput {
 	member?: string;
 }
 
-export type EnsureTaskResult = { ok: true; taskId?: string } | { ok: false; error: string };
+export type EnsureTaskResult =
+	| { ok: true; taskId?: string; cwd?: string }
+	| { ok: false; error: string };
 
 function subject(sub: SubagentConfig, prompt: string): string {
 	const line = prompt.replace(/\s+/g, " ").trim();
@@ -92,7 +94,8 @@ export function ensureTask(input: EnsureTaskInput): EnsureTaskResult {
 		const error = assign(taskId, input.member);
 		if (error) return { ok: false, error };
 	}
-	return { ok: true, taskId };
+	const view = taskId ? getTask(taskId) : undefined;
+	return { ok: true, taskId, ...(view?.task.worktree ? { cwd: view.task.worktree.path } : {}) };
 }
 
 export function taskPrompt(taskId: string, role: AgentTeamRole = "worker"): string {

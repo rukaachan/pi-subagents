@@ -2,7 +2,6 @@
  * pi-subagents: the live team board for one Pi session.
  */
 
-import type { AgentTeamApi } from "../../../infra/agent-team/tools/index.ts";
 import {
 	LEAD_NAME,
 	MAX_AGENT_TEAM_MEMBERS,
@@ -10,19 +9,12 @@ import {
 	newAgentTeam,
 	agentTeamView,
 	type AgentTeamBoard,
-	type AgentTeamCaller,
-	type AgentTeamMember,
 	type AgentTeamFilters,
-	type AgentTeamOrigin,
-	type AgentTeamResult,
+	type AgentTeamMember,
 	type AgentTeamRole,
 	type AgentTeamTaskView,
-	type AgentTeamUpdate,
 } from "../../../domain/agent-team/index.ts";
-import { updateAgentTeamTask } from "../../../domain/team-tasks/index.ts";
-import { createAgentTeamTask } from "../../../domain/team-tasks/index.ts";
 import { resolveTaskOn, summarizeBoard, taskListOn } from "./agent-team-read.ts";
-import { journalAgentTeamTask } from "./agent-team-journal.ts";
 
 interface AgentTeamState {
 	enabled: boolean;
@@ -159,46 +151,6 @@ export function agentTeamChanged(): void {
 	notify();
 }
 
-export function createTask(
-	input: {
-		subject: string;
-		description: string;
-		blockedBy?: string[];
-		writeScopes?: string[];
-		acceptance?: string;
-		verifyWith?: string;
-		origin?: AgentTeamOrigin;
-	},
-	actor = "lead",
-): AgentTeamResult {
-	const result = createAgentTeamTask(current().board, input);
-	journalAgentTeamTask({
-		action: "create",
-		taskId: result.ok ? result.task.id : "",
-		revision: result.ok ? result.task.revision : 0,
-		actor,
-		ok: result.ok,
-		...(result.ok ? {} : { error: result.error }),
-	});
-	if (result.ok) notify();
-	return result;
-}
-
-export function updateTask(update: AgentTeamUpdate, caller: AgentTeamCaller): AgentTeamResult {
-	const agentTeam = current();
-	const result = updateAgentTeamTask(agentTeam.board, update, caller, agentTeam.members);
-	journalAgentTeamTask({
-		action: update.action,
-		taskId: update.taskId,
-		revision: getTask(update.taskId)?.task.revision ?? update.expectedRevision,
-		actor: caller.name,
-		ok: result.ok,
-		...(result.ok ? {} : { error: result.error }),
-	});
-	if (result.ok) notify();
-	return result;
-}
-
 export function taskList(filters: AgentTeamFilters = {}): AgentTeamTaskView[] {
 	return taskListOn(current().board, filters);
 }
@@ -224,16 +176,3 @@ export function agentTeamSummary(): {
 	const agentTeam = current();
 	return summarizeBoard(agentTeam.board, agentTeam.enabled);
 }
-
-export const agentTeamApi: AgentTeamApi = {
-	active: agentTeamActive,
-	agentTeamId: currentAgentTeamId,
-	summary: agentTeamSummary,
-	members: agentTeamMembers,
-	ledger: () => current().board.ledger,
-	create: createTask,
-	update: updateTask,
-	list: taskList,
-	get: getTask,
-	resolve: resolveTask,
-};

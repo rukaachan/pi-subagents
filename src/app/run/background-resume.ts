@@ -86,6 +86,7 @@ export async function resumeTask(
 			const role = rec.agentTeamRole ?? "worker";
 			const agentTeam = agentTeamChildExtras(sub.name, rec.taskId, gate, role);
 			let teamTaskId = rec.agentTeamTaskId;
+			let runCwd = rec.cwd;
 			if (agentTeam && role === "worker") {
 				const ensured = ensureTask({
 					sub,
@@ -97,6 +98,7 @@ export async function resumeTask(
 				});
 				if (!ensured.ok) throw new Error(ensured.error);
 				teamTaskId = ensured.taskId;
+				if (ensured.cwd) runCwd = ensured.cwd;
 				follow.agentTeamTaskId = teamTaskId;
 			}
 			const teamPrefix = teamTaskId
@@ -104,7 +106,7 @@ export async function resumeTask(
 				: role === "advisor"
 					? `${taskPrompt("", role)}\n\n`
 					: "";
-			const child = await deps.child.create(sub, rec.cwd, ctx, withGateJournal(agentTeam));
+			const child = await deps.child.create(sub, runCwd, ctx, withGateJournal(agentTeam));
 			const unbindMail = agentTeam
 				? bindAgentTeamMember(
 						agentTeam.member,
@@ -124,7 +126,7 @@ export async function resumeTask(
 					kind: "resume",
 					hook: sub.finishHook,
 					subagent: sub.name,
-					cwd: rec.cwd,
+					cwd: runCwd,
 					...(rec.runId ? { runId: rec.runId } : {}),
 				},
 			);
@@ -189,6 +191,7 @@ export async function resumeTask(
 				stop({
 					status: "done",
 					reportChars: follow.result.text.length,
+					report: follow.result.text,
 					promptChars: prompt.length,
 					...usageEnd(follow.result.usage),
 					model: follow.result.model,
