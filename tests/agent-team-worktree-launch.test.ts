@@ -21,8 +21,11 @@ let dir = "";
 
 beforeEach(() => {
 	dir = mkdtempSync(join(tmpdir(), "pi-team-wt-launch-"));
-	mkdirSync(join(dir, "subagents"));
-	copyFileSync(join(process.cwd(), "subagents", "worker.md"), join(dir, "subagents", "worker.md"));
+	mkdirSync(join(dir, ".pi", "subagents"), { recursive: true });
+	copyFileSync(
+		join(process.cwd(), "subagents", "worker.md"),
+		join(dir, ".pi", "subagents", "worker.md"),
+	);
 	beginAgentTeamSession("s-wt-launch");
 	disableAgentTeam();
 });
