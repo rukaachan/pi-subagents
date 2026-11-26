@@ -16,6 +16,8 @@ export type {
 	AgentTeamLaunchInput,
 	AgentTeamLaunchLeg,
 	AgentTeamLaunchResult,
+	AgentTeamRoundInput,
+	AgentTeamRoundResult,
 } from "./agent-team-tool-types.ts";
 
 function callerOf(member?: string, role: AgentTeamRole = "worker"): AgentTeamCaller {

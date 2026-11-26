@@ -43,6 +43,9 @@ describe("run sweep", () => {
 
 	it("records who failed and why", () => {
 		claimed();
+		const before = taskList()[0]?.task;
+		assert.ok(before);
+		before.round = 2;
 		sweepMemberTasks("run-a", false, 99, "boom");
 		const task = taskList()[0]?.task;
 		assert.equal(task?.lastOwner, "worker");
@@ -51,6 +54,8 @@ describe("run sweep", () => {
 		assert.equal(task?.attempts?.at(-1)?.outcome, "released");
 		assert.equal(task?.attempts?.at(-1)?.owner, "worker");
 		assert.equal(task?.attempts?.at(-1)?.error, "boom");
+		assert.equal(task?.attempts?.at(-1)?.method, "boom");
+		assert.equal(task?.attempts?.at(-1)?.round, 2);
 	});
 
 	it("releases every claimed task after a restart", () => {

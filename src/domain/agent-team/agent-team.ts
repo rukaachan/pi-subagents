@@ -2,9 +2,6 @@
  * pi-subagents: the shared team task board.
  */
 
-import { writeScopeWarnings } from "./agent-team-scope.ts";
-import { canonicalWorkspacePath } from "../policy/index.ts";
-
 export const LEAD_NAME = "lead";
 export const MAX_AGENT_TEAM_TASKS = 128;
 export const MAX_AGENT_TEAM_MEMBERS = 32;
@@ -23,6 +20,16 @@ export const MAX_AGENT_TEAM_ATTEMPTS = 5;
 export const MAX_AGENT_TEAM_FACT = 500;
 export const MAX_AGENT_TEAM_FACTS = 50;
 export const MAX_AGENT_TEAM_EXCLUDED = 20;
+export const MAX_AGENT_TEAM_ROUNDS = 5;
+export const MAX_AGENT_TEAM_ROUND_LEGS = 12;
+export const DEFAULT_ROUND_TOKENS = 500_000;
+export const DEFAULT_ROUND_MS = 1_800_000;
+export const MAX_ROUND_TOKENS = 5_000_000;
+export const MAX_ROUND_MS = 21_600_000;
+export const MAX_AGENT_TEAM_BRIEF = 2_000;
+export const MAX_AGENT_TEAM_METHOD = 300;
+export const MAX_AGENT_TEAM_WORKTREE_PATH = 512;
+export const MAX_AGENT_TEAM_PROMOTE = 4_000;
 
 export type AgentTeamTaskStatus = "pending" | "in_progress" | "in_review" | "completed" | "deleted";
 export type AgentTeamRole = "worker" | "verifier" | "advisor";
@@ -36,6 +43,7 @@ export type AgentTeamOrigin =
 	| "start";
 export type VerificationVerdict = "pass" | "fail";
 export type AgentTeamLedgerKind = "fact" | "excluded";
+export type AgentTeamIsolation = "shared" | "worktree";
 
 /** One bounded note about a finished attempt. */
 export interface AgentTeamAttempt {
@@ -43,6 +51,10 @@ export interface AgentTeamAttempt {
 	owner?: string;
 	outcome: "released" | "failed" | "passed";
 	error?: string;
+	/** How the attempt was tried; the release or verify note. */
+	method?: string;
+	/** The round that produced this attempt. */
+	round?: number;
 }
 
 /** A verified fact, or a dead end the team must not repeat. */
@@ -52,6 +64,24 @@ export interface AgentTeamLedgerEntry {
 	taskId: string;
 	by: string;
 	at: number;
+}
+
+/** One explicit batch opened by the lead. */
+export interface AgentTeamRound {
+	id: number;
+	prompt: string;
+	taskIds: string[];
+	brief?: string;
+	budget: { tokens: number; ms: number };
+	startedAt: number;
+}
+
+/** One git worktree attached to a task. */
+export interface AgentTeamWorktree {
+	path: string;
+	base: string;
+	createdAt: number;
+	mergedAt?: number;
 }
 
 export interface AgentTeamTask {
@@ -78,6 +108,17 @@ export interface AgentTeamTask {
 	verifiedBy?: string;
 	verifiedAt?: number;
 	verifyRunId?: string;
+	/** A second reader checks every result in the same round. */
+	crossVerify?: boolean;
+	crossVerdict?: VerificationVerdict;
+	crossVerifiedBy?: string;
+	crossVerifiedAt?: number;
+	crossVerifyRunId?: string;
+	/** The round that opened this task. */
+	round?: number;
+	/** Shared workspace or an isolated git worktree. */
+	isolation?: AgentTeamIsolation;
+	worktree?: AgentTeamWorktree;
 	origin?: AgentTeamOrigin;
 	/** Oldest attempts drop out first; capped at MAX_AGENT_TEAM_ATTEMPTS. */
 	attempts?: AgentTeamAttempt[];
@@ -90,6 +131,7 @@ export interface AgentTeamBoard {
 	nextId: number;
 	tasks: AgentTeamTask[];
 	ledger: AgentTeamLedgerEntry[];
+	rounds: AgentTeamRound[];
 }
 
 export interface AgentTeamMember {
@@ -99,21 +141,6 @@ export interface AgentTeamMember {
 	joinedAt: number;
 	/** Stable run identity, so a retried attempt keeps its member name. */
 	key?: string;
-}
-
-export interface AgentTeamFilters {
-	status?: AgentTeamTaskStatus;
-	owner?: string;
-	unowned?: boolean;
-	ready?: boolean;
-	limit?: number;
-}
-
-export interface AgentTeamTaskView {
-	task: AgentTeamTask;
-	ready: boolean;
-	blockedByOpen: string[];
-	writeScopeWarnings: string[];
 }
 
 export type AgentTeamAction =
@@ -153,6 +180,12 @@ export interface AgentTeamUpdate {
 	excluded?: string;
 	/** Lead-only bypass of the verifier role; a note is required. */
 	override?: boolean;
+	/** Task or cross-task verification. */
+	scope?: "task" | "cross";
+	/** Opt in to the second reader. */
+	crossVerify?: boolean;
+	/** Shared workspace or an isolated git worktree. */
+	isolation?: AgentTeamIsolation;
 }
 
 export type AgentTeamOk = { ok: true; task: AgentTeamTask; retriedFrom?: number };
@@ -160,80 +193,9 @@ export type AgentTeamFail = { ok: false; error: string };
 export type AgentTeamResult = AgentTeamOk | AgentTeamFail;
 
 export function newAgentTeam(agentTeamId: string): AgentTeamBoard {
-	return { agentTeamId, nextId: 1, tasks: [], ledger: [] };
+	return { agentTeamId, nextId: 1, tasks: [], ledger: [], rounds: [] };
 }
 
 export function liveTasks(board: AgentTeamBoard): AgentTeamTask[] {
 	return board.tasks.filter((task) => task.status !== "deleted");
-}
-
-function find(board: AgentTeamBoard, taskId: string): AgentTeamTask | undefined {
-	return board.tasks.find((task) => task.id === taskId);
-}
-
-export function normalizeScopes(
-	raw: readonly string[],
-): { ok: true; scopes: string[] } | AgentTeamFail {
-	if (raw.length > MAX_AGENT_TEAM_SCOPES) {
-		return { ok: false, error: `At most ${MAX_AGENT_TEAM_SCOPES} write scopes.` };
-	}
-	const out: string[] = [];
-	for (const item of raw) {
-		const canonical = canonicalWorkspacePath(item);
-		if (!canonical.ok) {
-			const reason =
-				canonical.error === "path is empty."
-					? "cannot be empty."
-					: canonical.error === 'path cannot contain "..".'
-						? 'cannot contain "..".'
-						: "must be workspace-relative.";
-			return { ok: false, error: `Write scope "${item}" ${reason}` };
-		}
-		const scope = canonical.path;
-		if (scope.length > 160)
-			return { ok: false, error: "A write scope is limited to 160 characters." };
-		if (!out.includes(scope)) out.push(scope);
-	}
-	return { ok: true, scopes: out };
-}
-
-function reaches(
-	board: AgentTeamBoard,
-	from: string,
-	target: string,
-	seen = new Set<string>(),
-): boolean {
-	if (from === target) return true;
-	if (seen.has(from)) return false;
-	seen.add(from);
-	const task = find(board, from);
-	for (const next of task?.blockedBy ?? []) {
-		if (reaches(board, next, target, seen)) return true;
-	}
-	return false;
-}
-
-export function wouldCycle(
-	board: AgentTeamBoard,
-	taskId: string,
-	blockedBy: readonly string[],
-): boolean {
-	return blockedBy.some((id) => reaches(board, id, taskId));
-}
-
-export function blockedByOpen(task: AgentTeamTask, board: AgentTeamBoard): string[] {
-	return task.blockedBy.filter((id) => find(board, id)?.status !== "completed");
-}
-
-export function taskReady(task: AgentTeamTask, board: AgentTeamBoard): boolean {
-	return task.status === "pending" && blockedByOpen(task, board).length === 0;
-}
-
-export function agentTeamView(task: AgentTeamTask, board: AgentTeamBoard): AgentTeamTaskView {
-	return {
-		task,
-		ready: taskReady(task, board),
-		blockedByOpen: blockedByOpen(task, board),
-		writeScopeWarnings: writeScopeWarnings(task, board),
-	};
 }

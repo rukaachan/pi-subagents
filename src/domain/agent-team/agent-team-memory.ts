@@ -8,7 +8,9 @@ import {
 	MAX_AGENT_TEAM_EXCLUDED,
 	MAX_AGENT_TEAM_FACT,
 	MAX_AGENT_TEAM_FACTS,
+	MAX_AGENT_TEAM_METHOD,
 	type AgentTeamBoard,
+	type AgentTeamLedgerEntry,
 	type AgentTeamLedgerKind,
 	type AgentTeamTask,
 } from "./agent-team.ts";
@@ -18,6 +20,8 @@ export interface AgentTeamAttemptInput {
 	owner?: string;
 	outcome: AgentTeamAttemptOutcome;
 	error?: string;
+	method?: string;
+	round?: number;
 }
 
 export type AgentTeamAttemptOutcome = "released" | "failed" | "passed";
@@ -33,11 +37,15 @@ function clean(text: string): string {
 /** Keep only the newest attempts so a stuck task cannot grow without a bound. */
 export function recordAgentTeamAttempt(task: AgentTeamTask, input: AgentTeamAttemptInput): void {
 	const attempts = task.attempts ?? [];
+	const method = input.method?.trim();
+	const round = input.round;
 	attempts.push({
 		at: input.at,
 		outcome: input.outcome,
 		...(input.owner ? { owner: input.owner } : {}),
 		...(input.error ? { error: input.error.slice(0, MAX_AGENT_TEAM_ERROR) } : {}),
+		...(method ? { method: method.slice(0, MAX_AGENT_TEAM_METHOD) } : {}),
+		...(typeof round === "number" && Number.isSafeInteger(round) && round > 0 ? { round } : {}),
 	});
 	if (attempts.length > MAX_AGENT_TEAM_ATTEMPTS) {
 		attempts.splice(0, attempts.length - MAX_AGENT_TEAM_ATTEMPTS);
@@ -71,6 +79,27 @@ export function recordAgentTeamLedgerEntry(
 	while (board.ledger.filter((entry) => entry.kind === input.kind).length > max) {
 		const oldest = board.ledger.findIndex((entry) => entry.kind === input.kind);
 		board.ledger.splice(oldest, 1);
+	}
+}
+
+/** Merge durable workspace rows into a board without duplicating text. */
+export function mergeAgentTeamLedger(
+	board: AgentTeamBoard,
+	entries: readonly AgentTeamLedgerEntry[],
+): void {
+	const seen = new Set(board.ledger.map((entry) => entry.kind + ":" + clean(entry.text)));
+	for (const entry of entries) {
+		const key = entry.kind + ":" + clean(entry.text);
+		if (seen.has(key)) continue;
+		board.ledger.push({ ...entry });
+		seen.add(key);
+	}
+	for (const kind of ["fact", "excluded"] as const) {
+		const max = kind === "fact" ? MAX_AGENT_TEAM_FACTS : MAX_AGENT_TEAM_EXCLUDED;
+		while (board.ledger.filter((entry) => entry.kind === kind).length > max) {
+			const first = board.ledger.findIndex((entry) => entry.kind === kind);
+			board.ledger.splice(first, 1);
+		}
 	}
 }
 

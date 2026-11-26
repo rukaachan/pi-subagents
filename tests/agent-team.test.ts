@@ -233,16 +233,3 @@ describe("team board: delete guards", () => {
 		assert.equal(run(b, "task-1", "delete", {}).ok, true);
 	});
 });
-
-describe("team board: scope warnings", () => {
-	it("warns on overlap only while another task is in progress", () => {
-		const b = newBoard();
-		add(b, "one", { writeScopes: ["src/app"] });
-		const second = add(b, "two", { writeScopes: ["src/app/file.ts"] });
-		assert.deepEqual(agentTeamView(second, b).writeScopeWarnings, []);
-		run(b, "task-1", "claim", {}, alice);
-		assert.match(agentTeamView(second, b).writeScopeWarnings.join(" "), /overlaps task-1/);
-		run(b, "task-1", "complete", {}, alice);
-		assert.deepEqual(agentTeamView(second, b).writeScopeWarnings, []);
-	});
-});

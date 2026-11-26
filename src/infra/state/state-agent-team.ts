@@ -3,28 +3,25 @@
  */
 
 import {
-	MAX_AGENT_TEAM_ACCEPTANCE,
-	MAX_AGENT_TEAM_BLOCKERS,
+	DEFAULT_ROUND_MS,
+	DEFAULT_ROUND_TOKENS,
+	MAX_AGENT_TEAM_BRIEF,
 	MAX_AGENT_TEAM_DESCRIPTION,
-	MAX_AGENT_TEAM_ERROR,
 	MAX_AGENT_TEAM_MEMBERS,
-	MAX_AGENT_TEAM_RESULT,
-	MAX_AGENT_TEAM_RUN_ID,
-	MAX_AGENT_TEAM_SCOPES,
-	MAX_AGENT_TEAM_SUBJECT,
+	MAX_AGENT_TEAM_ROUNDS,
+	MAX_AGENT_TEAM_ROUND_LEGS,
 	MAX_AGENT_TEAM_TASKS,
-	MAX_AGENT_TEAM_VERIFY_WITH,
+	MAX_COLD_CHARS,
+	MAX_COLD_MESSAGES,
+	MAX_ROUND_MS,
+	MAX_ROUND_TOKENS,
 	type AgentTeamLedgerEntry,
 	type AgentTeamMember,
-	type AgentTeamOrigin,
-	type AgentTeamRole,
+	type AgentTeamRound,
 	type AgentTeamTask,
-	type AgentTeamTaskStatus,
-	type VerificationVerdict,
 } from "../../domain/agent-team/index.ts";
-import { canonicalWorkspacePath } from "../../domain/policy/index.ts";
-import { MAX_COLD_CHARS, MAX_COLD_MESSAGES } from "../../domain/agent-team/index.ts";
-import { decodeAttempts, decodeLedger, stringValue } from "./state-agent-team-rows.ts";
+import { decodeLedger, stringList, stringValue } from "./rows/index.ts";
+import { decodeTask } from "./state-agent-team-task.ts";
 
 export interface PersistedAgentTeam {
 	agentTeamId: string;
@@ -33,122 +30,11 @@ export interface PersistedAgentTeam {
 	tasks: AgentTeamTask[];
 	members: AgentTeamMember[];
 	ledger: AgentTeamLedgerEntry[];
+	rounds: AgentTeamRound[];
 	coldMail?: Record<string, string[]>;
 }
 
-const STATUSES = new Set<AgentTeamTaskStatus>([
-	"pending",
-	"in_progress",
-	"in_review",
-	"completed",
-	"deleted",
-]);
-const ROLES = new Set<AgentTeamRole>(["worker", "verifier", "advisor"]);
-const ORIGINS = new Set<AgentTeamOrigin>([
-	"manual",
-	"task",
-	"parallel",
-	"chain",
-	"delegate",
-	"finish",
-	"start",
-]);
-const VERDICTS = new Set<VerificationVerdict>(["pass", "fail"]);
 const MAX_PERSISTED_TASKS = MAX_AGENT_TEAM_TASKS * 2;
-
-function stringList(value: unknown, max: number, each: number): string[] {
-	if (!Array.isArray(value)) return [];
-	const out: string[] = [];
-	for (const item of value) {
-		if (typeof item !== "string" || !item || item.length > each) continue;
-		if (!out.includes(item)) out.push(item);
-		if (out.length >= max) break;
-	}
-	return out;
-}
-
-function decodeScopes(value: unknown): string[] {
-	const out: string[] = [];
-	for (const item of stringList(value, MAX_AGENT_TEAM_SCOPES, 160)) {
-		const canonical = canonicalWorkspacePath(item);
-		if (!canonical.ok || out.includes(canonical.path)) continue;
-		out.push(canonical.path);
-	}
-	return out;
-}
-
-function decodeTask(value: unknown): AgentTeamTask | undefined {
-	if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
-	const row = value as Record<string, unknown>;
-	const id = stringValue(row.id, 64);
-	const subject = stringValue(row.subject, MAX_AGENT_TEAM_SUBJECT);
-	const revision = row.revision;
-	const status = row.status;
-	const createdAt = row.createdAt;
-	const updatedAt = row.updatedAt;
-	if (!id || !/^task-[1-9]\d*$/.test(id)) return undefined;
-	if (!subject) return undefined;
-	if (typeof revision !== "number" || !Number.isSafeInteger(revision) || revision < 1)
-		return undefined;
-	if (typeof status !== "string" || !STATUSES.has(status as AgentTeamTaskStatus)) return undefined;
-	if (typeof createdAt !== "number" || !Number.isFinite(createdAt)) return undefined;
-	if (typeof updatedAt !== "number" || !Number.isFinite(updatedAt)) return undefined;
-	const owner = stringValue(row.owner, 64);
-	const lastOwner = stringValue(row.lastOwner, 64);
-	const lastError = stringValue(row.lastError, MAX_AGENT_TEAM_ERROR);
-	const runId = stringValue(row.runId, MAX_AGENT_TEAM_RUN_ID);
-	const result =
-		typeof row.result === "string" ? row.result.slice(0, MAX_AGENT_TEAM_RESULT) : undefined;
-	const returnedAt =
-		typeof row.returnedAt === "number" && Number.isFinite(row.returnedAt)
-			? row.returnedAt
-			: undefined;
-	const acceptance = stringValue(row.acceptance, MAX_AGENT_TEAM_ACCEPTANCE);
-	const verifyWith = stringValue(row.verifyWith, MAX_AGENT_TEAM_VERIFY_WITH);
-	const verdict =
-		typeof row.verdict === "string" && VERDICTS.has(row.verdict as VerificationVerdict)
-			? (row.verdict as VerificationVerdict)
-			: undefined;
-	const verifiedBy = stringValue(row.verifiedBy, 64);
-	const verifiedAt =
-		typeof row.verifiedAt === "number" && Number.isFinite(row.verifiedAt)
-			? row.verifiedAt
-			: undefined;
-	const verifyRunId = stringValue(row.verifyRunId, MAX_AGENT_TEAM_RUN_ID);
-	const attempts = decodeAttempts(row.attempts);
-	const origin =
-		typeof row.origin === "string" && ORIGINS.has(row.origin as AgentTeamOrigin)
-			? (row.origin as AgentTeamOrigin)
-			: "manual";
-	return {
-		id,
-		revision,
-		subject,
-		description:
-			typeof row.description === "string"
-				? row.description.slice(0, MAX_AGENT_TEAM_DESCRIPTION)
-				: "",
-		status: status as AgentTeamTaskStatus,
-		...(owner ? { owner } : {}),
-		...(lastOwner ? { lastOwner } : {}),
-		...(lastError ? { lastError } : {}),
-		...(returnedAt !== undefined ? { returnedAt } : {}),
-		...(runId ? { runId } : {}),
-		...(result ? { result } : {}),
-		...(acceptance ? { acceptance } : {}),
-		...(verifyWith ? { verifyWith } : {}),
-		...(verdict ? { verdict } : {}),
-		...(verifiedBy ? { verifiedBy } : {}),
-		...(verifiedAt !== undefined ? { verifiedAt } : {}),
-		...(verifyRunId ? { verifyRunId } : {}),
-		...(attempts.length > 0 ? { attempts } : {}),
-		origin,
-		blockedBy: stringList(row.blockedBy, MAX_AGENT_TEAM_BLOCKERS, 64),
-		writeScopes: decodeScopes(row.writeScopes),
-		createdAt,
-		updatedAt,
-	};
-}
 
 function decodeMember(value: unknown): AgentTeamMember | undefined {
 	if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
@@ -158,8 +44,8 @@ function decodeMember(value: unknown): AgentTeamMember | undefined {
 	const joinedAt = row.joinedAt;
 	const key = stringValue(row.key, 128);
 	const role =
-		typeof row.role === "string" && ROLES.has(row.role as AgentTeamRole)
-			? (row.role as AgentTeamRole)
+		row.role === "worker" || row.role === "verifier" || row.role === "advisor"
+			? row.role
 			: "worker";
 	if (!name || !starter) return undefined;
 	if (typeof joinedAt !== "number" || !Number.isFinite(joinedAt)) return undefined;
@@ -186,6 +72,57 @@ function decodeColdMail(
 		if (kept.length > 0) out[name] = kept;
 	}
 	return Object.keys(out).length > 0 ? out : undefined;
+}
+
+function decodeBudget(value: unknown): { tokens: number; ms: number } {
+	if (!value || typeof value !== "object" || Array.isArray(value)) {
+		return { tokens: DEFAULT_ROUND_TOKENS, ms: DEFAULT_ROUND_MS };
+	}
+	const row = value as Record<string, unknown>;
+	const tokens =
+		typeof row.tokens === "number" && Number.isFinite(row.tokens) && row.tokens > 0
+			? Math.min(Math.floor(row.tokens), MAX_ROUND_TOKENS)
+			: DEFAULT_ROUND_TOKENS;
+	const ms =
+		typeof row.ms === "number" && Number.isFinite(row.ms) && row.ms > 0
+			? Math.min(Math.floor(row.ms), MAX_ROUND_MS)
+			: DEFAULT_ROUND_MS;
+	return { tokens, ms };
+}
+
+function decodeRounds(value: unknown): AgentTeamRound[] {
+	if (!Array.isArray(value)) return [];
+	const out: AgentTeamRound[] = [];
+	const seen = new Set<number>();
+	for (const item of value) {
+		if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+		const row = item as Record<string, unknown>;
+		const id = row.id;
+		if (
+			typeof id !== "number" ||
+			!Number.isSafeInteger(id) ||
+			id < 1 ||
+			id > MAX_AGENT_TEAM_ROUNDS ||
+			seen.has(id)
+		)
+			continue;
+		const prompt = stringValue(row.prompt, MAX_AGENT_TEAM_DESCRIPTION);
+		const startedAt = row.startedAt;
+		if (!prompt || typeof startedAt !== "number" || !Number.isFinite(startedAt)) continue;
+		const brief = stringValue(row.brief, MAX_AGENT_TEAM_BRIEF);
+		seen.add(id);
+		out.push({
+			id,
+			prompt,
+			taskIds: stringList(row.taskIds, MAX_AGENT_TEAM_ROUND_LEGS, 64),
+			...(brief ? { brief } : {}),
+			budget: decodeBudget(row.budget),
+			startedAt,
+		});
+	}
+	out.sort((a, b) => a.id - b.id);
+	if (out.length > MAX_AGENT_TEAM_ROUNDS) out.splice(0, out.length - MAX_AGENT_TEAM_ROUNDS);
+	return out;
 }
 
 function highestId(tasks: readonly AgentTeamTask[]): number {
@@ -238,6 +175,7 @@ export function decodeAgentTeam(value: unknown): PersistedAgentTeam | undefined 
 		tasks,
 		members,
 		ledger: decodeLedger(row.ledger),
+		rounds: decodeRounds(row.rounds),
 		...(coldMail ? { coldMail } : {}),
 	};
 }

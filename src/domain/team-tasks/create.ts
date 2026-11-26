@@ -6,12 +6,14 @@ import {
 	MAX_AGENT_TEAM_ACCEPTANCE,
 	MAX_AGENT_TEAM_BLOCKERS,
 	MAX_AGENT_TEAM_DESCRIPTION,
+	MAX_AGENT_TEAM_ROUNDS,
 	MAX_AGENT_TEAM_SUBJECT,
 	MAX_AGENT_TEAM_TASKS,
 	MAX_AGENT_TEAM_VERIFY_WITH,
 	liveTasks,
 	normalizeScopes,
 	type AgentTeamBoard,
+	type AgentTeamIsolation,
 	type AgentTeamOrigin,
 	type AgentTeamResult,
 	type AgentTeamTask,
@@ -24,7 +26,10 @@ export interface CreateAgentTeamTaskInput {
 	writeScopes?: string[];
 	acceptance?: string;
 	verifyWith?: string;
+	crossVerify?: boolean;
+	isolation?: AgentTeamIsolation;
 	origin?: AgentTeamOrigin;
+	round?: number;
 }
 
 function blockerError(
@@ -78,6 +83,15 @@ export function createAgentTeamTask(
 	) {
 		return { ok: false, error: "verifyWith must be a subagent name." };
 	}
+	if (input.crossVerify && !acceptance) {
+		return { ok: false, error: "Cross verification needs acceptance." };
+	}
+	if (
+		input.round !== undefined &&
+		(!Number.isInteger(input.round) || input.round < 1 || input.round > MAX_AGENT_TEAM_ROUNDS)
+	) {
+		return { ok: false, error: `Round must be 1..${MAX_AGENT_TEAM_ROUNDS}.` };
+	}
 	const blockedBy = [...new Set(input.blockedBy ?? [])];
 	const blockers = blockerError(board, undefined, blockedBy);
 	if (blockers) return { ok: false, error: blockers };
@@ -93,6 +107,9 @@ export function createAgentTeamTask(
 		writeScopes: scopes.scopes,
 		...(acceptance ? { acceptance } : {}),
 		...(verifyWith ? { verifyWith } : {}),
+		...(input.crossVerify ? { crossVerify: true } : {}),
+		...(input.isolation === "worktree" ? { isolation: "worktree" as const } : {}),
+		...(input.round !== undefined ? { round: input.round } : {}),
 		origin: input.origin ?? "manual",
 		createdAt: now,
 		updatedAt: now,

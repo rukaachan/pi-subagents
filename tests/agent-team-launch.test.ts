@@ -60,6 +60,35 @@ describe("team start", () => {
 		assert.equal(agentTeamEnabled(), false);
 	});
 
+	it("refuses a bad round before it touches the board", async () => {
+		const cases: Array<[Record<string, unknown>, RegExp]> = [
+			[{ prompt: "x", roundId: 6 }, /Round must be/],
+			[{ prompt: "x", roundId: 1, roster: ["worker"], directions: ["a", "b"] }, /directions/],
+			[{ prompt: "x", roundId: 1, roster: ["worker"], brief: "x".repeat(2_001) }, /Brief/],
+		];
+		for (const [input, pattern] of cases) {
+			const result = await startAgentTeamLaunch({} as never, input as never, ctx(), {} as never);
+			assert.equal(result.ok, false);
+			if (!result.ok) assert.match(result.error, pattern);
+		}
+		for (let i = 0; i < 13; i += 1) {
+			writeFileSync(
+				join(project, ".pi", "subagents", `w${i}.md`),
+				`---\nname: w${i}\ndescription: test worker\ntools: read\n---\n\nDo the task.\n`,
+			);
+		}
+		const many = Array.from({ length: 13 }, (_, i) => `w${i}`);
+		const result = await startAgentTeamLaunch(
+			{} as never,
+			{ prompt: "x", roundId: 1, roster: many },
+			ctx(),
+			{} as never,
+		);
+		assert.equal(result.ok, false);
+		if (!result.ok) assert.match(result.error, /12 legs/);
+		assert.equal(agentTeamEnabled(), false);
+	});
+
 	it("leaves the board off when the roster is unknown", async () => {
 		assert.equal(agentTeamEnabled(), false);
 		const result = await startAgentTeamLaunch(

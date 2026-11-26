@@ -13,9 +13,12 @@ import { UPDATE_ACTIONS, type Params } from "./agent-team-tool-schema.ts";
 import { shutDown } from "./agent-team-tool-gate.ts";
 import type { AgentTeamApi } from "./agent-team-tool-types.ts";
 import { fail, ok, taskJson, taskLine } from "./agent-team-tool-view.ts";
-import { resolveTask } from "./agent-team-tool-resolve.ts";
+import { startAgentTeam, startRound, resolveTask } from "./agent-team-tool-start.ts";
 
-function boardSummary(api: AgentTeamApi): { head: string; details: Record<string, unknown> } {
+export function boardSummary(api: AgentTeamApi): {
+	head: string;
+	details: Record<string, unknown>;
+} {
 	const summary = api.summary();
 	const members = api.members();
 	const rows = api.list({ limit: MAX_AGENT_TEAM_TASKS });
@@ -44,38 +47,6 @@ function boardSummary(api: AgentTeamApi): { head: string; details: Record<string
 	};
 }
 
-async function startAgentTeam(
-	api: AgentTeamApi,
-	params: Params,
-	caller: AgentTeamCaller,
-	ctx: ExtensionContext,
-) {
-	if (!caller.lead) return fail("Only the lead can start a team.");
-	if (!params.prompt?.trim()) return fail("start needs prompt.");
-	if (!api.launch) return fail("AgentTeam start is not available in this session.");
-	const result = await api.launch(
-		{ prompt: params.prompt, ...(params.roster ? { roster: params.roster } : {}) },
-		ctx,
-	);
-	if (!result.ok) return fail(result.error);
-	const rows = result.tasks.map(
-		(leg, index) =>
-			`${index + 1}. ${leg.name} — ${leg.taskId}${leg.runId ? ` · ${leg.runId}` : ""}`,
-	);
-	const state = `${result.started} started${result.queued > 0 ? ` · ${result.queued} queued` : ""}`;
-	const warning =
-		result.warnings && result.warnings.length > 0 ? `\nWarning: ${result.warnings.join(" ")}` : "";
-	return ok(`AgentTeam started · ${state}\n${rows.join("\n")}${warning}`, {
-		agent_team_id: result.agentTeamId,
-		agent_team_mode: "on",
-		run_id: result.runId,
-		started: result.started,
-		queued: result.queued,
-		tasks: result.tasks,
-		...(result.warnings ? { warnings: result.warnings } : {}),
-	});
-}
-
 export async function runAgentTeam(
 	api: AgentTeamApi,
 	params: Params,
@@ -83,6 +54,7 @@ export async function runAgentTeam(
 	ctx: ExtensionContext,
 ) {
 	if (params.action === "start") return startAgentTeam(api, params, caller, ctx);
+	if (params.action === "round") return startRound(api, params, caller, ctx);
 	if (params.action === "advise") {
 		if (!caller.lead) return fail("Only the lead can ask the advisor.");
 		if (!params.question?.trim()) return fail("advise needs question.");
@@ -93,6 +65,46 @@ export async function runAgentTeam(
 			agent_team_id: api.agentTeamId(),
 			...(params.task_id ? { task_id: params.task_id } : {}),
 			advice: result.text,
+		});
+	}
+	if (params.action === "brief") {
+		if (!caller.lead) return fail("Only the lead can ask for a brief.");
+		if (!api.brief) return fail("AgentTeam brief is not available in this session.");
+		const result = await api.brief(params.question, ctx);
+		if (!result.ok) return fail(result.error);
+		return ok(result.text, {
+			agent_team_id: api.agentTeamId(),
+			brief: result.text,
+		});
+	}
+	if (params.action === "promote") {
+		if (!caller.lead) return fail("Only the lead can promote a task.");
+		if (!params.task_id) return fail("promote needs task_id.");
+		if (!api.promote) return fail("AgentTeam promote is not available in this session.");
+		const result = api.promote(params.task_id, params.confirm === true);
+		if (!result.ok) return fail(result.error, params.task_id);
+		const text = result.written
+			? `Draft written to ${result.path}.\n\n${result.content}`
+			: result.content;
+		return ok(text, {
+			agent_team_id: api.agentTeamId(),
+			task_id: params.task_id,
+			promoted: result.written,
+			name: result.name,
+			...(result.path ? { path: result.path } : {}),
+		});
+	}
+	if (params.action === "worktree") {
+		if (!caller.lead) return fail("Only the lead can manage worktrees.");
+		if (!params.task_id) return fail("worktree needs task_id.");
+		if (!params.worktree_action) return fail("worktree needs worktree_action.");
+		if (!api.worktree) return fail("AgentTeam worktree is not available in this session.");
+		const result = api.worktree(params.task_id, params.worktree_action, ctx);
+		if (!result.ok) return fail(result.error, params.task_id);
+		return ok(result.text, {
+			agent_team_id: api.agentTeamId(),
+			task_id: params.task_id,
+			task: result.task,
 		});
 	}
 	if (params.action === "status") {
@@ -151,6 +163,7 @@ export async function runAgentTeam(
 				...(params.write_scopes ? { writeScopes: params.write_scopes } : {}),
 				...(params.acceptance ? { acceptance: params.acceptance } : {}),
 				...(params.verify_with ? { verifyWith: params.verify_with } : {}),
+				...(params.cross_verify !== undefined ? { crossVerify: params.cross_verify } : {}),
 			},
 			caller.name,
 		);
@@ -197,7 +210,10 @@ export async function runAgentTeam(
 		...(params.result !== undefined ? { result: params.result } : {}),
 		...(params.acceptance !== undefined ? { acceptance: params.acceptance } : {}),
 		...(params.verify_with !== undefined ? { verifyWith: params.verify_with } : {}),
+		...(params.cross_verify !== undefined ? { crossVerify: params.cross_verify } : {}),
+		...(params.isolation !== undefined ? { isolation: params.isolation } : {}),
 		...(params.verdict !== undefined ? { verdict: params.verdict } : {}),
+		...(params.scope !== undefined ? { scope: params.scope } : {}),
 		...(params.note !== undefined ? { note: params.note } : {}),
 		...(params.fact !== undefined ? { fact: params.fact } : {}),
 		...(params.excluded !== undefined ? { excluded: params.excluded } : {}),
@@ -209,6 +225,16 @@ export async function runAgentTeam(
 	if (!view) return fail(`Task ${result.task.id} is no longer on the board.`, result.task.id);
 	if (params.action === "complete" && result.task.status === "in_review") {
 		api.startVerify?.(result.task.id, ctx);
+	}
+	if (
+		params.action === "verify" &&
+		params.scope !== "cross" &&
+		view.task.status === "in_review" &&
+		view.task.crossVerify &&
+		view.task.verdict === "pass" &&
+		!view.task.crossVerdict
+	) {
+		api.startCrossVerify?.(view.task.id, ctx);
 	}
 	const retried =
 		result.retriedFrom !== undefined ? ` · retried from rev ${result.retriedFrom}` : "";

@@ -8,6 +8,7 @@ import {
 	createTask,
 	updateTask,
 } from "../src/app/agent-team/board/index.ts";
+import { journalAgentTeamRound } from "../src/app/agent-team/round/index.ts";
 
 const lead = { name: "lead", lead: true };
 const worker = { name: "worker", lead: false };
@@ -74,6 +75,29 @@ describe("every board write leaves one line", () => {
 		assert.equal(refused?.ok, false);
 		assert.match(String(refused?.error), /changed \(revision 2, expected 1\)/);
 		assert.doesNotMatch(raw(), /new subject|prove it/, "no subject text either");
+	});
+
+	it("writes a round without its prompt or brief", () => {
+		journalAgentTeamRound({
+			roundId: 2,
+			taskIds: ["task-1", "task-2"],
+			tokens: 500_000,
+			ms: 1_800_000,
+			forced: true,
+			ok: true,
+		});
+		assert.deepEqual(journal(), [
+			{
+				event: "agent_team_round",
+				roundId: 2,
+				taskIds: ["task-1", "task-2"],
+				tokens: 500_000,
+				ms: 1_800_000,
+				forced: true,
+				ok: true,
+			},
+		]);
+		assert.doesNotMatch(raw(), /prompt|brief/);
 	});
 
 	it("keeps a completion result out of the journal", () => {

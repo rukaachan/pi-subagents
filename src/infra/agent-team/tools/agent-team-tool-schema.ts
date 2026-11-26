@@ -4,7 +4,11 @@
 
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
-import { MAX_AGENT_TEAM_TASKS } from "../../../domain/agent-team/index.ts";
+import {
+	MAX_AGENT_TEAM_TASKS,
+	MAX_ROUND_MS,
+	MAX_ROUND_TOKENS,
+} from "../../../domain/agent-team/index.ts";
 
 const UPDATE_ACTIONS = new Set<string>([
 	"claim",
@@ -21,6 +25,7 @@ const PARAMETERS = Type.Object({
 	action: StringEnum(
 		[
 			"start",
+			"round",
 			"status",
 			"list",
 			"get",
@@ -35,10 +40,13 @@ const PARAMETERS = Type.Object({
 			"delete",
 			"verify",
 			"advise",
+			"brief",
+			"worktree",
+			"promote",
 		],
 		{
 			description:
-				"Start an agent team (prompt required), read the board, create or change one task, verify a review, ask the advisor, or resolve a conflict.",
+				"Start an agent team or one bounded round (prompt required), read the board, create or change one task, verify a review, ask the advisor, request a round brief, or resolve a conflict.",
 		},
 	),
 	task_id: Type.Optional(
@@ -78,7 +86,20 @@ const PARAMETERS = Type.Object({
 	verify_with: Type.Optional(
 		Type.String({ description: "Subagent used for verification (create or edit)." }),
 	),
+	isolation: Type.Optional(
+		StringEnum(["shared", "worktree"], {
+			description: "Give each leg its own git worktree (start, round, create, edit).",
+		}),
+	),
+	cross_verify: Type.Optional(
+		Type.Boolean({
+			description: "Opt in to the second reader; needs acceptance (create or edit).",
+		}),
+	),
 	verdict: Type.Optional(StringEnum(["pass", "fail"], { description: "Review verdict (verify)." })),
+	scope: Type.Optional(
+		StringEnum(["task", "cross"], { description: "Task or cross-task verification (verify)." }),
+	),
 	note: Type.Optional(
 		Type.String({ description: "Verification reason (verify) or release reason." }),
 	),
@@ -91,7 +112,17 @@ const PARAMETERS = Type.Object({
 	override: Type.Optional(
 		Type.Boolean({ description: "Lead-only verification override; a note is required." }),
 	),
-	question: Type.Optional(Type.String({ description: "Question for the advisor (advise)." })),
+	confirm: Type.Optional(
+		Type.Boolean({ description: "Write the draft instead of previewing it (promote)." }),
+	),
+	worktree_action: Type.Optional(
+		StringEnum(["status", "merged", "remove"], {
+			description: "Read, retire a clean worktree, or force-remove one (worktree).",
+		}),
+	),
+	question: Type.Optional(
+		Type.String({ description: "Question for the advisor (advise) or brief." }),
+	),
 	status: Type.Optional(
 		StringEnum(["pending", "in_progress", "in_review", "completed"], {
 			description: "Exact status filter (list).",
@@ -109,7 +140,32 @@ const PARAMETERS = Type.Object({
 	prompt: Type.Optional(Type.String({ description: "Shared task text (start); required." })),
 	roster: Type.Optional(
 		Type.Array(Type.String(), {
-			description: "Subagents to start (start); empty means every discovered subagent.",
+			description: "Subagents to start (start or round); empty means every discovered subagent.",
+		}),
+	),
+	budget_tokens: Type.Optional(
+		Type.Integer({
+			minimum: 1,
+			maximum: MAX_ROUND_TOKENS,
+			description: "Token budget for one round (round).",
+		}),
+	),
+	budget_minutes: Type.Optional(
+		Type.Integer({
+			minimum: 1,
+			maximum: MAX_ROUND_MS / 60_000,
+			description: "Wall-clock budget in minutes for one round (round).",
+		}),
+	),
+	brief: Type.Optional(
+		Type.String({ description: "Brief prepended to every leg prompt (round)." }),
+	),
+	directions: Type.Optional(
+		Type.Array(Type.String(), { description: "One prompt per roster leg (round)." }),
+	),
+	force: Type.Optional(
+		Type.Boolean({
+			description: "Open a round past the previous round's budget (round).",
 		}),
 	),
 });
@@ -117,6 +173,7 @@ const PARAMETERS = Type.Object({
 type Params = {
 	action:
 		| "start"
+		| "round"
 		| "status"
 		| "list"
 		| "get"
@@ -130,7 +187,10 @@ type Params = {
 		| "reassign"
 		| "delete"
 		| "verify"
-		| "advise";
+		| "advise"
+		| "brief"
+		| "worktree"
+		| "promote";
 	task_id?: string;
 	expected_revision?: number;
 	subject?: string;
@@ -141,7 +201,12 @@ type Params = {
 	result?: string;
 	acceptance?: string;
 	verify_with?: string;
+	cross_verify?: boolean;
+	isolation?: "shared" | "worktree";
+	worktree_action?: "status" | "merged" | "remove";
+	confirm?: boolean;
 	verdict?: "pass" | "fail";
+	scope?: "task" | "cross";
 	note?: string;
 	fact?: string;
 	excluded?: string;
@@ -153,6 +218,11 @@ type Params = {
 	limit?: number;
 	prompt?: string;
 	roster?: string[];
+	budget_tokens?: number;
+	budget_minutes?: number;
+	brief?: string;
+	directions?: string[];
+	force?: boolean;
 };
 
 export { PARAMETERS, UPDATE_ACTIONS };

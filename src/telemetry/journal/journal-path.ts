@@ -44,6 +44,36 @@ export type JournalEvent =
 			taskId: string;
 			ok: boolean;
 			runId?: string;
+			scope?: "task" | "cross";
+			error?: string;
+	  }
+	| {
+			event: "agent_team_round";
+			roundId: number;
+			taskIds: string[];
+			tokens: number;
+			ms: number;
+			forced?: boolean;
+			ok: boolean;
+			error?: string;
+	  }
+	| { event: "agent_team_brief"; chars: number; ok: boolean; error?: string }
+	| {
+			event: "agent_team_promote";
+			taskId: string;
+			ok: boolean;
+			written: boolean;
+			name?: string;
+			chars?: number;
+			path?: string;
+			error?: string;
+	  }
+	| {
+			event: "agent_team_worktree";
+			taskId: string;
+			action: "status" | "merged" | "remove";
+			ok: boolean;
+			path?: string;
 			error?: string;
 	  }
 	| { event: "agent_team_advice"; taskId?: string; chars: number; ok: boolean; error?: string }

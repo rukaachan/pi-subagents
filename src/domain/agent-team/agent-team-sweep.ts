@@ -27,7 +27,8 @@ export function releaseTasks(
 			at: now,
 			...(claimed ? { owner: claimed } : {}),
 			outcome: "released",
-			...(note ? { error: note } : {}),
+			...(note ? { error: note, method: note } : {}),
+			...(task.round ? { round: task.round } : {}),
 		});
 		task.revision += 1;
 		task.updatedAt = now;
