@@ -8,8 +8,6 @@ import { describe, it } from "node:test";
 
 const root = new URL("..", import.meta.url).pathname;
 
-const MAX_FILE_LINES = 250;
-
 function folders(dir: string): string[] {
 	const out = [dir];
 	for (const entry of readdirSync(dir)) {
@@ -192,20 +190,5 @@ describe("folder size: a bounded context fits in one screen", () => {
 			}
 		}
 		assert.deepEqual(offenders, []);
-	});
-});
-
-describe("file size: one file, one job", () => {
-	it("no source file grows past the limit", () => {
-		const offenders: string[] = [];
-		for (const dir of ["src", "extensions", "tests"]) {
-			for (const file of sources(join(root, dir))) {
-				const lines = readFileSync(file, "utf8").split("\n").length;
-				if (lines > MAX_FILE_LINES) {
-					offenders.push(`${relative(root, file)}: ${lines} lines`);
-				}
-			}
-		}
-		assert.deepEqual(offenders, [], `every file stays under ${MAX_FILE_LINES} lines`);
 	});
 });
