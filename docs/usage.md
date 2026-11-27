@@ -78,8 +78,8 @@ Turn the board on for other task legs:
 /subagents team off
 ```
 
-The Team tab shows the board as a pop-up over the transcript. Press
-`t` to toggle team mode. Each task is a card; the footer shows only
+The Team tab shows the board in the editor area. Press `t` to toggle
+team mode. Each task is a card; the footer shows only
 the keys that work on the selected task, and `/subagents help` lists
 every key.
 
@@ -167,8 +167,8 @@ per-run switch still wins.
 
 ## Watch a run
 
-Open the board with `/subagents` or `/subagents tasks`. It floats as a
-pop-up; `esc` closes it.
+Open the board with `/subagents` or `/subagents tasks`. It fills the
+editor area; `esc` closes it.
 
 ```text
 Runs keys:  ↑↓ move · enter open · n run · f finish
@@ -180,8 +180,7 @@ The footer shows only the keys for the selected card. Run
 `/subagents help` for the full list.
 
 A live run streams its answer. A done run shows its saved history. The
-viewer opens as a pop-up and has three tabs: transcript, tools, and
-errors. `y` copies the
+viewer has three tabs: transcript, tools, and errors. `y` copies the
 visible tab; `/` searches with a literal, case-insensitive phrase;
 `n` and `N` step through matches; `e` jumps to the next error. The
 newest 300 KB of a transcript is kept; older lines collapse into one

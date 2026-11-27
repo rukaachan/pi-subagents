@@ -32,6 +32,9 @@ import { finishNotice } from "../../view/run/index.ts";
 import { openSessionView } from "../../view/session/index.ts";
 import { runAgentTeamAction } from "./agent-team-actions.ts";
 
+// ctx.ui.custom mounts in the editor slot, so leave room for Pi's chrome.
+const RESERVED_ROWS = 8;
+
 function scopeOf(ctx: ExtensionCommandContext): TaskScope {
 	return { cwd: ctx.cwd, sessionId: ctx.sessionManager.getSessionId() };
 }
@@ -60,65 +63,62 @@ function mountWorkspace(
 	scope: TaskScope,
 	tab: WorkspaceTab,
 ): Promise<WorkspaceAction | undefined> {
-	return ctx.ui.custom<WorkspaceAction | undefined>(
-		(tui, theme, _kb, done) => {
-			let finished = false;
-			let showHidden = false;
-			const runs = () => {
-				const rows = runsOf(store, scope);
-				return showHidden
-					? rows
-					: rows.filter((row) => row.section !== "failed" && row.section !== "stopped");
-			};
-			const hidden = () => {
-				const rows = runsOf(store, scope);
-				return {
-					failed: rows.filter((row) => row.section === "failed").length,
-					stopped: rows.filter((row) => row.section === "stopped").length,
-					hidden: !showHidden,
-				};
-			};
-			const finish = (action: WorkspaceAction | undefined) => {
-				if (finished) return;
-				finished = true;
-				done(action);
-			};
-			const view = createWorkspaceView({
-				tab,
-				runs,
-				hidden,
-				toggleHidden: () => {
-					showHidden = !showHidden;
-					tui.requestRender();
-				},
-				agentTeam: agentTeamRows,
-				agentTeamEnabled,
-				summary: agentTeamSummary,
-				height: (which) => {
-					const data = dataOf(store, scope, runs());
-					return Math.max(
-						6,
-						Math.min(Math.floor(tui.terminal.rows * 0.85), workspaceHeight(which, data)),
-					);
-				},
-				theme,
-				render: () => tui.requestRender(),
-				onAction: finish,
-				poll: true,
-				subscribe: (fn) => store.subscribe(fn),
-			});
+	return ctx.ui.custom<WorkspaceAction | undefined>((tui, theme, _kb, done) => {
+		let finished = false;
+		let showHidden = false;
+		const runs = () => {
+			const rows = runsOf(store, scope);
+			return showHidden
+				? rows
+				: rows.filter((row) => row.section !== "failed" && row.section !== "stopped");
+		};
+		const hidden = () => {
+			const rows = runsOf(store, scope);
 			return {
-				render: view.render,
-				handleInput: view.handleInput,
-				invalidate: () => {},
-				dispose: () => view.dispose(),
+				failed: rows.filter((row) => row.section === "failed").length,
+				stopped: rows.filter((row) => row.section === "stopped").length,
+				hidden: !showHidden,
 			};
-		},
-		{
-			overlay: true,
-			overlayOptions: { anchor: "center", width: "90%", maxHeight: "90%" },
-		},
-	);
+		};
+		const finish = (action: WorkspaceAction | undefined) => {
+			if (finished) return;
+			finished = true;
+			done(action);
+		};
+		const view = createWorkspaceView({
+			tab,
+			runs,
+			hidden,
+			toggleHidden: () => {
+				showHidden = !showHidden;
+				tui.requestRender();
+			},
+			agentTeam: agentTeamRows,
+			agentTeamEnabled,
+			summary: agentTeamSummary,
+			height: () => {
+				const data = dataOf(store, scope, runs());
+				return Math.max(
+					6,
+					Math.min(
+						tui.terminal.rows - RESERVED_ROWS,
+						Math.max(workspaceHeight("runs", data), workspaceHeight("agent-team", data)),
+					),
+				);
+			},
+			theme,
+			render: () => tui.requestRender(),
+			onAction: finish,
+			poll: true,
+			subscribe: (fn) => store.subscribe(fn),
+		});
+		return {
+			render: view.render,
+			handleInput: view.handleInput,
+			invalidate: () => {},
+			dispose: () => view.dispose(),
+		};
+	});
 }
 
 async function runRunsAction(
