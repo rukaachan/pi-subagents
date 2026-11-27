@@ -77,8 +77,7 @@ export function kvTable(rows: [string, string][]): string {
 }
 
 export function stepTitle(step: number, total: number, label: string): string {
-	const dots = "●".repeat(step) + "○".repeat(Math.max(0, total - step));
-	return `${dots} ${label} (${step}/${total})`;
+	return label + " · " + step + "/" + total;
 }
 
 export function trashRow(item: TrashItem): string {

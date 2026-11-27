@@ -20,7 +20,6 @@ export interface WorkspaceViewDeps {
 	agentTeamEnabled: () => boolean;
 	summary: () => { open: number; done: number; enabled: boolean; facts?: number };
 	height: () => number;
-	activity?: (taskId: string) => readonly string[] | undefined;
 	hidden?: () => { failed: number; stopped: number; hidden: boolean };
 	toggleHidden?: () => void;
 	theme: WorkspaceRender["theme"];
@@ -187,7 +186,6 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 				runsCursor,
 				agentTeamCursor,
 				theme: deps.theme,
-				activity: deps.activity,
 				...(deps.hidden ? { hidden: deps.hidden() } : {}),
 			});
 		},

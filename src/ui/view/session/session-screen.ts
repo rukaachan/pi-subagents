@@ -14,7 +14,7 @@ import { createFind } from "./session-find.ts";
 import { createTranscriptCursor } from "./transcript-cursor.ts";
 
 const MIN_BODY = 4;
-const CHROME = 5;
+const CHROME = 4;
 const MIN_GUTTER = 6;
 const MIN_WIDTH = 20;
 

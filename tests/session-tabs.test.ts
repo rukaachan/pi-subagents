@@ -56,7 +56,7 @@ describe("the viewer tabs", () => {
 	});
 
 	it("prints the count for each tab", () => {
-		const bar = view([user("go"), toolCall, failed, done]).render(80)[2] ?? "";
+		const bar = view([user("go"), toolCall, failed, done]).render(80)[1] ?? "";
 		assert.match(bar, /1 transcript 4/);
 		assert.match(bar, /2 tools 1/);
 		assert.match(bar, /3 errors 1/);

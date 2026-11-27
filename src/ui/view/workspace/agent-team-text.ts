@@ -30,5 +30,5 @@ export function agentTeamText(): string {
 	});
 	if (lines.length === 0)
 		lines.push("No tasks yet. Press n in the Agent team tab or ask the lead.");
-	return [head, ...roster, "", ...lines].join("\n");
+	return [head, ...roster, "", "TASKS", ...lines].join("\n");
 }

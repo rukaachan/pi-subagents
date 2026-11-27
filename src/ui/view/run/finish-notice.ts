@@ -25,6 +25,8 @@ export function finishNotice(
 		.join(" · ");
 	return [
 		`finish · ${state}`,
+		"",
+		"LEGS",
 		...rows,
 		...(dropped.length > 0 ? [`Over the cap, not started: ${dropped.join(", ")}`] : []),
 		"",

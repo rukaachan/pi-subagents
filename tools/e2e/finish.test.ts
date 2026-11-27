@@ -112,8 +112,8 @@ describe("e2e: /subagents finish", () => {
 		await scenario("finish-help", async ({ rpc, home }) => {
 			const from = rpc.events.length;
 			await rpc.prompt("/subagents ?", { waitSettled: false });
-			const notice = await rpc.waitForNotice(/Subagents — quick control/, 10_000, from);
-			assert.match(notice, /Board keys/);
+			const notice = await rpc.waitForNotice(/pi-subagents/, 10_000, from);
+			assert.match(notice, /BOARD/);
 			assert.equal(hooks(home).length, 0);
 		});
 	});

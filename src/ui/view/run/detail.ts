@@ -18,6 +18,10 @@ export interface LiveRunInfo {
 	notes?: string[];
 }
 
+function heading(name: string, status: string, kind?: string): string {
+	return [name, status, kind].filter(Boolean).join(" · ");
+}
+
 export function taskDetail(rec: TaskRecord, live?: LiveRunInfo): string {
 	const head: [string, string][] = [
 		["task", rec.taskId],
@@ -37,13 +41,19 @@ export function taskDetail(rec: TaskRecord, live?: LiveRunInfo): string {
 	}
 	if (rec.result) {
 		head.push(["use", usageLine(rec.result.usage, rec.result.model) || "—"]);
-		const out = [kvTable(head), "─── output ───"];
+		const out = [
+			heading(rec.subagentName, rec.status, rec.kind ?? "background"),
+			"",
+			kvTable(head),
+			"",
+			"REPORT",
+		];
 		out.push(
 			rec.result.text.length > 2000 ? `${rec.result.text.slice(0, 2000)}\n…(cut)` : rec.result.text,
 		);
 		if (rec.result.notes.length > 0) out.push(`[notes: ${rec.result.notes.join(" ")}]`);
 		if (rec.status === "error" || rec.status === "stopped") {
-			out.push("─── why ───", whyText(rec));
+			out.push("", "WHY", whyText(rec));
 		}
 		return out.join("\n");
 	}
@@ -68,9 +78,9 @@ export function taskDetail(rec: TaskRecord, live?: LiveRunInfo): string {
 	} else {
 		head.push(["state", "still running — poll again"]);
 	}
-	const why =
-		rec.status === "error" || rec.status === "stopped" ? `\n─── why ───\n${whyText(rec)}` : "";
-	return `${kvTable(head)}${why}`;
+	const out = [heading(rec.subagentName, rec.status, rec.kind ?? "background"), "", kvTable(head)];
+	if (rec.status === "error" || rec.status === "stopped") out.push("", "WHY", whyText(rec));
+	return out.join("\n");
 }
 
 function spawnLine(spawns: {
@@ -104,5 +114,5 @@ export function subagentDetail(
 	];
 	if (sub.promptPrefix) rows.push(["prefix", shortText(sub.promptPrefix, 60)]);
 	if (spawns && spawns.total > 0) rows.push(["runs", spawnLine(spawns)]);
-	return kvTable(rows);
+	return [heading(sub.name, sourceBadge(sub.source)), "", kvTable(rows)].join("\n");
 }

@@ -1,5 +1,5 @@
 /**
- * The board screen: layout, keys, and repaint discipline.
+ * The board screen: cards, keys, and repaint discipline.
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -31,13 +31,18 @@ function view(rows: () => ReturnType<typeof board>, over: Record<string, unknown
 	return { v, actions, pings: () => pings };
 }
 
+function cardAt(out: string[]): string {
+	const selected = out.findIndex((line) => line.includes("›"));
+	return selected < 0 ? "" : out.slice(selected, selected + 3).join("\n");
+}
+
 describe("the board screen", () => {
 	it("fills 80x24 and 120x40 exactly, with no line past the edge", () => {
 		const rows = board(
 			Array.from({ length: 12 }, (_, i) =>
 				rec({
-					taskId: `task-${i}`,
-					subagentName: `leg-${i}`,
+					taskId: "task-" + i,
+					subagentName: "leg-" + i,
 					startedAt: 1_000,
 					runId: "run-parallel-abc",
 				}),
@@ -50,30 +55,29 @@ describe("the board screen", () => {
 			[120, 40],
 		] as const) {
 			const out = renderBoard(rows, { width, height, cursor: 3, theme: plainTheme() as never });
-			assert.equal(out.length, height, `height at ${width}`);
-			for (const line of out) assert.ok(visibleWidth(line) <= width, `wide: ${line}`);
-			assert.match(out[0] ?? "", /Mission control/);
-			assert.ok(out.some((l) => l.includes("RUNNING")));
-			assert.ok(out.some((l) => l.includes("run ")));
+			assert.equal(out.length, height, "height at " + width);
+			for (const line of out) assert.ok(visibleWidth(line) <= width, "wide: " + line);
+			assert.match(out[0] ?? "", /pi-subagents/);
+			assert.ok(out.some((line) => line.includes("RUNNING")));
+			assert.ok(out.some((line) => line.includes("╭")));
+			assert.ok(out.some((line) => line.includes("›")));
 		}
 	});
 
-	it("uses only the height it needs, with no blank hole", () => {
+	it("uses only the height it needs", () => {
 		const rows = board([
 			rec({ taskId: "r", startedAt: 1_000 }),
 			rec({ taskId: "d", status: "done", startedAt: 1_000, endedAt: 2_000 }),
 		]);
 		const height = boardHeight(rows);
-		assert.equal(height, 9);
+		assert.equal(height, 15);
 		const out = renderBoard(rows, { width: 100, height, cursor: 0, theme: plainTheme() as never });
 		assert.equal(out.length, height);
-		assert.ok(
-			out.slice(2, -3).every((line) => line.trim().length > 0),
-			"no blank body lines",
-		);
+		assert.ok((out[3] ?? "").trim().length > 0, "first card starts after the header");
+		assert.ok((out.at(-2) ?? "").trim().length > 0, "last card sits above the hint");
 	});
 
-	it("aligns stats to the right edge on a wide board", () => {
+	it("puts the duration at the right edge and the metrics under the name", () => {
 		const rows = board([
 			rec({
 				taskId: "a",
@@ -86,18 +90,21 @@ describe("the board screen", () => {
 				},
 			}),
 		]);
-		const line = renderBoard(rows, {
+		const out = renderBoard(rows, {
 			width: 80,
 			height: 12,
 			cursor: 0,
 			theme: plainTheme() as never,
-		}).find((row) => row.includes("review the auth diff"));
-		assert.ok(line, "row rendered");
-		assert.match(line ?? "", /2t · 9s\s*$/);
-		assert.equal(visibleWidth(line ?? ""), 80);
+		});
+		const title = out.find((line) => line.includes("worker"));
+		assert.ok(title, "card title rendered");
+		assert.match(title ?? "", /9s\s+│$/);
+		assert.equal(visibleWidth(title ?? ""), 78);
+		assert.ok(out.some((line) => line.includes("review the auth diff")));
+		assert.ok(out.some((line) => line.includes("2t")));
 	});
 
-	it("uses the right pane on a wide board", () => {
+	it("draws a rounded card and marks the selected one", () => {
 		const rows = board([
 			rec({
 				taskId: "task-mwjcrux1-1",
@@ -111,20 +118,18 @@ describe("the board screen", () => {
 			cursor: 0,
 			theme: plainTheme() as never,
 		});
-		const body = out.filter((line) => line.includes("│"));
-		assert.ok(body.length > 0, "a selected-run pane is drawn");
-		assert.ok(
+		assert.ok(out.some((line) => line.includes("╭")));
+		assert.ok(out.some((line) => line.includes("╰")));
+		assert.ok(out.some((line) => line.includes("›")));
+		assert.ok(out.some((line) => line.includes("review the auth diff")));
+		assert.equal(
 			out.some((line) => line.includes("SELECTED")),
-			"pane header",
-		);
-		assert.ok(
-			out.some((line) => line.includes("review the auth diff")),
-			"pane label",
+			false,
 		);
 		for (const line of out) assert.ok(visibleWidth(line) <= 120);
 	});
 
-	it("shows all four sections when each has a row", () => {
+	it("shows all four sections when the height allows it", () => {
 		const rows = board([
 			rec({ taskId: "q" }),
 			rec({ taskId: "r", startedAt: 1_000 }),
@@ -133,12 +138,12 @@ describe("the board screen", () => {
 		]);
 		const all = renderBoard(rows, {
 			width: 90,
-			height: 24,
+			height: boardHeight(rows),
 			cursor: 0,
 			theme: plainTheme() as never,
 		}).join("\n");
 		for (const word of ["QUEUED", "RUNNING", "DONE", "FAILED"]) assert.match(all, new RegExp(word));
-		assert.match(all, /2 live · 1 done · 1 failed/);
+		assert.match(all, /2 running · 1 done · 1 failed/);
 	});
 
 	it("moves the cursor with j, k, g, and G", () => {
@@ -148,16 +153,16 @@ describe("the board screen", () => {
 			rec({ taskId: "c", description: "gamma", startedAt: 1_000 }),
 		];
 		const { v } = view(() => board(rows));
-		const selected = () => v.render(80).find((line) => line.includes("›")) ?? "";
-		assert.match(selected(), /worker · alpha/);
+		const selected = () => cardAt(v.render(80));
+		assert.match(selected(), /alpha/);
 		v.handleInput("j");
-		assert.match(selected(), /worker · beta/);
+		assert.match(selected(), /beta/);
 		v.handleInput("G");
-		assert.match(selected(), /worker · gamma/);
+		assert.match(selected(), /gamma/);
 		v.handleInput("g");
-		assert.match(selected(), /worker · alpha/);
+		assert.match(selected(), /alpha/);
 		v.handleInput("k");
-		assert.match(selected(), /worker · alpha/);
+		assert.match(selected(), /alpha/);
 	});
 
 	it("shows what the run is doing, not its random task key", () => {
@@ -171,7 +176,7 @@ describe("the board screen", () => {
 			]),
 			{ width: 100, height: 24, cursor: 0, theme: plainTheme() as never },
 		).join("\n");
-		assert.match(out, /worker · review the auth diff for findings/);
+		assert.match(out, /review the auth diff for findings/);
 		assert.doesNotMatch(out, /cur5d5/);
 	});
 

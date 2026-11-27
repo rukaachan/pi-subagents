@@ -119,7 +119,7 @@ export function renderRunReport(run: LaunchRun, query: ReportQuery): string {
 		if (!leg) {
 			return `No leg "${query.target}" in this run.\nLegs: ${run.legs.map((l) => l.name).join(", ")}`;
 		}
-		return `${title}\n\n${renderLegFull(leg)}`;
+		return `${title}\n\nDETAIL\n${renderLegFull(leg)}`;
 	}
 	const live = query.mode === "status";
 	const legs = run.legs.filter(
@@ -130,9 +130,9 @@ export function renderRunReport(run: LaunchRun, query: ReportQuery): string {
 			run.kind === "agent-team"
 				? "Use /subagents agent-teams for the board."
 				: `Use /${run.kind} reports for the last result.`;
-		return `${title}\nNothing live. ${hint}`;
+		return `${title}\n\nLEGS\nNothing live. ${hint}`;
 	}
-	return `${title}\n\n${capRows(legs.map(renderLegLine)).join("\n")}`;
+	return `${title}\n\nLEGS\n${capRows(legs.map(renderLegLine)).join("\n")}`;
 }
 
 function renderRecordLine(rec: TaskRecord): string {
@@ -200,10 +200,10 @@ export function renderRecordsReport(
 		if (!rec) {
 			return `No leg "${query.target}" in the latest runs.\nLegs: ${records.map((r) => r.subagentName).join(", ")}`;
 		}
-		return `${title}\n${note}\n\n${renderRecordFull(rec)}`;
+		return `${title}\n${note}\n\nDETAIL\n${renderRecordFull(rec)}`;
 	}
 	const live = query.mode === "status";
 	const rows = records.filter((rec) => !live || rec.status === "running");
-	if (rows.length === 0) return `${title}\n${note}\nNothing live.`;
-	return `${title}\n${note}\n\n${capRows(rows.map(renderRecordLine)).join("\n")}`;
+	if (rows.length === 0) return `${title}\n${note}\n\nLEGS\nNothing live.`;
+	return `${title}\n${note}\n\nLEGS\n${capRows(rows.map(renderRecordLine)).join("\n")}`;
 }

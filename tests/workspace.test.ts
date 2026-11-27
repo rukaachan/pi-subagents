@@ -44,7 +44,7 @@ function agentTeamHint(status: "pending" | "in_progress" | "completed") {
 		theme: plainTheme() as never,
 		enabled: true,
 	});
-	return { footer: out.at(-2) ?? "", head: out[0] ?? "" };
+	return { footer: out.at(-1) ?? "", head: out[0] ?? "" };
 }
 
 function data(over: Partial<WorkspaceData> = {}): WorkspaceData {
@@ -89,7 +89,7 @@ describe("mission control", () => {
 		assert.ok(out.some((line) => line.includes("RUNS")));
 		assert.ok(out.some((line) => line.includes("TEAM")));
 		for (const line of out) assert.ok(visibleWidth(line) <= 90);
-		assert.equal(workspaceHeight("runs", empty), 6);
+		assert.equal(workspaceHeight("runs", empty), 9);
 	});
 
 	it("switches to Team and emits every Team action", () => {
@@ -191,7 +191,7 @@ describe("mission control", () => {
 		const pending = agentTeamHint("pending");
 		assert.match(pending.footer, /c claim/);
 		assert.doesNotMatch(pending.footer, /x done/);
-		assert.match(pending.head, /team on \(t\)/);
+		assert.match(pending.head, /· on$/);
 		const active = agentTeamHint("in_progress");
 		assert.match(active.footer, /x done/);
 		assert.match(active.footer, /r release/);
@@ -200,29 +200,6 @@ describe("mission control", () => {
 		assert.doesNotMatch(done.footer, /claim|release|x done/);
 		assert.match(done.footer, /e edit/);
 		assert.ok(visibleWidth(done.footer) <= 120, done.footer);
-	});
-
-	it("feeds the selected run's steps to the pane", () => {
-		const runs = board([rec({ taskId: "task-1", startedAt: 1_000 })], ["task-1"]);
-		const seen: string[] = [];
-		const out = renderWorkspace({
-			runs,
-			agentTeam: [],
-			agentTeamEnabled: false,
-			summary: { open: 0, done: 0, enabled: false },
-			tab: "runs",
-			width: 120,
-			height: 18,
-			runsCursor: 0,
-			agentTeamCursor: 0,
-			theme: plainTheme() as never,
-			activity: (taskId) => {
-				seen.push(taskId);
-				return ["bash · rg -n store"];
-			},
-		});
-		assert.deepEqual(seen, ["task-1"]);
-		assert.ok(out.some((line) => line.includes("bash · rg -n store")));
 	});
 
 	it("keeps the Runs tab working with a row", () => {
@@ -248,10 +225,10 @@ describe("mission control", () => {
 			theme: plainTheme() as never,
 		});
 		const all = out.join("\n");
-		assert.match(all, /No runs yet\./);
-		assert.match(all, /Press enter to run something\./);
-		assert.match(all, /\/subagents new to create a subagent\./);
-		const footer = out.at(-2) ?? "";
+		assert.match(all, /No runs yet/);
+		assert.match(all, /Press enter to run something/);
+		assert.match(all, /\/subagents new to create a subagent/);
+		const footer = out.at(-1) ?? "";
 		assert.match(footer, /enter run/);
 		assert.match(footer, /\? help/);
 		assert.match(footer, /f finish/);

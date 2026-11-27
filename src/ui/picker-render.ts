@@ -67,7 +67,7 @@ export function titleBlock(
 	theme: Theme,
 ): { node: Container; fit(width: number): void } {
 	const head = new Container();
-	head.addChild(new Text(theme.fg("accent", theme.bold(title)), 0, 0));
+	head.addChild(new Text(theme.fg("text", theme.bold(title)), 0, 0));
 	if (subtitle) head.addChild(new Text(theme.fg("dim", subtitle), 0, 0));
 	const rows = (body ?? []).map((line) => {
 		const node = new Text(theme.fg("muted", line), 0, 0);

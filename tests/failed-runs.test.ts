@@ -36,10 +36,10 @@ describe("failed runs", () => {
 		});
 		assert.match(out[0] ?? "", /1 failed/);
 		assert.ok(
-			out.some((line) => line.includes("No visible runs.")),
+			out.some((line) => line.includes("No visible runs")),
 			out.join("\n"),
 		);
-		assert.match(out.at(-2) ?? "", /e show 1 hidden/);
+		assert.match(out.at(-1) ?? "", /e show 1 hidden/);
 		assert.equal(
 			out.some((line) => line.includes("✗")),
 			false,
@@ -56,7 +56,7 @@ describe("failed runs", () => {
 			theme: plainTheme() as never,
 			hidden: { failed: 1, stopped: 0, hidden: false },
 		});
-		assert.match(open.at(-2) ?? "", /e hide hidden/);
+		assert.match(open.at(-1) ?? "", /e hide hidden/);
 		assert.equal(
 			open.some((line) => line.includes("✗")),
 			true,
@@ -78,7 +78,7 @@ describe("failed runs", () => {
 			hidden: { failed: 0, stopped: 1, hidden: true },
 		});
 		assert.match(out[0] ?? "", /1 stopped/);
-		assert.match(out.at(-2) ?? "", /e show 1 hidden/);
+		assert.match(out.at(-1) ?? "", /e show 1 hidden/);
 		assert.equal(
 			out.some((line) => line.includes("⊘")),
 			false,

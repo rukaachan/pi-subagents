@@ -1,13 +1,21 @@
 /**
- * pi-subagents: the mission-control board screen and its keys.
+ * pi-subagents: the mission-control Runs screen, one card per run.
  */
 
 import type { Theme } from "@earendil-works/pi-coding-agent";
-import { Key, matchesKey, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import { rowLine, type BoardRow, type BoardSection } from "./board-model.ts";
-import { detailLines } from "./board-detail.ts";
-import { boardHint } from "./board-hint.ts";
-import { hintFrame } from "../text/index.ts";
+import { Key, matchesKey, truncateToWidth } from "@earendil-works/pi-tui";
+import {
+	cardLines,
+	duration,
+	fitHint,
+	screenHeader,
+	stackLines,
+	tabsLine,
+	tokenCount,
+	type StackItem,
+} from "../design/index.ts";
+import { boardHint, type HiddenRows } from "./board-hint.ts";
+import type { BoardRow, BoardSection } from "./board-model.ts";
 
 export interface BoardRender {
 	width: number;
@@ -15,16 +23,16 @@ export interface BoardRender {
 	cursor: number;
 	theme: Pick<Theme, "fg" | "bold">;
 	agentTeam?: { open: number; done: number; enabled: boolean };
-	/** The last few steps of a run; only asked for the selected row. */
-	activity?: (taskId: string) => readonly string[] | undefined;
 	/** Stopped and failed runs stay collapsed until the user asks for them. */
-	hidden?: { failed: number; stopped: number; hidden: boolean };
+	hidden?: HiddenRows;
 }
 
-interface Line {
-	kind: "section" | "group" | "row";
-	text: string;
-	row?: number;
+export interface BoardBody {
+	width: number;
+	height: number;
+	cursor: number;
+	theme: Pick<Theme, "fg" | "bold">;
+	hidden?: HiddenRows;
 }
 
 const SECTION_TITLE: Record<BoardSection, string> = {
@@ -35,111 +43,119 @@ const SECTION_TITLE: Record<BoardSection, string> = {
 	failed: "FAILED",
 };
 
-/** Header, stats, rules, boxed hint, section and run headings, then one row each. */
-export function boardHeight(rows: readonly BoardRow[]): number {
-	let height = 5;
-	let section: BoardSection | undefined;
-	let runId: string | undefined;
-	for (const row of rows) {
-		if (row.section !== section) {
-			section = row.section;
-			runId = undefined;
-			height += 1;
-		}
-		if (row.runId && row.runId !== runId) {
-			runId = row.runId;
-			height += 1;
-		}
-		height += 1;
-	}
-	return height;
+export function boardSummary(rows: readonly BoardRow[], hidden?: HiddenRows): string {
+	const live = rows.filter((row) => row.section === "running" || row.section === "queued").length;
+	const done = rows.filter((row) => row.section === "done").length;
+	const failed = hidden?.failed ?? rows.filter((row) => row.section === "failed").length;
+	const stopped = hidden?.stopped ?? rows.filter((row) => row.section === "stopped").length;
+	if (rows.length === 0 && failed + stopped === 0) return "no runs yet";
+	const parts: string[] = [];
+	if (live > 0) parts.push(live + " running");
+	if (done > 0) parts.push(done + " done");
+	if (stopped > 0) parts.push(stopped + " stopped");
+	if (failed > 0) parts.push(failed + " failed");
+	return parts.join(" · ") || "no runs yet";
 }
 
-function displayLines(
-	rows: BoardRow[],
+/** Header, tabs, blank, cards, and the hint: the whole standalone screen. */
+export function boardHeight(rows: readonly BoardRow[]): number {
+	if (rows.length === 0) return 9;
+	const sections = new Set(rows.map((row) => row.section)).size;
+	return 3 + sections + 5 * rows.length;
+}
+
+function subtitle(row: BoardRow): string {
+	const parts: string[] = [];
+	if (row.label) parts.push(row.label);
+	if (row.section === "queued") {
+		parts.push("waiting for a slot");
+	} else {
+		if (row.turns > 0) parts.push(row.turns + "t");
+		const tokens = tokenCount(row.tokens);
+		if (tokens) parts.push(tokens);
+		if (row.cost) parts.push("$" + row.cost.toFixed(3));
+	}
+	if (row.failure) parts.push("!" + row.failure);
+	return parts.join(" · ");
+}
+
+function emptyCard(
+	hidden: HiddenRows | undefined,
 	width: number,
+	theme: BoardBody["theme"],
+): string[] {
+	const total = hidden ? hidden.failed + hidden.stopped : 0;
+	if (total > 0) {
+		return cardLines({
+			width,
+			theme,
+			tone: "muted",
+			glyph: "·",
+			title: "No visible runs",
+			subtitle: "Press e to show " + total + " hidden.",
+		});
+	}
+	return cardLines({
+		width,
+		theme,
+		status: "queued",
+		tone: "muted",
+		title: "No runs yet",
+		subtitle: "Press enter to run something.",
+		detail: "Or /subagents new to create a subagent.",
+	});
+}
+
+function boardItems(
+	rows: readonly BoardRow[],
+	width: number,
+	theme: BoardBody["theme"],
 	cursor: number,
-	theme: BoardRender["theme"],
-	hidden?: { failed: number; stopped: number },
-): Line[] {
-	if (rows.length === 0) {
-		const total = hidden ? hidden.failed + hidden.stopped : 0;
-		if (total > 0) {
-			return [
-				{ kind: "row", text: theme.fg("muted", "No visible runs.") },
-				{ kind: "row", text: theme.fg("dim", `Press e to show ${total} hidden.`) },
-			];
-		}
-		return [
-			{ kind: "row", text: theme.fg("muted", "No runs yet.") },
-			{ kind: "row", text: theme.fg("dim", "Press enter to run something.") },
-			{ kind: "row", text: theme.fg("dim", "Or /subagents new to create a subagent.") },
-		];
-	}
-	const out: Line[] = [];
-	let section: BoardSection | undefined;
-	let runId: string | undefined;
-	for (let i = 0; i < rows.length; i += 1) {
-		const row = rows[i];
-		if (!row) continue;
-		if (row.section !== section) {
-			section = row.section;
-			runId = undefined;
-			out.push({ kind: "section", text: theme.fg("muted", SECTION_TITLE[section]) });
-		}
-		if (row.runId && row.runId !== runId) {
-			runId = row.runId;
-			const count = rows.filter((r) => r.section === row.section && r.runId === runId).length;
-			out.push({
-				kind: "group",
-				text: theme.fg("dim", `  ── run · ${count} leg${count === 1 ? "" : "s"}`),
-			});
-		}
-		out.push({ kind: "row", text: rowLine(row, i === cursor, width, theme), row: i });
-	}
-	return out;
+): StackItem[] {
+	return rows.map((row, index) => ({
+		section: SECTION_TITLE[row.section],
+		lines: cardLines({
+			width,
+			theme,
+			selected: index === cursor,
+			status: row.section,
+			title: row.name,
+			meta: row.section === "queued" ? "waiting" : duration(row.elapsedSec),
+			subtitle: subtitle(row),
+		}),
+	}));
+}
+
+export function renderBoardBody(rows: readonly BoardRow[], opts: BoardBody): string[] {
+	const height = Math.max(1, opts.height);
+	const cursor = rows.length === 0 ? 0 : Math.max(0, Math.min(opts.cursor, rows.length - 1));
+	const out =
+		rows.length === 0
+			? emptyCard(opts.hidden, opts.width, opts.theme)
+			: stackLines(boardItems(rows, opts.width, opts.theme, cursor), cursor, height, opts.theme);
+	while (out.length < height) out.push("");
+	return out.slice(0, height);
 }
 
 export function renderBoard(rows: BoardRow[], opts: BoardRender): string[] {
 	const { width, height, theme } = opts;
-	const bodyRows = Math.max(1, height - 5);
 	const cursor = rows.length === 0 ? 0 : Math.max(0, Math.min(opts.cursor, rows.length - 1));
-	const wide = width >= 96;
-	const listWidth = wide ? Math.min(74, Math.max(56, Math.floor(width * 0.62))) : width;
-	const detailWidth = width - listWidth - 3;
-	const lines = displayLines(rows, listWidth, cursor, theme, opts.hidden);
-	const selected = lines.findIndex((line) => line.row === cursor);
-	let top = 0;
-	if (selected >= 0 && lines.length > bodyRows) {
-		top = Math.max(0, Math.min(selected - Math.floor(bodyRows / 2), lines.length - bodyRows));
-	}
-	const shown = lines.slice(top, top + bodyRows).map((line) => line.text);
-	while (shown.length < bodyRows) shown.push("");
-	const selectedRow = rows[cursor];
-	const steps = wide && selectedRow ? opts.activity?.(selectedRow.taskId) : undefined;
-	const details = wide
-		? detailLines(selectedRow, detailWidth, theme, { steps, height: bodyRows })
-		: [];
-	const body = shown.map((line, index) => {
-		if (!wide) return line;
-		const clipped = truncateToWidth(line, listWidth, "…");
-		const pad = " ".repeat(Math.max(0, listWidth - visibleWidth(clipped)));
-		const detail = truncateToWidth(details[index] ?? "", detailWidth, "…");
-		return `${clipped}${pad}${theme.fg("borderMuted", " │ ")}${detail}`;
-	});
-	const live = rows.filter((r) => r.section === "running" || r.section === "queued").length;
-	const done = rows.filter((r) => r.section === "done").length;
-	const stopped = opts.hidden?.stopped ?? rows.filter((r) => r.section === "stopped").length;
-	const failed = opts.hidden?.failed ?? rows.filter((r) => r.section === "failed").length;
-	const stoppedPart = stopped > 0 ? ` · ${stopped} stopped` : "";
-	const counts = `${live} live · ${done} done${stoppedPart} · ${failed} failed`;
-	const agentTeam = opts.agentTeam ? ` · agent team ${opts.agentTeam.open} open` : "";
-	const title = `${theme.bold("Mission control")}  ${theme.fg("muted", counts + agentTeam)}`;
-	const rule = theme.fg("borderMuted", "─".repeat(Math.max(1, width)));
-	const hint = theme.fg("dim", boardHint(rows, cursor, opts.hidden));
-	const box = hintFrame(hint, width, wide ? listWidth + 1 : undefined, theme);
-	const out = [title, rule, ...body, ...box];
-	return out.map((line) => truncateToWidth(line, width, ""));
+	const bodyHeight = Math.max(1, height - 4);
+	const team = opts.agentTeam ? " · team " + opts.agentTeam.open + " open" : "";
+	const out = [
+		screenHeader("pi-subagents", boardSummary(rows, opts.hidden) + team, width, theme),
+		tabsLine(["RUNS", "AGENT TEAM"], 0, width, theme),
+		"",
+		...renderBoardBody(rows, {
+			width,
+			height: bodyHeight,
+			cursor,
+			theme,
+			...(opts.hidden ? { hidden: opts.hidden } : {}),
+		}),
+		fitHint(boardHint(rows, cursor, opts.hidden), width, theme),
+	];
+	return out.slice(0, Math.max(1, height)).map((line) => truncateToWidth(line, width, ""));
 }
 
 export type BoardAction =
@@ -172,7 +188,24 @@ export interface BoardView {
 const POLL_MS = 1000;
 
 function versionOf(rows: BoardRow[], cursor: number): string {
-	return `${cursor}|${rows.map((r) => `${r.taskId}:${r.section}:${r.turns}:${r.elapsedSec}:${r.tokens}`).join("|")}`;
+	return (
+		cursor +
+		"|" +
+		rows
+			.map(
+				(row) =>
+					row.taskId +
+					":" +
+					row.section +
+					":" +
+					row.turns +
+					":" +
+					row.elapsedSec +
+					":" +
+					row.tokens,
+			)
+			.join("|")
+	);
 }
 
 export function createBoardView(deps: BoardViewDeps): BoardView {

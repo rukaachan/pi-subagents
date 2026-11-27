@@ -2,12 +2,21 @@
  * pi-subagents: mission control with Runs and Agent team tabs.
  */
 
-import { boardHeight, renderBoard } from "../board/index.ts";
-import type { BoardRow } from "../board/index.ts";
+import type { Theme } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth } from "@earendil-works/pi-tui";
 import {
-	renderAgentTeamScreen,
+	boardHeight,
+	boardHint,
+	boardSummary,
+	renderBoardBody,
+	type BoardRow,
+} from "../board/index.ts";
+import { fitHint, screenHeader, tabsLine } from "../design/index.ts";
+import {
 	agentTeamHeight,
+	agentTeamHint,
+	agentTeamSummary,
+	renderAgentTeamBody,
 	type AgentTeamRow,
 	type AgentTeamRoundInfo,
 } from "./agent-team-screen.ts";
@@ -51,47 +60,45 @@ export interface WorkspaceRender extends WorkspaceData {
 	height: number;
 	runsCursor: number;
 	agentTeamCursor: number;
-	theme: Pick<import("@earendil-works/pi-coding-agent").Theme, "fg" | "bold">;
-	activity?: (taskId: string) => readonly string[] | undefined;
+	theme: Pick<Theme, "fg" | "bold">;
 	hidden?: { failed: number; stopped: number; hidden: boolean };
 }
 
 export function workspaceHeight(tab: WorkspaceTab, data: WorkspaceData): number {
-	return (tab === "runs" ? boardHeight(data.runs) : agentTeamHeight(data.agentTeam)) + 1;
-}
-
-function tabsLine(tab: WorkspaceTab, width: number, theme: WorkspaceRender["theme"]): string {
-	const label = (text: string, active: boolean) =>
-		active ? theme.fg("accent", theme.bold(text)) : theme.fg("dim", text);
-	return truncateToWidth(
-		` ${label("RUNS", tab === "runs")}  │  ${label("AGENT TEAM", tab === "agent-team")}`,
-		width,
-		"…",
-	);
+	return tab === "runs" ? boardHeight(data.runs) : agentTeamHeight(data.agentTeam);
 }
 
 export function renderWorkspace(opts: WorkspaceRender): string[] {
-	const baseHeight = Math.max(5, opts.height - 1);
-	const base =
-		opts.tab === "runs"
-			? renderBoard(opts.runs, {
-					width: opts.width,
-					height: baseHeight,
-					cursor: opts.runsCursor,
-					theme: opts.theme,
-					agentTeam: opts.summary,
-					activity: opts.activity,
-					...(opts.hidden ? { hidden: opts.hidden } : {}),
-				})
-			: renderAgentTeamScreen(opts.agentTeam, {
-					width: opts.width,
-					height: baseHeight,
-					cursor: opts.agentTeamCursor,
-					theme: opts.theme,
-					enabled: opts.agentTeamEnabled,
-					...(opts.summary.facts ? { facts: opts.summary.facts } : {}),
-					...(opts.agentTeamRounds ? { rounds: opts.agentTeamRounds } : {}),
-				});
-	const tabs = tabsLine(opts.tab, opts.width, opts.theme);
-	return [base[0] ?? "", tabs, ...base.slice(1)];
+	const height = Math.max(5, opts.height);
+	const bodyHeight = Math.max(1, height - 4);
+	const runs = opts.tab === "runs";
+	const summary = runs
+		? boardSummary(opts.runs, opts.hidden)
+		: agentTeamSummary(opts.agentTeam, opts.agentTeamEnabled, opts.summary.facts);
+	const body = runs
+		? renderBoardBody(opts.runs, {
+				width: opts.width,
+				height: bodyHeight,
+				cursor: opts.runsCursor,
+				theme: opts.theme,
+				...(opts.hidden ? { hidden: opts.hidden } : {}),
+			})
+		: renderAgentTeamBody(opts.agentTeam, {
+				width: opts.width,
+				height: bodyHeight,
+				cursor: opts.agentTeamCursor,
+				theme: opts.theme,
+				...(opts.agentTeamRounds ? { rounds: opts.agentTeamRounds } : {}),
+			});
+	const hint = runs
+		? boardHint(opts.runs, opts.runsCursor, opts.hidden)
+		: agentTeamHint(opts.agentTeam, opts.agentTeamCursor);
+	const out = [
+		screenHeader("pi-subagents", summary, opts.width, opts.theme),
+		tabsLine(["RUNS", "AGENT TEAM"], runs ? 0 : 1, opts.width, opts.theme),
+		"",
+		...body,
+		fitHint(hint, opts.width, opts.theme),
+	];
+	return out.slice(0, height).map((line) => truncateToWidth(line, opts.width, ""));
 }

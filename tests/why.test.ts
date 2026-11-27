@@ -75,7 +75,7 @@ describe("why text", () => {
 
 	it("is appended to the task detail notice for a failed run", () => {
 		const detail = taskDetail(rec());
-		assert.match(detail, /─── why ───/);
+		assert.match(detail, /WHY/);
 		assert.match(detail, /why: error/);
 	});
 });

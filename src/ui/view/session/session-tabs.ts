@@ -39,7 +39,7 @@ export function tabBar(
 		const text = `${index + 1} ${TAB_LABEL[id]}${count > 0 ? ` ${count}` : ""}`;
 		return id === tab ? theme.bold(theme.fg("accent", text)) : theme.fg("muted", text);
 	});
-	return ` ${parts.join(theme.fg("borderMuted", " · "))}`;
+	return ` ${parts.join("   ")}`;
 }
 
 export function nextError(entries: readonly TranscriptEntry[], from: number): number {

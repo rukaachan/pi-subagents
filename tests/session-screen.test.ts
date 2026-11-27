@@ -23,9 +23,9 @@ describe("the session screen", () => {
 
 	it("shows the title, the stats, and the transcript body", () => {
 		const out = screen().view.render(80);
-		assert.match(out[1] ?? "", /worker · cur5e6/);
-		assert.match(out[1] ?? "", /DONE/);
-		assert.match(out[2] ?? "", /transcript/);
+		assert.match(out[0] ?? "", /worker · cur5e6/);
+		assert.match(out[0] ?? "", /DONE/);
+		assert.match(out[1] ?? "", /transcript/);
 		assert.match(out[3] ?? "", /you/);
 		assert.match(out[3] ?? "", /Task: map the rust engine/);
 		assert.match(out.at(-1) ?? "", /esc back/);
@@ -65,12 +65,12 @@ describe("the session screen", () => {
 		const messages: unknown[] = chat(20);
 		const { view, pings } = screen({ source: () => messages, height: () => 10 });
 		const first = view.render(70);
-		assert.match(first[7] ?? "", /line 20/);
+		assert.match(first[8] ?? "", /line 20/);
 		messages.push(user("a brand new line"));
 		const before = pings();
 		view.sync();
 		assert.ok(pings() > before, "asked for a repaint");
-		assert.match(view.render(70)[7] ?? "", /a brand new line/);
+		assert.match(view.render(70)[8] ?? "", /a brand new line/);
 	});
 
 	it("stops following once you scroll up, and G brings it back", () => {
@@ -79,16 +79,16 @@ describe("the session screen", () => {
 		view.render(70);
 		view.handleInput("k");
 		const up = view.render(70);
-		assert.match(up[7] ?? "", /line 19/, "one line up");
+		assert.match(up[8] ?? "", /line 19/, "one line up");
 		messages.push(user("newest"));
 		view.sync();
-		assert.doesNotMatch(view.render(70)[7] ?? "", /newest/, "still reading history");
+		assert.doesNotMatch(view.render(70)[8] ?? "", /newest/, "still reading history");
 		view.handleInput("G");
-		assert.match(view.render(70)[7] ?? "", /newest/, "back at the tail");
+		assert.match(view.render(70)[8] ?? "", /newest/, "back at the tail");
 		view.handleInput("g");
 		assert.match(view.render(70)[3] ?? "", /line 1/, "home shows the start");
 		view.handleInput("\x1b[6~");
-		assert.match(view.render(70)[3] ?? "", /line 6/, "page down");
+		assert.match(view.render(70)[3] ?? "", /line 7/, "page down");
 		view.handleInput(DOWN);
 		view.handleInput(UP);
 	});

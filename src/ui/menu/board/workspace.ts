@@ -19,7 +19,6 @@ import { scopeTasks, type TaskScope } from "../../../app/session/index.ts";
 import type { TaskStorePort } from "../../../domain/task/index.ts";
 import { buildBoard, type BoardRow } from "../../view/board/index.ts";
 import { helpText, taskRow } from "../../view/text/index.ts";
-import { recentSteps } from "./task-list.ts";
 import { agentTeamRows, roundRows } from "./agent-team-rows.ts";
 import { agentTeamText } from "../../view/workspace/index.ts";
 import {
@@ -107,10 +106,6 @@ function mountWorkspace(
 				);
 			},
 			theme,
-			activity: (taskId) => {
-				const rec = store.get(taskId);
-				return rec ? recentSteps(rec) : undefined;
-			},
 			render: () => tui.requestRender(),
 			onAction: finish,
 			poll: true,

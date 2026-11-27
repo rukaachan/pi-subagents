@@ -161,7 +161,7 @@ describe("menu helpers", () => {
 	});
 
 	it("builds step titles and model rows", () => {
-		assert.equal(stepTitle(2, 5, "Name"), "●●○○○ Name (2/5)");
+		assert.equal(stepTitle(2, 5, "Name"), "Name · 2/5");
 		assert.equal(modelRow("acme", "fast-1"), "acme/fast-1");
 	});
 

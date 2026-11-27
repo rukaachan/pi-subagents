@@ -5,6 +5,7 @@
 import type { ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Container, Key, Spacer, Text, matchesKey } from "@earendil-works/pi-tui";
 import { KEY_DOWN, KEY_UP, buildPicker, fitDescriptions, titleBlock } from "./picker-render.ts";
+import { fitHint } from "./view/design/index.ts";
 import { inModal } from "../app/stop/index.ts";
 import type { PickHost, PickItem, PickOptions } from "./picker-types.ts";
 
@@ -20,12 +21,7 @@ export async function pickFromList(host: PickHost, opts: PickOptions): Promise<s
 			// press as "stop every live run".
 			const chosen = await inModal(() =>
 				custom<string | undefined>((tui, theme, _kb, done) => {
-					// Frame like Pi's own overlay dialogs (top rule, content, bottom rule).
-					const border = (str: string) => theme.fg("border", str);
-					const rule = (width: number) => border("─".repeat(Math.max(1, width)));
 					const wrap = new Container();
-					const topRule = new Text("", 0, 0);
-					wrap.addChild(topRule);
 					const head = titleBlock(opts.title, opts.subtitle, opts.body, theme);
 					wrap.addChild(head.node);
 					wrap.addChild(new Spacer(1));
@@ -35,15 +31,8 @@ export async function pickFromList(host: PickHost, opts: PickOptions): Promise<s
 					});
 					wrap.addChild(list);
 					wrap.addChild(new Spacer(1));
-					wrap.addChild(
-						new Text(
-							`${theme.fg("dim", "↑↓ move")}   ${theme.fg("dim", "enter select")}   ${theme.fg("dim", "esc cancel")}`,
-							0,
-							0,
-						),
-					);
-					const bottomRule = new Text("", 0, 0);
-					wrap.addChild(bottomRule);
+					const hint = new Text("", 0, 0);
+					wrap.addChild(hint);
 					list.onSelect = (item) => done(item.value);
 					list.onCancel = () => done(undefined);
 
@@ -51,8 +40,7 @@ export async function pickFromList(host: PickHost, opts: PickOptions): Promise<s
 						render: (width: number) => {
 							fitDescriptions(opts.items, width);
 							head.fit(width);
-							topRule.setText(rule(width));
-							bottomRule.setText(rule(width));
+							hint.setText(fitHint("↑↓ move   enter select   esc cancel", width, theme));
 							return wrap.render(width);
 						},
 						invalidate: () => wrap.invalidate(),
