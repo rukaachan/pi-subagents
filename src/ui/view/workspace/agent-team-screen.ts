@@ -238,7 +238,7 @@ export function agentTeamHint(rows: readonly AgentTeamRow[], cursor: number): st
 	const status = rows[cursor]?.view.task.status;
 	const parts = ["↑↓ move"];
 	if (status) parts.push("enter detail");
-	if (status === "pending") parts.push("c claim");
+	if (status === "pending") parts.push("c claim", "a assign");
 	if (status === "in_progress") parts.push("x done", "r release");
 	if (status === "in_review") parts.push("v verify");
 	parts.push("? help", "n new");
