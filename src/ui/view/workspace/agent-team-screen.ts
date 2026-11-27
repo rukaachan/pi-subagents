@@ -70,7 +70,7 @@ export function buildAgentTeamRows(
 export function agentTeamHeight(rows: readonly AgentTeamRow[]): number {
 	if (rows.length === 0) return 9;
 	const sections = new Set(rows.map((row) => sectionOf(row.view.task.status))).size;
-	return 3 + sections + 5 * rows.length;
+	return 4 + sections + 5 * rows.length;
 }
 
 function sectionOf(status: string): string {

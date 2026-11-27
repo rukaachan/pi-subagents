@@ -28,6 +28,7 @@ export function stackLines(
 	for (const item of items) counts.set(item.section, (counts.get(item.section) ?? 0) + 1);
 	const target = Math.max(0, Math.min(cursor, items.length - 1));
 	let take = Math.min(items.length, Math.max(1, Math.floor((height + 1) / 5)));
+	let gaps = true;
 	for (;;) {
 		const top = Math.max(0, Math.min(target - Math.floor(take / 2), items.length - take));
 		const out: string[] = [];
@@ -39,13 +40,18 @@ export function stackLines(
 				if (out.length > 0) out.push("");
 				out.push(sectionLine(item.section, counts.get(item.section) ?? 0, theme));
 				section = item.section;
-			} else {
+			} else if (gaps) {
 				out.push("");
 			}
 			out.push(...item.lines);
 		}
 		if (out.length <= height) return out;
+		if (gaps) {
+			gaps = false;
+			continue;
+		}
 		if (take <= 1) return out.slice(0, height);
 		take -= 1;
+		gaps = true;
 	}
 }

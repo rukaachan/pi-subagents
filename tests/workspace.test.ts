@@ -187,6 +187,35 @@ describe("mission control", () => {
 		assert.ok(out.some((line) => line.includes("live")));
 	});
 
+	it("keeps every card when the terminal is one line short", () => {
+		const rows = buildAgentTeamRows(
+			Array.from({ length: 4 }, (_, i) =>
+				agentTeamView({
+					id: `task-${i + 1}`,
+					status: "in_progress",
+					owner: `worker-${i + 1}`,
+					revision: 2,
+					description: `work ${i + 1}`,
+				}),
+			),
+			() => true,
+		);
+		const out = renderAgentTeamScreen(rows, {
+			width: 100,
+			height: 24,
+			cursor: 0,
+			theme: plainTheme() as never,
+			enabled: true,
+		});
+		assert.equal(out.length, 24);
+		for (let i = 1; i <= 4; i += 1) {
+			assert.ok(
+				out.some((line) => line.includes(`task-${i}`)),
+				`task-${i}`,
+			);
+		}
+	});
+
 	it("lists the Team actions for the selected task status", () => {
 		const pending = agentTeamHint("pending");
 		assert.match(pending.footer, /c claim/);
