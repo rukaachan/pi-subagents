@@ -103,7 +103,6 @@ export function registerSubagentsCommand(
 				"agent-team",
 				"agent-teams",
 				"help",
-				"?",
 				"new",
 				"list",
 				"tasks",

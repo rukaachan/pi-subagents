@@ -11,7 +11,7 @@ describe("subagents route", () => {
 		assert.deepEqual(routeSubagents("   "), { kind: "board" });
 	});
 
-	it("opens help for help and ?", () => {
+	it("opens help for help and the hidden ? alias", () => {
 		assert.deepEqual(routeSubagents("help"), { kind: "help" });
 		assert.deepEqual(routeSubagents("?"), { kind: "help" });
 	});
