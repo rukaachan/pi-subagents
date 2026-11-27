@@ -12,8 +12,8 @@ import { transcriptEntries, type TranscriptEntry } from "../../../telemetry/live
 import { createSessionView } from "./session-screen.ts";
 import { shortText, taskStatusIcon } from "../text/index.ts";
 
-// ctx.ui.custom mounts in the editor slot, so leave room for Pi's chrome.
-const RESERVED_ROWS = 8;
+// The overlay floats over the transcript; leave a small margin at the edges.
+const OVERLAY_ROWS = 0.8;
 
 function plainText(entries: TranscriptEntry[]): string {
 	return entries
@@ -72,26 +72,32 @@ export async function openSessionView(
 		return bits.join(" · ");
 	};
 	await inModal(() =>
-		custom<void>((tui, theme, _kb, done) => {
-			const view = createSessionView({
-				title: `${taskStatusIcon(rec.status)} ${rec.subagentName} · ${shortText(rec.description, 40)}`,
-				stats,
-				source,
-				height: () => Math.max(10, tui.terminal.rows - RESERVED_ROWS),
-				theme,
-				empty:
-					rec.status === "running" ? "waiting for the first message…" : "(no transcript saved)",
-				render: () => tui.requestRender(),
-				onClose: () => done(),
-				poll: rec.status === "running",
-				alive: () => rec.status === "running",
-				streaming: live?.streaming,
-				subscribe: live?.subscribe,
-				onCopy: (text) => {
-					void copyToClipboard(text).catch(() => {});
-				},
-			});
-			return { ...view, dispose: view.dispose };
-		}),
+		custom<void>(
+			(tui, theme, _kb, done) => {
+				const view = createSessionView({
+					title: `${taskStatusIcon(rec.status)} ${rec.subagentName} · ${shortText(rec.description, 40)}`,
+					stats,
+					source,
+					height: () => Math.max(10, Math.floor(tui.terminal.rows * OVERLAY_ROWS)),
+					theme,
+					empty:
+						rec.status === "running" ? "waiting for the first message…" : "(no transcript saved)",
+					render: () => tui.requestRender(),
+					onClose: () => done(),
+					poll: rec.status === "running",
+					alive: () => rec.status === "running",
+					streaming: live?.streaming,
+					subscribe: live?.subscribe,
+					onCopy: (text) => {
+						void copyToClipboard(text).catch(() => {});
+					},
+				});
+				return { ...view, dispose: view.dispose };
+			},
+			{
+				overlay: true,
+				overlayOptions: { anchor: "center", width: "92%", maxHeight: "85%" },
+			},
+		),
 	);
 }

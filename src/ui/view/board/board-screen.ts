@@ -61,7 +61,7 @@ export function boardSummary(rows: readonly BoardRow[], hidden?: HiddenRows): st
 export function boardHeight(rows: readonly BoardRow[]): number {
 	if (rows.length === 0) return 9;
 	const sections = new Set(rows.map((row) => row.section)).size;
-	return 3 + sections + 5 * rows.length;
+	return 3 + 2 * sections + 4 * rows.length;
 }
 
 function subtitle(row: BoardRow): string {

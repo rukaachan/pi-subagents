@@ -19,7 +19,7 @@ export interface WorkspaceViewDeps {
 	agentTeam: () => AgentTeamRow[];
 	agentTeamEnabled: () => boolean;
 	summary: () => { open: number; done: number; enabled: boolean; facts?: number };
-	height: () => number;
+	height: (tab: WorkspaceTab) => number;
 	hidden?: () => { failed: number; stopped: number; hidden: boolean };
 	toggleHidden?: () => void;
 	theme: WorkspaceRender["theme"];
@@ -160,7 +160,8 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 		if (key === "n") return emit({ kind: "agent-team-new" });
 		if (key === "s") return emit({ kind: "agent-team-start" });
 		if (!taskId) return;
-		if (matchesKey(key, Key.enter)) return emit({ kind: "agent-team-detail", taskId });
+		if (matchesKey(key, Key.enter) && row?.view.task.runId)
+			return emit({ kind: "agent-team-open-run", taskId });
 		if (key === "o") return emit({ kind: "agent-team-open-run", taskId });
 		if (key === "e") return emit({ kind: "agent-team-edit", taskId });
 		if (key === "a") return emit({ kind: "agent-team-assign", taskId });
@@ -182,7 +183,7 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 				...all,
 				tab,
 				width,
-				height: deps.height(),
+				height: deps.height(tab),
 				runsCursor,
 				agentTeamCursor,
 				theme: deps.theme,
@@ -199,7 +200,6 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): WorkspaceView {
 			}
 			if (key === "1") return switchTab("runs");
 			if (key === "2") return switchTab("agent-team");
-			if (key === "?") return emit({ kind: "help" });
 			if (key === "f") return emit({ kind: "finish" });
 			if (key === "e" && tab === "runs" && hiddenTotal()) {
 				deps.toggleHidden?.();

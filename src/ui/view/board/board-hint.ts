@@ -26,7 +26,7 @@ export function boardHint(rows: readonly BoardRow[], cursor: number, hidden?: Hi
 	const toggle =
 		total > 0 ? [hidden?.hidden ? "e show " + total + " hidden" : "e hide hidden"] : [];
 	if (rows.length === 0) {
-		return ["enter run", "? help", "f finish", ...toggle, "0/0"].join("  ");
+		return ["enter run", "f finish", ...toggle, "0/0"].join("  ");
 	}
 	const row = rows[cursor];
 	const actions: string[] = [];
@@ -37,7 +37,6 @@ export function boardHint(rows: readonly BoardRow[], cursor: number, hidden?: Hi
 	return [
 		"↑↓ move",
 		...actions,
-		"? help",
 		"n run",
 		"f finish",
 		...toggle,

@@ -82,9 +82,10 @@ The other common paths are:
 /subagents
 ```
 
-The board has two tabs. Each run or task is a card with a status glyph,
-a title, and one line of detail; the selected card is outlined. The
-footer lists only the keys that work on that card; `?` lists every key.
+The board opens as a pop-up over the transcript, with two tabs. Each
+run or task is a card with a status glyph, a title, and one line of
+detail; the selected card is outlined. The footer lists only the keys
+that work on that card; `/subagents help` lists every key.
 
 - **RUNS** — queued, running, done, stopped, and failed runs. On an empty
   board, press `enter` or `n` and type a prompt.
@@ -96,17 +97,17 @@ Common keys:
 ```text
 ↑↓ move       enter open       n run        f finish
 s steer       x stop           r retry      c copy
-? help        tab switch       1 runs       2 team
-e hidden      esc close
+tab switch    1 runs           2 team       e hidden
+esc close
 ```
 
 On the Team tab, `n` creates a task, `s` starts a team, `e` edits,
-`a` assigns, `c` claims, `r` releases, `x` completes, and `o` opens
-the linked run. The footer changes with the selected task; `?` lists
-every key.
+`a` assigns, `c` claims, `r` releases, `x` completes, and `enter`
+opens the linked child run (`o` is an alias). The footer changes with
+the selected task; `/subagents help` lists every key.
 
-A run opens a read-only transcript with three tabs: transcript, tools,
-and errors. `y` copies the visible tab, `/` searches, and `esc`
+A run opens a read-only transcript pop-up with three tabs: transcript,
+tools, and errors. `y` copies the visible tab, `/` searches, and `esc`
 returns to the board. The viewer never changes the run.
 
 ## A subagent file

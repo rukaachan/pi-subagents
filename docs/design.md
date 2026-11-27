@@ -109,8 +109,10 @@ launch runs or mutate files directly; an action goes back to the app.
 Every surface shares one visual system: a rounded card per run or task,
 a status glyph (`○` queued, `●` running, `✓` done, `⊘` stopped, `✗`
 failed), a bold title, a dim detail line, and a footer with only the keys
-that work on the selection. Screens use one accent for focus, no hard
-rules, and blank space between sections. `?` lists every key.
+that work on the selection. Mission control and the transcript viewer
+float as pop-ups over the transcript. Screens use one accent for focus,
+no hard rules, and blank space between sections. `/subagents help` lists
+every key.
 
 ## Contracts
 

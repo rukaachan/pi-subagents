@@ -93,7 +93,7 @@ describe("mission control", () => {
 	});
 
 	it("switches to Team and emits every Team action", () => {
-		const agentTeamRows = buildAgentTeamRows([agentTeamView()], () => false);
+		const agentTeamRows = buildAgentTeamRows([agentTeamView({ runId: "task-run-1" })], () => false);
 		const row = agentTeamRows[0];
 		if (!row) throw new Error("missing team row");
 		const initial = data({ agentTeam: [row], agentTeamEnabled: true });
@@ -108,7 +108,7 @@ describe("mission control", () => {
 		);
 
 		const keys: [string, WorkspaceAction["kind"]][] = [
-			["\r", "agent-team-detail"],
+			["\r", "agent-team-open-run"],
 			["o", "agent-team-open-run"],
 			["e", "agent-team-edit"],
 			["a", "agent-team-assign"],
@@ -151,7 +151,7 @@ describe("mission control", () => {
 		}).join("\n");
 		assert.match(withRun, /run task-run-0/);
 		assert.match(withRun, /result: changed src\/a\.ts; tests pass/);
-		assert.match(withRun, /o open run/);
+		assert.match(withRun, /enter open run/);
 
 		const plain = buildAgentTeamRows([agentTeamView({ status: "completed" })], () => false);
 		const withoutRun = renderAgentTeamScreen(plain, {
@@ -162,7 +162,7 @@ describe("mission control", () => {
 			enabled: true,
 		}).join("\n");
 		assert.match(withoutRun, /no run linked/);
-		assert.doesNotMatch(withoutRun, /o open run/);
+		assert.doesNotMatch(withoutRun, /enter open run/);
 	});
 
 	it("shows the team board in the Team tab with revision and owner", () => {
@@ -187,7 +187,7 @@ describe("mission control", () => {
 		assert.ok(out.some((line) => line.includes("live")));
 	});
 
-	it("keeps every card when the terminal is one line short", () => {
+	it("keeps every card at the compact height", () => {
 		const rows = buildAgentTeamRows(
 			Array.from({ length: 4 }, (_, i) =>
 				agentTeamView({
@@ -202,12 +202,12 @@ describe("mission control", () => {
 		);
 		const out = renderAgentTeamScreen(rows, {
 			width: 100,
-			height: 24,
+			height: 22,
 			cursor: 0,
 			theme: plainTheme() as never,
 			enabled: true,
 		});
-		assert.equal(out.length, 24);
+		assert.equal(out.length, 22);
 		for (let i = 1; i <= 4; i += 1) {
 			assert.ok(
 				out.some((line) => line.includes(`task-${i}`)),
@@ -259,7 +259,7 @@ describe("mission control", () => {
 		assert.match(all, /\/subagents new to create a subagent/);
 		const footer = out.at(-1) ?? "";
 		assert.match(footer, /enter run/);
-		assert.match(footer, /\? help/);
+		assert.doesNotMatch(footer, /\? help/);
 		assert.match(footer, /f finish/);
 		assert.match(footer, /0\/0/);
 	});
@@ -272,16 +272,13 @@ describe("mission control", () => {
 		}
 	});
 
-	it("keeps n as run when rows exist and opens help with ?", () => {
+	it("keeps n as run when rows exist", () => {
 		const runs = board([rec({ taskId: "task-1", startedAt: 1_000 })], ["task-1"]);
 		const made = view(data({ runs }), "runs");
 		made.v.handleInput("n");
 		assert.deepEqual(made.actions, [{ kind: "finish" }]);
-		const help = view(data({ runs }), "runs");
-		help.v.handleInput("?");
-		assert.deepEqual(help.actions, [{ kind: "help" }]);
-		const teamHelp = view(data(), "agent-team");
-		teamHelp.v.handleInput("?");
-		assert.deepEqual(teamHelp.actions, [{ kind: "help" }]);
+		const noHelp = view(data({ runs }), "runs");
+		noHelp.v.handleInput("?");
+		assert.deepEqual(noHelp.actions, []);
 	});
 });

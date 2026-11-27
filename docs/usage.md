@@ -78,18 +78,19 @@ Turn the board on for other task legs:
 /subagents team off
 ```
 
-The Team tab shows the board. Press `t` to toggle team mode. Each
-task is a card; the footer shows only the keys that work on the
-selected task, and `?` lists every key.
+The Team tab shows the board as a pop-up over the transcript. Press
+`t` to toggle team mode. Each task is a card; the footer shows only
+the keys that work on the selected task, and `/subagents help` lists
+every key.
 
 Common Team keys:
 
 ```text
-enter detail    n new task      s start team
+enter open run  n new task      s start team
 e edit          a assign        c claim
 r release       x complete      d delete
 o open run      v verify        i advice
-? help          tab             esc
+tab             esc
 ```
 
 A task has a subject, description, write scopes, and optional blockers.
@@ -166,19 +167,21 @@ per-run switch still wins.
 
 ## Watch a run
 
-Open the board with `/subagents` or `/subagents tasks`.
+Open the board with `/subagents` or `/subagents tasks`. It floats as a
+pop-up; `esc` closes it.
 
 ```text
 Runs keys:  ↑↓ move · enter open · n run · f finish
             s steer · x stop · r retry · c copy · e hidden
-            ? help · tab switch · 1 runs · 2 team · esc close
+            tab switch · 1 runs · 2 team · esc close
 ```
 
-The footer shows only the keys for the selected card. Press `?` for
-the full list.
+The footer shows only the keys for the selected card. Run
+`/subagents help` for the full list.
 
 A live run streams its answer. A done run shows its saved history. The
-viewer has three tabs: transcript, tools, and errors. `y` copies the
+viewer opens as a pop-up and has three tabs: transcript, tools, and
+errors. `y` copies the
 visible tab; `/` searches with a literal, case-insensitive phrase;
 `n` and `N` step through matches; `e` jumps to the next error. The
 newest 300 KB of a transcript is kept; older lines collapse into one

@@ -19,7 +19,6 @@ import type { TaskStorePort } from "../../../domain/task/index.ts";
 import { pickFromList } from "../../index.ts";
 import { shortText } from "../../view/text/index.ts";
 import type { WorkspaceAction } from "../../view/workspace/index.ts";
-import { detailFlow } from "./agent-team-detail.ts";
 
 function notice(ctx: ExtensionCommandContext, text: string, kind: "info" | "error" = "info"): void {
 	ctx.ui.notify(text, kind);
@@ -228,7 +227,6 @@ export async function runAgentTeamAction(
 		if (view) await confirmDelete(ctx, view);
 		return;
 	}
-	if (action.kind === "agent-team-detail") return detailFlow(ctx, action.taskId);
 	if (action.kind === "agent-team-verify") return verifyFlow(ctx, action.taskId);
 	if (action.kind === "agent-team-advise") return adviseFlow(ctx, action.taskId, store, deps);
 	if (action.kind === "agent-team-start") return startFlow(ctx, store, deps);

@@ -70,7 +70,7 @@ export function buildAgentTeamRows(
 export function agentTeamHeight(rows: readonly AgentTeamRow[]): number {
 	if (rows.length === 0) return 9;
 	const sections = new Set(rows.map((row) => sectionOf(row.view.task.status))).size;
-	return 4 + sections + 5 * rows.length;
+	return 4 + 2 * sections + 4 * rows.length;
 }
 
 function sectionOf(status: string): string {
@@ -235,15 +235,16 @@ export function agentTeamSummary(
 }
 
 export function agentTeamHint(rows: readonly AgentTeamRow[], cursor: number): string {
-	const status = rows[cursor]?.view.task.status;
+	if (rows.length === 0) return "n new  s start";
+	const row = rows[cursor];
+	const status = row?.view.task.status;
 	const parts = ["↑↓ move"];
-	if (status) parts.push("enter detail");
+	if (row?.view.task.runId) parts.push("enter open run");
 	if (status === "pending") parts.push("c claim", "a assign");
 	if (status === "in_progress") parts.push("x done", "r release");
 	if (status === "in_review") parts.push("v verify");
-	parts.push("? help", "n new");
+	parts.push("n new");
 	if (!status || status === "pending" || status === "completed") parts.push("s start");
-	if (rows[cursor]?.view.task.runId) parts.push("o open run");
 	if (status && status !== "deleted") parts.push("e edit");
 	return parts.join("  ");
 }
