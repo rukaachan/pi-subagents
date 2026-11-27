@@ -106,6 +106,12 @@ The UI has two main surfaces:
 The board and viewer receive data through small interfaces. They do not
 launch runs or mutate files directly; an action goes back to the app.
 
+Every surface shares one visual system: a rounded card per run or task,
+a status glyph (`○` queued, `●` running, `✓` done, `⊘` stopped, `✗`
+failed), a bold title, a dim detail line, and a footer with only the keys
+that work on the selection. Screens use one accent for focus, no hard
+rules, and blank space between sections. `?` lists every key.
+
 ## Contracts
 
 The public tool surface is intentionally narrow:

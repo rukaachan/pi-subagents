@@ -47,7 +47,7 @@ The same work can be requested by the model with the `Task` tool:
 | Field               | Effect                                              |
 | ------------------- | --------------------------------------------------- |
 | `subagent_type`     | Which subagent to run. Omit to auto-pick.           |
-| `description`       | Short label in the menu and rows.                   |
+| `description`       | Short label in the menu and on cards.               |
 | `prompt`            | The task. Required.                                 |
 | `model`             | Replace the file model for this run.                |
 | `codemode`          | `off`, `on`, or `only` for this run.                |
@@ -78,7 +78,9 @@ Turn the board on for other task legs:
 /subagents team off
 ```
 
-The Team tab shows the board. Press `t` to toggle team mode.
+The Team tab shows the board. Press `t` to toggle team mode. Each
+task is a card; the footer shows only the keys that work on the
+selected task, and `?` lists every key.
 
 Common Team keys:
 
@@ -172,6 +174,9 @@ Runs keys:  ↑↓ move · enter open · n run · f finish
             ? help · tab switch · 1 runs · 2 team · esc close
 ```
 
+The footer shows only the keys for the selected card. Press `?` for
+the full list.
+
 A live run streams its answer. A done run shows its saved history. The
 viewer has three tabs: transcript, tools, and errors. `y` copies the
 visible tab; `/` searches with a literal, case-insensitive phrase;
@@ -188,7 +193,7 @@ Every run returns one report. A run that ends on a tool call is marked
 `[incomplete]`; a run cut by a limit is marked `[cut short] <reason>`.
 The marker is built from the real session, not from the model's memory.
 
-A stopped or failed row gets a short "why" section in its detail view:
+A stopped or failed run keeps a short WHY section in its task detail:
 the failure family, token and turn count, and the last tools. This is a
 reading aid, not a new verdict.
 

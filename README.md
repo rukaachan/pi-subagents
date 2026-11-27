@@ -82,7 +82,9 @@ The other common paths are:
 /subagents
 ```
 
-The board has two tabs:
+The board has two tabs. Each run or task is a card with a status glyph,
+a title, and one line of detail; the selected card is outlined. The
+footer lists only the keys that work on that card; `?` lists every key.
 
 - **RUNS** — queued, running, done, stopped, and failed runs. On an empty
   board, press `enter` or `n` and type a prompt.
@@ -94,12 +96,14 @@ Common keys:
 ```text
 ↑↓ move       enter open       n run        f finish
 s steer       x stop           r retry      c copy
-? help        tab switch       esc close
+? help        tab switch       1 runs       2 team
+e hidden      esc close
 ```
 
 On the Team tab, `n` creates a task, `s` starts a team, `e` edits,
 `a` assigns, `c` claims, `r` releases, `x` completes, and `o` opens
-the linked run.
+the linked run. The footer changes with the selected task; `?` lists
+every key.
 
 A run opens a read-only transcript with three tabs: transcript, tools,
 and errors. `y` copies the visible tab, `/` searches, and `esc`
